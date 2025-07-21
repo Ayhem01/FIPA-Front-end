@@ -1,0 +1,27 @@
+{
+    "Button": "Ajouter",
+    "CardTitle" : "Titre",
+    "NomTable" : "Nom",
+    "AdressTable" : "Adresse",
+    "TagsTable" : "Balises",
+    "ActionTable" : "Actions",
+    "Dashboard":"tableau de bord",
+    "AccountPages":"Pages de compte",
+    "Profile":"Profil",
+    "Signin":"Se connecter",
+    "Desclogin":"Entrez votre adresse mail et votre mot de passe pour vous connecter",
+    "Email":"Adresse mail",
+    "Password":"Mot de passe",
+    "RememberMe":"Se souvenir de moi",
+    "NoAccount":"Pas de compte ?",
+    "Signup":"S'inscrire",
+    "EmailRequiredMessage":"veuillez saisir votre adresse mail !",
+    "PasswordRequiredMessage":"veuillez saisir votre mot de passe !",
+    "ProfileInfo":"Informations de profil",
+    "FullName":"Nom complet",
+    "Mobile":"Telephone",
+    "Location":"Localisation",
+    "Social":"Réseaux sociaux",
+    "Addsuccess":"Ajout avec successe"
+
+}

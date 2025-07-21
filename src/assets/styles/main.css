@@ -3048,3 +3048,875 @@ section.ant-layout.ant-layout-has-sider.layout-dashboard.layout-profile
   path {
   fill: #8c8c8c;
 }
+/* design */
+.setup-2fa-container {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 2rem;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.setup-2fa-container h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.setup-2fa-container h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #4a5568;
+  margin: 1.5rem 0 0.75rem 0;
+}
+
+/* État de chargement */
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  color: #4a5568;
+}
+
+.loading-spinner {
+  border: 3px solid #e2e8f0;
+  border-top: 3px solid #4299e1;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+  margin-right: 12px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Messages d'erreur */
+.error-message {
+  background-color: #fff5f5;
+  color: #c53030;
+  padding: 1rem;
+  border-radius: 6px;
+  border-left: 4px solid #e53e3e;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+
+/* Section 2FA déjà activé */
+.already-enabled {
+  text-align: center;
+  padding: 1.5rem;
+  background-color: #f7fafc;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+
+.success-message {
+  color: #2f855a;
+  font-weight: 500;
+  margin-bottom: 1.5rem;
+}
+
+.primary-button, .secondary-button {
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.2s;
+  cursor: pointer;
+  margin: 0 0.5rem;
+}
+
+.primary-button {
+  background-color: #4299e1;
+  color: white;
+  border: none;
+  box-shadow: 0 2px 4px rgba(66, 153, 225, 0.3);
+}
+
+.primary-button:hover {
+  background-color: #3182ce;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(66, 153, 225, 0.3);
+}
+
+.secondary-button {
+  background-color: #fff;
+  color: #4a5568;
+  border: 1px solid #e2e8f0;
+}
+
+.secondary-button:hover {
+  background-color: #f7fafc;
+  border-color: #cbd5e0;
+}
+
+/* Section QR Code */
+.qr-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 1.5rem 0;
+}
+
+.qr-code {
+  width: 220px;
+  height: 220px;
+  border-radius: 8px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  background-color: white;
+  transition: transform 0.3s ease;
+}
+
+.qr-code:hover {
+  transform: scale(1.02);
+}
+
+.instructions {
+  font-size: 0.95rem;
+  color: #4a5568;
+  text-align: center;
+  margin-top: 1rem;
+  line-height: 1.5;
+  max-width: 90%;
+}
+
+/* Section clé secrète */
+.secret-key {
+  background-color: #f7fafc;
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+.secret-key strong {
+  font-weight: 600;
+  color: #2d3748;
+}
+
+/* Section vérification */
+.verification-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #edf2f7;
+}
+
+/* Styles pour le composant Verify2FA */
+.verify-2fa {
+  margin-top: 1rem;
+}
+
+.totp-countdown {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.totp-countdown p {
+  font-size: 0.9rem;
+  color: #4a5568;
+  margin-bottom: 0.5rem;
+}
+
+.countdown {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #3182ce;
+}
+
+.countdown.warning {
+  color: #dd6b20;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background-color: #edf2f7;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+
+.progress {
+  height: 100%;
+  background-color: #4299e1;
+  transition: width 1s linear;
+  border-radius: 3px;
+}
+
+/* Input et bouton pour le code */
+.input-group {
+  display: flex;
+  margin-bottom: 1.5rem;
+}
+
+.input-group input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e2e8f0;
+  border-right: none;
+  border-radius: 6px 0 0 6px;
+  font-size: 1.1rem;
+  letter-spacing: 4px;
+  text-align: center;
+  font-weight: 600;
+  transition: border-color 0.2s;
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: #4299e1;
+}
+
+.input-group button {
+  padding: 0.75rem 1.5rem;
+  background-color: #4299e1;
+  color: white;
+  border: none;
+  border-radius: 0 6px 6px 0;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.input-group button:hover {
+  background-color: #3182ce;
+}
+
+.input-group button:disabled {
+  background-color: #a0aec0;
+  cursor: not-allowed;
+}
+
+/* Messages de statut */
+.success-message, .warning-message, .error-message {
+  padding: 1rem;
+  border-radius: 6px;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+}
+
+.success-message {
+  background-color: #f0fff4;
+  color: #276749;
+  border-left: 4px solid #48bb78;
+}
+
+.warning-message {
+  background-color: #fffaf0;
+  color: #975a16;
+  border-left: 4px solid #ed8936;
+}
+
+/* Design responsive */
+@media (max-width: 640px) {
+  .setup-2fa-container {
+    padding: 1.5rem;
+    margin: 0 0.75rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+  
+  .qr-code {
+    width: 180px;
+    height: 180px;
+  }
+  
+  .primary-button, .secondary-button {
+    display: block;
+    width: 100%;
+    margin: 0.5rem 0;
+  }
+}
+/* Styles pour la modal de mot de passe */
+.password-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.password-modal {
+  background-color: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  width: 400px;
+  max-width: 90%;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.password-modal h3 {
+  margin-top: 0;
+  color: #2d3748;
+}
+
+.password-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 6px;
+  margin: 1rem 0;
+  font-size: 1rem;
+}
+
+.password-input:focus {
+  outline: none;
+  border-color: #4299e1;
+}
+
+.button-group {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  justify-content: flex-end;
+}
+
+.mt-4 {
+  margin-top: 1rem;
+}
+.verify-2fa-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding: 20px;
+}
+
+.verify-2fa-card {
+  width: 100%;
+  max-width: 450px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 30px;
+  text-align: center;
+}
+
+h2 {
+  margin-bottom: 20px;
+  color: #333;
+  font-size: 24px;
+}
+
+.instructions {
+  margin-bottom: 25px;
+  color: #666;
+}
+
+.user-email {
+  background-color: #f8f8f8;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.countdown {
+  margin-bottom: 20px;
+}
+
+.countdown span {
+  font-weight: bold;
+  color: #e74c3c;
+}
+
+.code-input-container {
+  margin-bottom: 25px;
+}
+
+.code-input {
+  width: 100%;
+  padding: 15px;
+  font-size: 24px;
+  letter-spacing: 10px;
+  text-align: center;
+  border: 2px solid #ddd;
+  border-radius: 4px;
+  transition: border-color 0.3s;
+}
+
+.code-input:focus {
+  border-color: #3498db;
+  outline: none;
+}
+
+.error-message {
+  color: #e74c3c;
+  margin-bottom: 20px;
+  padding: 10px;
+  background-color: rgba(231, 76, 60, 0.1);
+  border-radius: 4px;
+}
+
+.button-group {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.cancel-button, .verify-button {
+  flex: 1;
+  padding: 12px;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.3s;
+}
+
+.cancel-button {
+  background-color: #f1f1f1;
+  color: #333;
+}
+
+.verify-button {
+  background-color: #3498db;
+  color: white;
+}
+
+.cancel-button:hover {
+  background-color: #e1e1e1;
+}
+
+.verify-button:hover {
+  background-color: #2980b9;
+}
+
+.cancel-button:disabled, .verify-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.help-text {
+  margin-top: 20px;
+  color: #666;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: #3498db;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+}
+
+.link-button:hover {
+  color: #2980b9;
+}
+
+@media (max-width: 480px) {
+  .verify-2fa-card {
+    padding: 20px;
+  }
+  
+  .button-group {
+    flex-direction: column;
+  }
+  
+  .code-input {
+    font-size: 20px;
+    letter-spacing: 8px;
+  }
+  :root {
+    --sidebar-width: 250px;
+    --sidebar-collapsed-width: 76px;
+    --header-height: 70px;
+    --header-bg: #ffffff;
+    --header-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    --header-border-radius: 12px;
+    --primary-color: #50b0ff;
+    --text-color: #333333;
+    --text-secondary: #718096;
+    --transition-speed: 0.3s;
+  }
+  
+  /* Adjust main content area to account for fixed header and sidebar */
+  .main-content {
+    margin-left: calc(var(--sidebar-width) + 20px);
+    margin-top: calc(var(--header-height) + 20px);
+    padding: 20px;
+    transition: margin var(--transition-speed) ease;
+  }
+  
+  .main-content.collapsed {
+    margin-left: calc(var(--sidebar-collapsed-width) + 20px);
+  }
+  
+  /* Mobile adjustments */
+  @media (max-width: 768px) {
+    .main-content {
+      margin-left: 10px;
+    }
+  }
+  /* Add these styles to your auth.css file */
+
+.change-password-container {
+  max-width: 500px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.auth-card {
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.auth-card .ant-card-head {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 16px 24px;
+}
+
+.auth-card .ant-card-head-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.auth-card .ant-card-body {
+  padding: 24px;
+}
+
+.submit-button {
+  height: 40px;
+  font-weight: 500;
+  margin-top: 8px;
+}
+
+.mb-4 {
+  margin-bottom: 16px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+  .change-password-container {
+    padding: 0 0.5rem;
+    margin: 1rem auto;
+  }
+  
+  .auth-card .ant-card-body {
+    padding: 16px;
+  }
+}
+.marketing-container {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 24px;
+  color: #333;
+}
+
+.category-card {
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+.category-button {
+  height: 160px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  cursor: pointer;
+  transition: all 0.3s;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.category-button:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+}
+
+.category-icon {
+  margin-bottom: 16px;
+}
+
+.category-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+  color: white;
+}
+
+/* CRUD List Styling */
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.list-header h1 {
+  margin-bottom: 0;
+}
+
+.action-button {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.crud-table {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+.ant-table-wrapper {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.empty-state {
+  padding: 48px 0;
+  text-align: center;
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  color: #d9d9d9;
+  margin-bottom: 16px;
+}
+
+.empty-state-text {
+  color: #8c8c8c;
+  font-size: 16px;
+}
+/* Styles pour le formulaire de média */
+.form-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.form-col {
+  flex: 1;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* Styles pour l'affichage des détails */
+.detail-item {
+  margin-bottom: 16px;
+}
+
+.detail-item h4 {
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #333;
+}
+
+.detail-item p {
+  margin: 0;
+  color: #666;
+}
+
+.detail-row {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 16px;
+}
+
+.detail-row .detail-item {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.status-list {
+  list-style: disc;
+  padding-left: 20px;
+  margin: 0;
+}
+}
+/* Ajouter dans un fichier CSS ou dans les styles de votre application */
+/* Style général */
+.calendar-container .fc-theme-standard td, 
+.calendar-container .fc-theme-standard th {
+  border-color: #e8e8e8;
+}
+
+/* Style général du calendrier */
+.calendar-container .fc-theme-standard {
+  font-family: Arial, sans-serif;
+}
+
+/* En-têtes des jours de la semaine */
+.calendar-container .fc .fc-col-header-cell {
+  padding: 8px 0;
+}
+
+.calendar-container .fc .fc-col-header-cell.fc-day-sun,
+.calendar-container .fc .fc-col-header-cell.fc-day-sat {
+  background-color: #e91e63 !important;
+}
+
+.calendar-container .fc .fc-col-header-cell.fc-day-mon,
+.calendar-container .fc .fc-col-header-cell.fc-day-tue,
+.calendar-container .fc .fc-col-header-cell.fc-day-wed,
+.calendar-container .fc .fc-col-header-cell.fc-day-thu,
+.calendar-container .fc .fc-col-header-cell.fc-day-fri {
+  background-color: #8e44ad !important;
+}
+
+.calendar-container .fc .fc-col-header-cell-cushion {
+  color: white !important;
+  font-weight: bold;
+  padding: 5px;
+}
+
+/* Style pour les numéros de jours */
+.calendar-container .fc-daygrid-day-number {
+  font-size: 1.1em;
+  font-weight: 500;
+  padding: 5px 10px;
+}
+
+/* Couleur des numéros de jours du weekend */
+.calendar-container .fc-day-sun .fc-daygrid-day-number,
+.calendar-container .fc-day-sat .fc-daygrid-day-number {
+  color: #e91e63 !important;
+}
+
+/* Bordures plus légères */
+.calendar-container .fc td, 
+.calendar-container .fc th {
+  border: 1px solid #e0e0e0;
+}
+
+/* Style pour aujourd'hui */
+.calendar-container .fc .fc-day-today {
+  background-color: rgba(188, 232, 241, 0.3) !important;
+}
+
+/* Style pour les événements */
+.calendar-container .fc-event {
+  border-radius: 3px;
+  margin: 1px 0;
+  padding: 2px 4px;
+  border: none;
+}
+
+/* Styles spécifiques par type d'événement */
+.calendar-container .fc-event.call-event {
+  background-color: #bbdefb !important;
+  border-left: 3px solid #1976d2;
+  color: #333;
+}
+
+.calendar-container .fc-event.meeting-event {
+  background-color: #c8e6c9 !important;
+  border-left: 3px solid #388e3c;
+  color: #333;
+}
+
+.calendar-container .fc-event.email-event {
+  background-color: #fff9c4 !important;
+  border-left: 3px solid #fbc02d;
+  color: #333;
+}
+
+.calendar-container .fc-event.note-event {
+  background-color: #e1bee7 !important;
+  border-left: 3px solid #8e24aa;
+  color: #333;
+}
+
+.calendar-container .fc-event.todo-event {
+  background-color: #ffccbc !important;
+  border-left: 3px solid #e64a19;
+  color: #333;
+}
+
+/* Style pour les en-têtes */
+.calendar-container .fc .fc-toolbar.fc-header-toolbar {
+  margin-bottom: 1em;
+  padding-bottom: 0.5em;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.calendar-container .fc .fc-toolbar-title {
+  font-size: 1.5em;
+  font-weight: bold;
+  color: #333;
+}
+
+/* Boutons du calendrier */
+.calendar-container .fc .fc-button {
+  background-color: #f5f5f5 !important;
+  color: #333 !important;
+  border: 1px solid #ddd !important;
+  box-shadow: none !important;
+}
+
+.calendar-container .fc .fc-button-primary:not(:disabled).fc-button-active {
+  background-color: #9575cd !important;
+  color: white !important;
+  border: 1px solid #7e57c2 !important;
+}
+
+.calendar-container .fc .fc-button-primary:not(:disabled):hover {
+  background-color: #e0e0e0 !important;
+}
+
+/* Jours hors du mois actuel */
+.calendar-container .fc .fc-day-other .fc-daygrid-day-number {
+  color: #bdbdbd !important;
+}
+
+/* Style pour les événements avec des statuts différents */
+.calendar-container .completed-event {
+  opacity: 0.7;
+  text-decoration: line-through;
+}
+
+/* Plus de style pour les événements de jour entier */
+.calendar-container .fc-day-grid-event.fc-h-event.fc-event.fc-start.fc-end.all-day {
+  background-color: #d4f7eb;
+  color: #333;
+}
+/* Ajoutez ce style à votre fichier CSS */
+.calendar-container .fc .past-day {
+  background-color: #f5f5f5;
+  opacity: 0.7;
+}
+
+.calendar-container .fc .past-day .fc-daygrid-day-number {
+  color: #999 !important;
+}
+
+
+
+
+

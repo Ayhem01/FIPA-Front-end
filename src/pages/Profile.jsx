@@ -31,10 +31,18 @@ import convesionImg5 from "../assets/images/face-2.jpg";
 import project1 from "../assets/images/home-decor-1.jpeg";
 import project2 from "../assets/images/home-decor-2.jpeg";
 import project3 from "../assets/images/home-decor-3.jpeg";
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+
+
+
 
 function Profile() {
+  const navigate = useNavigate();
   const [imageURL, setImageURL] = useState(false);
   const [, setLoading] = useState(false);
+    const { t } = useTranslation();
+  
 
   const getBase64 = (img, callback) => {
     const reader = new FileReader();
@@ -177,11 +185,7 @@ function Profile() {
               justifyContent: "flex-end",
             }}
           >
-            <Radio.Group defaultValue="a">
-              <Radio.Button value="a">OVERVIEW</Radio.Button>
-              <Radio.Button value="b">TEAMS</Radio.Button>
-              <Radio.Button value="c">PROJECTS</Radio.Button>
-            </Radio.Group>
+          
           </Col>
         </Row>
       }
@@ -234,7 +238,7 @@ function Profile() {
       <Col span={24} md={8} className="mb-24">
         <Card
           bordered={false}
-          title={<h6 className="font-semibold m-0">Profile Information</h6>}
+          title={<h6 className="font-semibold m-0">{t("ProfileInfo")}</h6>}
           className="header-solid h-full card-profile-information"
           extra={<Button type="link">{pencil}</Button>}
           bodyStyle={{ paddingTop: 0, paddingBottom: 16 }}
@@ -248,19 +252,19 @@ function Profile() {
           </p>
           <hr className="my-25" />
           <Descriptions title="Oliver Liam">
-            <Descriptions.Item label="Full Name" span={3}>
+            <Descriptions.Item label={t("FullName")} span={3}>
               Sarah Emily Jacob
             </Descriptions.Item>
-            <Descriptions.Item label="Mobile" span={3}>
+            <Descriptions.Item label={t("Mobile")} span={3} className="Mobile">
               (44) 123 1234 123
             </Descriptions.Item>
-            <Descriptions.Item label="Email" span={3}>
+            <Descriptions.Item label={t("Email")} span={3}>
               sarahjacob@mail.com
             </Descriptions.Item>
-            <Descriptions.Item label="Location" span={3}>
+            <Descriptions.Item label={t("Location") }span={3}>
               USA
             </Descriptions.Item>
-            <Descriptions.Item label="Social" span={3}>
+            <Descriptions.Item label={t("Social") }span={3} className="Social" >
               <a href="#pablo" className="mx-5 px-5">
                 {<TwitterOutlined />}
               </a>
@@ -301,62 +305,7 @@ function Profile() {
         </Card>
       </Col>
     </Row>
-    <Card
-      bordered={false}
-      className="header-solid mb-24"
-      title={
-        <>
-          <h6 className="font-semibold">Projects</h6>
-          <p>Architects design houses</p>
-        </>
-      }
-    >
-      <Row gutter={[24, 24]}>
-        {project.map((p, index) => (
-          <Col span={24} md={12} xl={6} key={index}>
-            <Card
-              bordered={false}
-              className="card-project"
-              cover={<img alt="example" src={p.img} />}
-            >
-              <div className="card-tag">{p.titlesub}</div>
-              <h5>{p.titile}</h5>
-              <p>{p.disciption}</p>
-              <Row gutter={[6, 0]} className="card-footer">
-                <Col span={12}>
-                  <Button type="button">VIEW PROJECT</Button>
-                </Col>
-                <Col span={12} className="text-right">
-                  <Avatar.Group className="avatar-chips">
-                    <Avatar size="small" src={profilavatar} />
-                    <Avatar size="small" src={convesionImg} />
-                    <Avatar size="small" src={convesionImg2} />
-                    <Avatar size="small" src={convesionImg3} />
-                  </Avatar.Group>
-                </Col>
-              </Row>
-            </Card>
-          </Col>
-        ))}
-        <Col span={24} md={12} xl={6}>
-          <Upload
-            name="avatar"
-            listType="picture-card"
-            className="avatar-uploader projects-uploader"
-            showUploadList={false}
-            action="https://www.mocky.io/v2/5cc8019d300000980a055e76"
-            beforeUpload={beforeUpload}
-            onChange={handleChange}
-          >
-            {imageURL ? (
-              <img src={imageURL} alt="avatar" style={{ width: "100%" }} />
-            ) : (
-              uploadButton
-            )}
-          </Upload>
-        </Col>
-      </Row>
-    </Card>
+   
   </>
   );
 }
