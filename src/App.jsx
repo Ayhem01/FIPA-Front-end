@@ -50,6 +50,9 @@ import ProjectTasksTab from "./components/Tasks/ProjectTasksTab";
 // import PipelineDashboard from "./components/PipelineProject/PipelineDashboard";
 // import BlockagesList from "./components/PipelineProject/BlockagesList";
 // import UpcomingFollowUps from "./components/PipelineProject/UpcomingFollowUps";
+import ActionForm from "./components/Actions/ActionForm";
+import ActionList from "./components/Actions/ActionList";
+import ActionDetail from "./components/Actions/ActionDetail";
 
 
 
@@ -88,6 +91,11 @@ function App() {
               <Route path="/tasks/my-tasks" element={<MyTasks />} />
               <Route path="/tasks/dashboard" element={<TasksDashboard />} />
               <Route path="/tasks/calendar" element={<TaskCalendar />} />
+              <Route path="/actions/create" element={<ActionForm />} />
+              <Route path="/actions/edit/:id" element={<ActionForm />} />
+              <Route path="/actions" element={<ActionList />} />
+              <Route path="/actions/:id" element={<ActionDetail />} />
+
 
               <Route path="/invites" element={<InvitesList />} />
               <Route path="/invites/create" element={<InviteForm />} />

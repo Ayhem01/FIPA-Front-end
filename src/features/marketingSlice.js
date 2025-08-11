@@ -37,8 +37,8 @@ export const addSeminaire = createAsyncThunk(
   async (seminaireData, { rejectWithValue }) => {
     try {
       const response = await axios.post(
-        `${API_BASE_URL}/seminaire_jipays/`, 
-        seminaireData, 
+        `${API_BASE_URL}/seminaire_jipays/`,
+        seminaireData,
         getAuthHeader()
       );
       return response.data;
@@ -54,8 +54,8 @@ export const updateSeminaire = createAsyncThunk(
   async ({ id, data }, { rejectWithValue }) => {
     try {
       const response = await axios.put(
-        `${API_BASE_URL}/seminaire_jipays/${id}`, 
-        data, 
+        `${API_BASE_URL}/seminaire_jipays/${id}`,
+        data,
         getAuthHeader()
       );
       return response.data;
@@ -71,7 +71,7 @@ export const deleteSeminaire = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const response = await axios.delete(
-        `${API_BASE_URL}/seminaire_jipays/delete/${id}`, 
+        `${API_BASE_URL}/seminaire_jipays/delete/${id}`,
         getAuthHeader()
       );
       return { id, ...response.data };
@@ -87,7 +87,7 @@ export const getSeminaireById = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/seminaire_jipays/show/${id}`, 
+        `${API_BASE_URL}/seminaire_jipays/show/${id}`,
         getAuthHeader()
       );
       return response.data;
@@ -117,8 +117,8 @@ export const addSalon = createAsyncThunk(
   async (salonData, { rejectWithValue }) => {
     try {
       const response = await axios.post(
-        `${API_BASE_URL}/salon/`, 
-        salonData, 
+        `${API_BASE_URL}/salon/`,
+        salonData,
         getAuthHeader()
       );
       return response.data;
@@ -134,8 +134,8 @@ export const updateSalon = createAsyncThunk(
   async ({ id, data }, { rejectWithValue }) => {
     try {
       const response = await axios.put(
-        `${API_BASE_URL}/salon/${id}`, 
-        data, 
+        `${API_BASE_URL}/salon/${id}`,
+        data,
         getAuthHeader()
       );
       return response.data;
@@ -151,7 +151,7 @@ export const deleteSalon = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const response = await axios.delete(
-        `${API_BASE_URL}/salon/delete/${id}`, 
+        `${API_BASE_URL}/salon/delete/${id}`,
         getAuthHeader()
       );
       return { id, ...response.data };
@@ -167,7 +167,7 @@ export const getSalonById = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/salon/show/${id}`, 
+        `${API_BASE_URL}/salon/show/${id}`,
         getAuthHeader()
       );
       return response.data;
@@ -197,8 +197,8 @@ export const addCte = createAsyncThunk(
   async (cteData, { rejectWithValue }) => {
     try {
       const response = await axios.post(
-        `${API_BASE_URL}/cte/`, 
-        cteData, 
+        `${API_BASE_URL}/cte/`,
+        cteData,
         getAuthHeader()
       );
       return response.data;
@@ -214,8 +214,8 @@ export const updateCte = createAsyncThunk(
   async ({ id, data }, { rejectWithValue }) => {
     try {
       const response = await axios.put(
-        `${API_BASE_URL}/cte/${id}`, 
-        data, 
+        `${API_BASE_URL}/cte/${id}`,
+        data,
         getAuthHeader()
       );
       return response.data;
@@ -231,7 +231,7 @@ export const deleteCte = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const response = await axios.delete(
-        `${API_BASE_URL}/cte/delete/${id}`, 
+        `${API_BASE_URL}/cte/delete/${id}`,
         getAuthHeader()
       );
       return { id, ...response.data };
@@ -247,7 +247,7 @@ export const getCteById = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/cte/show/${id}`, 
+        `${API_BASE_URL}/cte/show/${id}`,
         getAuthHeader()
       );
       return response.data;
@@ -277,8 +277,8 @@ export const addMedia = createAsyncThunk(
   async (mediaData, { rejectWithValue }) => {
     try {
       const response = await axios.post(
-        `${API_BASE_URL}/media/`, 
-        mediaData, 
+        `${API_BASE_URL}/media/`,
+        mediaData,
         getAuthHeader()
       );
       return response.data;
@@ -294,8 +294,8 @@ export const updateMedia = createAsyncThunk(
   async ({ id, data }, { rejectWithValue }) => {
     try {
       const response = await axios.put(
-        `${API_BASE_URL}/media/${id}`, 
-        data, 
+        `${API_BASE_URL}/media/${id}`,
+        data,
         getAuthHeader()
       );
       return response.data;
@@ -311,7 +311,7 @@ export const deleteMedia = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const response = await axios.delete(
-        `${API_BASE_URL}/media/delete/${id}`, 
+        `${API_BASE_URL}/media/delete/${id}`,
         getAuthHeader()
       );
       return { id, ...response.data };
@@ -327,7 +327,7 @@ export const getMediaById = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/media/show/${id}`, 
+        `${API_BASE_URL}/media/show/${id}`,
         getAuthHeader()
       );
       return response.data;
@@ -358,8 +358,8 @@ export const addSeminaireSecteur = createAsyncThunk(
   async (seminaireData, { rejectWithValue }) => {
     try {
       const response = await axios.post(
-        `${API_BASE_URL}/seminaire_ji_secteur/`, 
-        seminaireData, 
+        `${API_BASE_URL}/seminaire_ji_secteur/`,
+        seminaireData,
         getAuthHeader()
       );
       return response.data;
@@ -375,8 +375,8 @@ export const updateSeminaireSecteur = createAsyncThunk(
   async ({ id, data }, { rejectWithValue }) => {
     try {
       const response = await axios.put(
-        `${API_BASE_URL}/seminaire_ji_secteur/${id}`, 
-        data, 
+        `${API_BASE_URL}/seminaire_ji_secteur/${id}`,
+        data,
         getAuthHeader()
       );
       return response.data;
@@ -392,7 +392,7 @@ export const deleteSeminaireSecteur = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const response = await axios.delete(
-        `${API_BASE_URL}/seminaire_ji_secteur/delete/${id}`, 
+        `${API_BASE_URL}/seminaire_ji_secteur/delete/${id}`,
         getAuthHeader()
       );
       return { id, ...response.data };
@@ -408,7 +408,7 @@ export const getSeminaireSecteurById = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/seminaire_ji_secteur/show/${id}`, 
+        `${API_BASE_URL}/seminaire_ji_secteur/show/${id}`,
         getAuthHeader()
       );
       return response.data;
@@ -438,8 +438,8 @@ export const addSalonSectoriel = createAsyncThunk(
   async (salonData, { rejectWithValue }) => {
     try {
       const response = await axios.post(
-        `${API_BASE_URL}/salon_sectoriel/`, 
-        salonData, 
+        `${API_BASE_URL}/salon_sectoriel/`,
+        salonData,
         getAuthHeader()
       );
       return response.data;
@@ -455,8 +455,8 @@ export const updateSalonSectoriel = createAsyncThunk(
   async ({ id, data }, { rejectWithValue }) => {
     try {
       const response = await axios.put(
-        `${API_BASE_URL}/salon_sectoriel/${id}`, 
-        data, 
+        `${API_BASE_URL}/salon_sectoriel/${id}`,
+        data,
         getAuthHeader()
       );
       return response.data;
@@ -472,7 +472,7 @@ export const deleteSalonSectoriel = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const response = await axios.delete(
-        `${API_BASE_URL}/salon_sectoriel/delete/${id}`, 
+        `${API_BASE_URL}/salon_sectoriel/delete/${id}`,
         getAuthHeader()
       );
       return { id, ...response.data };
@@ -488,7 +488,7 @@ export const getSalonSectorielById = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/salon_sectoriel/show/${id}`, 
+        `${API_BASE_URL}/salon_sectoriel/show/${id}`,
         getAuthHeader()
       );
       return response.data;
@@ -517,8 +517,8 @@ export const addDemarchageDirect = createAsyncThunk(
   async (demarchageData, { rejectWithValue }) => {
     try {
       const response = await axios.post(
-        `${API_BASE_URL}/demarchage_direct/`, 
-        demarchageData, 
+        `${API_BASE_URL}/demarchage_direct/`,
+        demarchageData,
         getAuthHeader()
       );
       return response.data;
@@ -534,8 +534,8 @@ export const updateDemarchageDirect = createAsyncThunk(
   async ({ id, data }, { rejectWithValue }) => {
     try {
       const response = await axios.put(
-        `${API_BASE_URL}/demarchage_direct/${id}`, 
-        data, 
+        `${API_BASE_URL}/demarchage_direct/${id}`,
+        data,
         getAuthHeader()
       );
       return response.data;
@@ -551,7 +551,7 @@ export const deleteDemarchageDirect = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const response = await axios.delete(
-        `${API_BASE_URL}/demarchage_direct/delete/${id}`, 
+        `${API_BASE_URL}/demarchage_direct/delete/${id}`,
         getAuthHeader()
       );
       return { id, ...response.data };
@@ -567,7 +567,7 @@ export const getDemarchageDirectById = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/demarchage_direct/show/${id}`, 
+        `${API_BASE_URL}/demarchage_direct/show/${id}`,
         getAuthHeader()
       );
       return response.data;
@@ -596,22 +596,22 @@ export const addDelegation = createAsyncThunk(
   async (delegationData, { rejectWithValue }) => {
     try {
       const formData = new FormData();
-      
+
       // Ajouter tous les champs de texte
       Object.keys(delegationData).forEach(key => {
         if (key !== 'liste_membres_pdf') {
           formData.append(key, delegationData[key]);
         }
       });
-      
+
       // Ajouter le fichier PDF s'il existe
       if (delegationData.liste_membres_pdf && delegationData.liste_membres_pdf.file) {
         formData.append('liste_membres_pdf', delegationData.liste_membres_pdf.file);
       }
-      
+
       const response = await axios.post(
-        `${API_BASE_URL}/delegations/`, 
-        formData, 
+        `${API_BASE_URL}/delegations/`,
+        formData,
         {
           ...getAuthHeader(),
           headers: {
@@ -633,22 +633,22 @@ export const updateDelegation = createAsyncThunk(
   async ({ id, data }, { rejectWithValue }) => {
     try {
       const formData = new FormData();
-      
+
       // Ajouter tous les champs de texte
       Object.keys(data).forEach(key => {
         if (key !== 'liste_membres_pdf') {
           formData.append(key, data[key]);
         }
       });
-      
+
       // Ajouter le fichier PDF s'il existe
       if (data.liste_membres_pdf && data.liste_membres_pdf.file) {
         formData.append('liste_membres_pdf', data.liste_membres_pdf.file);
       }
-      
+
       const response = await axios.post(
-        `${API_BASE_URL}/delegations/${id}?_method=PUT`, 
-        formData, 
+        `${API_BASE_URL}/delegations/${id}?_method=PUT`,
+        formData,
         {
           ...getAuthHeader(),
           headers: {
@@ -670,7 +670,7 @@ export const deleteDelegation = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const response = await axios.delete(
-        `${API_BASE_URL}/delegations/delete/${id}`, 
+        `${API_BASE_URL}/delegations/delete/${id}`,
         getAuthHeader()
       );
       return { id, ...response.data };
@@ -686,7 +686,7 @@ export const getDelegationById = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/delegations/show/${id}`, 
+        `${API_BASE_URL}/delegations/show/${id}`,
         getAuthHeader()
       );
       return response.data;
@@ -715,22 +715,22 @@ export const addVisiteEntreprise = createAsyncThunk(
   async (visiteData, { rejectWithValue }) => {
     try {
       const formData = new FormData();
-      
+
       // Ajouter tous les champs de texte
       Object.keys(visiteData).forEach(key => {
         if (key !== 'programme_pdf') {
           formData.append(key, visiteData[key]);
         }
       });
-      
+
       // Ajouter le fichier PDF s'il existe
       if (visiteData.programme_pdf && visiteData.programme_pdf.file) {
         formData.append('programme_pdf', visiteData.programme_pdf.file);
       }
-      
+
       const response = await axios.post(
-        `${API_BASE_URL}/visites_entreprises/`, 
-        formData, 
+        `${API_BASE_URL}/visites_entreprises/`,
+        formData,
         {
           ...getAuthHeader(),
           headers: {
@@ -752,22 +752,22 @@ export const updateVisiteEntreprise = createAsyncThunk(
   async ({ id, data }, { rejectWithValue }) => {
     try {
       const formData = new FormData();
-      
+
       // Ajouter tous les champs de texte
       Object.keys(data).forEach(key => {
         if (key !== 'programme_pdf') {
           formData.append(key, data[key]);
         }
       });
-      
+
       // Ajouter le fichier PDF s'il existe
       if (data.programme_pdf && data.programme_pdf.file) {
         formData.append('programme_pdf', data.programme_pdf.file);
       }
-      
+
       const response = await axios.post(
-        `${API_BASE_URL}/visites_entreprises/${id}?_method=PUT`, 
-        formData, 
+        `${API_BASE_URL}/visites_entreprises/${id}?_method=PUT`,
+        formData,
         {
           ...getAuthHeader(),
           headers: {
@@ -789,7 +789,7 @@ export const deleteVisiteEntreprise = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const response = await axios.delete(
-        `${API_BASE_URL}/visites_entreprises/delete/${id}`, 
+        `${API_BASE_URL}/visites_entreprises/delete/${id}`,
         getAuthHeader()
       );
       return { id, ...response.data };
@@ -805,7 +805,7 @@ export const getVisiteEntrepriseById = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/visites_entreprises/show/${id}`, 
+        `${API_BASE_URL}/visites_entreprises/show/${id}`,
         getAuthHeader()
       );
       return response.data;
@@ -941,6 +941,125 @@ export const fetchResponsableSuivi = createAsyncThunk(
     }
   }
 );
+// =========== Actions principales ===========
+
+// Liste des actions avec filtres
+// Modifier le thunk fetchActions pour gérer tous les paramètres disponibles dans l'API
+export const fetchActions = createAsyncThunk(
+  "marketing/fetchActions",
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      // Paramètres de recherche et filtres
+      if (params.nom) queryParams.append('nom', params.nom);
+      if (params.type) queryParams.append('type', params.type);
+      if (params.statut) queryParams.append('statut', params.statut);
+      if (params.responsable_id) queryParams.append('responsable_id', params.responsable_id);
+      if (params.periode) queryParams.append('periode', params.periode);
+      
+      // Paramètres de tri
+      if (params.sort_by) queryParams.append('sort_by', params.sort_by);
+      if (params.sort_direction) queryParams.append('sort_direction', params.sort_direction);
+      
+      // Pagination
+      if (params.page) queryParams.append('page', params.page);
+      if (params.per_page) queryParams.append('per_page', params.per_page);
+
+      const response = await axios.get(
+        `${API_BASE_URL}/actions?${queryParams.toString()}`,
+        getAuthHeader()
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || "Erreur lors du chargement des actions");
+    }
+  }
+);
+
+// Récupérer une action spécifique
+export const getActionById = createAsyncThunk(
+  "marketing/getActionById",
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/actions/${id}`,
+        getAuthHeader()
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || "Erreur lors de la récupération de l'action");
+    }
+  }
+);
+
+// Créer une action principale (et son entité spécifique)
+export const addAction = createAsyncThunk(
+  "marketing/addAction",
+  async (actionData, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/actions`,
+        actionData,
+        getAuthHeader()
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || "Erreur lors de la création de l'action");
+    }
+  }
+);
+
+// Mettre à jour une action principale
+export const updateAction = createAsyncThunk(
+  "marketing/updateAction",
+  async ({ id, data }, { rejectWithValue }) => {
+    try {
+      const response = await axios.put(
+        `${API_BASE_URL}/actions/${id}`,
+        data,
+        getAuthHeader()
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || "Erreur lors de la mise à jour de l'action");
+    }
+  }
+);
+
+// Supprimer une action principale
+export const deleteAction = createAsyncThunk(
+  "marketing/deleteAction",
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await axios.delete(
+        `${API_BASE_URL}/actions/${id}`,
+        getAuthHeader()
+      );
+      return { id, ...response.data };
+    } catch (error) {
+      return rejectWithValue(error.response?.data || "Erreur lors de la suppression de l'action");
+    }
+  }
+);
+
+// Mettre à jour le statut d'une action
+export const updateActionStatus = createAsyncThunk(
+  "marketing/updateActionStatus",
+  async ({ id, statut }, { rejectWithValue }) => {
+    try {
+      const response = await axios.put(
+        `${API_BASE_URL}/actions/${id}/status`,
+        { statut },
+        getAuthHeader()
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || "Erreur lors de la mise à jour du statut");
+    }
+  }
+);
+
 
 // =========== Slice ===========
 const marketingSlice = createSlice({
@@ -1050,6 +1169,12 @@ const marketingSlice = createSlice({
       loading: false,
       error: null
     },
+    actions: {
+      items: [],
+      selectedItem: null,
+      loading: false,
+      error: null
+    },
 
   },
   reducers: {
@@ -1135,7 +1260,7 @@ const marketingSlice = createSlice({
         state.seminaires.loading = false;
         state.seminaires.error = action.payload;
       })
-      
+
       // Salons
       .addCase(fetchSalons.pending, (state) => {
         state.salons.loading = true;
@@ -1203,7 +1328,7 @@ const marketingSlice = createSlice({
         state.salons.loading = false;
         state.salons.error = action.payload;
       })
-      
+
       // CTEs
       .addCase(fetchCtes.pending, (state) => {
         state.ctes.loading = true;
@@ -1271,7 +1396,7 @@ const marketingSlice = createSlice({
         state.ctes.loading = false;
         state.ctes.error = action.payload;
       })
-      
+
       // Medias
       .addCase(fetchMedias.pending, (state) => {
         state.medias.loading = true;
@@ -1341,467 +1466,561 @@ const marketingSlice = createSlice({
       })
       // Séminaires Secteur
       // Ajouter aux extraReducers
-.addCase(fetchSeminairesSecteur.pending, (state) => {
-  state.seminairesSecteur.loading = true;
-  state.seminairesSecteur.error = null;
-})
-.addCase(fetchSeminairesSecteur.fulfilled, (state, action) => {
-  state.seminairesSecteur.loading = false;
-  state.seminairesSecteur.items = action.payload.data || action.payload;
-})
-.addCase(fetchSeminairesSecteur.rejected, (state, action) => {
-  state.seminairesSecteur.loading = false;
-  state.seminairesSecteur.error = action.payload;
-})
-.addCase(addSeminaireSecteur.pending, (state) => {
-  state.seminairesSecteur.loading = true;
-  state.seminairesSecteur.error = null;
-})
-.addCase(addSeminaireSecteur.fulfilled, (state, action) => {
-  state.seminairesSecteur.loading = false;
-  state.seminairesSecteur.items.push(action.payload.data || action.payload);
-})
-.addCase(addSeminaireSecteur.rejected, (state, action) => {
-  state.seminairesSecteur.loading = false;
-  state.seminairesSecteur.error = action.payload;
-})
-.addCase(updateSeminaireSecteur.pending, (state) => {
-  state.seminairesSecteur.loading = true;
-  state.seminairesSecteur.error = null;
-})
-.addCase(updateSeminaireSecteur.fulfilled, (state, action) => {
-  state.seminairesSecteur.loading = false;
-  const updatedItem = action.payload.data || action.payload;
-  const index = state.seminairesSecteur.items.findIndex(item => item.id === updatedItem.id);
-  if (index !== -1) {
-    state.seminairesSecteur.items[index] = updatedItem;
-  }
-})
-.addCase(updateSeminaireSecteur.rejected, (state, action) => {
-  state.seminairesSecteur.loading = false;
-  state.seminairesSecteur.error = action.payload;
-})
-.addCase(deleteSeminaireSecteur.pending, (state) => {
-  state.seminairesSecteur.loading = true;
-  state.seminairesSecteur.error = null;
-})
-.addCase(deleteSeminaireSecteur.fulfilled, (state, action) => {
-  state.seminairesSecteur.loading = false;
-  state.seminairesSecteur.items = state.seminairesSecteur.items.filter(
-    item => item.id !== action.payload.id
-  );
-})
-.addCase(deleteSeminaireSecteur.rejected, (state, action) => {
-  state.seminairesSecteur.loading = false;
-  state.seminairesSecteur.error = action.payload;
-})
-.addCase(getSeminaireSecteurById.pending, (state) => {
-  state.seminairesSecteur.loading = true;
-  state.seminairesSecteur.error = null;
-})
-.addCase(getSeminaireSecteurById.fulfilled, (state, action) => {
-  state.seminairesSecteur.loading = false;
-  state.seminairesSecteur.selectedItem = action.payload.data || action.payload;
-})
-.addCase(getSeminaireSecteurById.rejected, (state, action) => {
-  state.seminairesSecteur.loading = false;
-  state.seminairesSecteur.error = action.payload;
-})
-.addCase(fetchGroupes.pending, (state) => {
-  state.groupes.loading = true;
-  state.groupes.error = null;
-})
-.addCase(fetchGroupes.fulfilled, (state, action) => {
-  state.groupes.loading = false;
-  state.groupes.items = action.payload.data || action.payload;
-})
-.addCase(fetchGroupes.rejected, (state, action) => {
-  state.groupes.loading = false;
-  state.groupes.error = action.payload;
-})
-    // Nationalités
-    .addCase(fetchNationalites.pending, (state) => {
-      state.nationalites.loading = true;
-      state.nationalites.error = null;
-    })
-    .addCase(fetchNationalites.fulfilled, (state, action) => {
-      state.nationalites.loading = false;
-      state.nationalites.items = action.payload.data || action.payload;
-    })
-    .addCase(fetchNationalites.rejected, (state, action) => {
-      state.nationalites.loading = false;
-      state.nationalites.error = action.payload;
-    })
-    // Responsables Bureaux
-    .addCase(fetchResponsablesBureaux.pending, (state) => {
-      state.responsablesBureaux.loading = true;
-      state.responsablesBureaux.error = null;
-    })
-    .addCase(fetchResponsablesBureaux.fulfilled, (state, action) => {
-      state.responsablesBureaux.loading = false;
-      state.responsablesBureaux.items = action.payload.data || action.payload;
-    })
-    .addCase(fetchResponsablesBureaux.rejected, (state, action) => {
-      state.responsablesBureaux.loading = false;
-      state.responsablesBureaux.error = action.payload;
-    })
-    .addCase(fetchVavSiege.pending, (state) => {
-      state.vavSiege.loading = true;
-      state.vavSiege.error = null;
-    })
-    .addCase(fetchVavSiege.fulfilled, (state, action) => {
-      state.vavSiege.loading = false;
-      state.vavSiege.items = action.payload.data || action.payload;
-    })
-    .addCase(fetchVavSiege.rejected, (state, action) => {
-      state.vavSiege.loading = false;
-      state.vavSiege.error = action.payload;
-    })
-    .addCase(fetchInitiateurs.pending, (state) => {
-      state.initiateurs.loading = true;
-      state.initiateurs.error = null;
-    })
-    .addCase(fetchInitiateurs.fulfilled, (state, action) => {
-      state.initiateurs.loading = false;
-      state.initiateurs.items = action.payload.data || action.payload;
-    })
-    .addCase(fetchInitiateurs.rejected, (state, action) => {
-      state.initiateurs.loading = false;
-      state.initiateurs.error = action.payload;
-    })
-    // Pays
-    .addCase(fetchPays.pending, (state) => {
-      state.pays.loading = true;
-      state.pays.error = null;
-    })
-    .addCase(fetchPays.fulfilled, (state, action) => {
-      state.pays.loading = false;
-      state.pays.items = action.payload.data || action.payload;
-    })
-    .addCase(fetchPays.rejected, (state, action) => {
-      state.pays.loading = false;
-      state.pays.error = action.payload;
-    })
-    // Secteurs
-    .addCase(fetchSecteurs.pending, (state) => {
-      state.secteurs.loading = true;
-      state.secteurs.error = null;
-    })
-    .addCase(fetchSecteurs.fulfilled, (state, action) => {
-      state.secteurs.loading = false;
-      state.secteurs.items = action.payload.data || action.payload;
-    })
-    .addCase(fetchSecteurs.rejected, (state, action) => {
-      state.secteurs.loading = false;
-      state.secteurs.error = action.payload;
-    })
-    // Binomes
-    .addCase(fetchBinomes.pending, (state) => {
-      state.binomes.loading = true;
-      state.binomes.error = null;
-    })
-    .addCase(fetchBinomes.fulfilled, (state, action) => {
-      state.binomes.loading = false;
-      state.binomes.items = action.payload.data || action.payload;
-    })
-    .addCase(fetchBinomes.rejected, (state, action) => {
-      state.binomes.loading = false;
-      state.binomes.error = action.payload;
-    })
-    .addCase(fetchResponsableFipa.pending, (state) => {
-      state.responsableFipa.loading = true;
-      state.responsableFipa.error = null;
-    })
-    .addCase(fetchResponsableFipa.fulfilled, (state, action) => {
-      state.responsableFipa.loading = false;
-      state.responsableFipa.items = action.payload.data || action.payload;
-    })
-    .addCase(fetchResponsableFipa.rejected, (state, action) => {
-      state.responsableFipa.loading = false;
-      state.responsableFipa.error = action.payload;
-    })
-    // Salons Sectoriels
-.addCase(fetchSalonsSectoriels.pending, (state) => {
-  state.salonsSectoriels.loading = true;
-  state.salonsSectoriels.error = null;
-})
-.addCase(fetchSalonsSectoriels.fulfilled, (state, action) => {
-  state.salonsSectoriels.loading = false;
-  state.salonsSectoriels.items = action.payload.data || action.payload;
-})
-.addCase(fetchSalonsSectoriels.rejected, (state, action) => {
-  state.salonsSectoriels.loading = false;
-  state.salonsSectoriels.error = action.payload;
-})
-.addCase(addSalonSectoriel.pending, (state) => {
-  state.salonsSectoriels.loading = true;
-  state.salonsSectoriels.error = null;
-})
-.addCase(addSalonSectoriel.fulfilled, (state, action) => {
-  state.salonsSectoriels.loading = false;
-  state.salonsSectoriels.items.push(action.payload.data || action.payload);
-})
-.addCase(addSalonSectoriel.rejected, (state, action) => {
-  state.salonsSectoriels.loading = false;
-  state.salonsSectoriels.error = action.payload;
-})
-.addCase(updateSalonSectoriel.pending, (state) => {
-  state.salonsSectoriels.loading = true;
-  state.salonsSectoriels.error = null;
-})
-.addCase(updateSalonSectoriel.fulfilled, (state, action) => {
-  state.salonsSectoriels.loading = false;
-  const updatedItem = action.payload.data || action.payload;
-  const index = state.salonsSectoriels.items.findIndex(item => item.id === updatedItem.id);
-  if (index !== -1) {
-    state.salonsSectoriels.items[index] = updatedItem;
-  }
-})
-.addCase(updateSalonSectoriel.rejected, (state, action) => {
-  state.salonsSectoriels.loading = false;
-  state.salonsSectoriels.error = action.payload;
-})
-.addCase(deleteSalonSectoriel.pending, (state) => {
-  state.salonsSectoriels.loading = true;
-  state.salonsSectoriels.error = null;
-})
-.addCase(deleteSalonSectoriel.fulfilled, (state, action) => {
-  state.salonsSectoriels.loading = false;
-  state.salonsSectoriels.items = state.salonsSectoriels.items.filter(
-    item => item.id !== action.payload.id
-  );
-})
-.addCase(deleteSalonSectoriel.rejected, (state, action) => {
-  state.salonsSectoriels.loading = false;
-  state.salonsSectoriels.error = action.payload;
-})
-.addCase(getSalonSectorielById.pending, (state) => {
-  state.salonsSectoriels.loading = true;
-  state.salonsSectoriels.error = null;
-})
-.addCase(getSalonSectorielById.fulfilled, (state, action) => {
-  state.salonsSectoriels.loading = false;
-  state.salonsSectoriels.selectedItem = action.payload.data || action.payload;
-})
-.addCase(getSalonSectorielById.rejected, (state, action) => {
-  state.salonsSectoriels.loading = false;
-  state.salonsSectoriels.error = action.payload;
-})
-// Démarchage Direct
-.addCase(fetchDemarchagesDirect.pending, (state) => {
-  state.demarchagesDirect.loading = true;
-  state.demarchagesDirect.error = null;
-})
-.addCase(fetchDemarchagesDirect.fulfilled, (state, action) => {
-  state.demarchagesDirect.loading = false;
-  state.demarchagesDirect.items = action.payload.data || action.payload;
-})
-.addCase(fetchDemarchagesDirect.rejected, (state, action) => {
-  state.demarchagesDirect.loading = false;
-  state.demarchagesDirect.error = action.payload;
-})
-.addCase(addDemarchageDirect.pending, (state) => {
-  state.demarchagesDirect.loading = true;
-  state.demarchagesDirect.error = null;
-})
-.addCase(addDemarchageDirect.fulfilled, (state, action) => {
-  state.demarchagesDirect.loading = false;
-  state.demarchagesDirect.items.push(action.payload.data || action.payload);
-})
-.addCase(addDemarchageDirect.rejected, (state, action) => {
-  state.demarchagesDirect.loading = false;
-  state.demarchagesDirect.error = action.payload;
-})
-.addCase(updateDemarchageDirect.pending, (state) => {
-  state.demarchagesDirect.loading = true;
-  state.demarchagesDirect.error = null;
-})
-.addCase(updateDemarchageDirect.fulfilled, (state, action) => {
-  state.demarchagesDirect.loading = false;
-  const updatedItem = action.payload.data || action.payload;
-  const index = state.demarchagesDirect.items.findIndex(item => item.id === updatedItem.id);
-  if (index !== -1) {
-    state.demarchagesDirect.items[index] = updatedItem;
-  }
-})
-.addCase(updateDemarchageDirect.rejected, (state, action) => {
-  state.demarchagesDirect.loading = false;
-  state.demarchagesDirect.error = action.payload;
-})
-.addCase(deleteDemarchageDirect.pending, (state) => {
-  state.demarchagesDirect.loading = true;
-  state.demarchagesDirect.error = null;
-})
-.addCase(deleteDemarchageDirect.fulfilled, (state, action) => {
-  state.demarchagesDirect.loading = false;
-  state.demarchagesDirect.items = state.demarchagesDirect.items.filter(
-    item => item.id !== action.payload.id
-  );
-})
-.addCase(deleteDemarchageDirect.rejected, (state, action) => {
-  state.demarchagesDirect.loading = false;
-  state.demarchagesDirect.error = action.payload;
-})
-.addCase(getDemarchageDirectById.pending, (state) => {
-  state.demarchagesDirect.loading = true;
-  state.demarchagesDirect.error = null;
-})
-.addCase(getDemarchageDirectById.fulfilled, (state, action) => {
-  state.demarchagesDirect.loading = false;
-  state.demarchagesDirect.selectedItem = action.payload.data || action.payload;
-})
-.addCase(getDemarchageDirectById.rejected, (state, action) => {
-  state.demarchagesDirect.loading = false;
-  state.demarchagesDirect.error = action.payload;
-})
-// Délégations
-.addCase(fetchDelegations.pending, (state) => {
-  state.delegations.loading = true;
-  state.delegations.error = null;
-})
-.addCase(fetchDelegations.fulfilled, (state, action) => {
-  state.delegations.loading = false;
-  state.delegations.items = action.payload.data || action.payload;
-})
-.addCase(fetchDelegations.rejected, (state, action) => {
-  state.delegations.loading = false;
-  state.delegations.error = action.payload;
-})
-.addCase(addDelegation.pending, (state) => {
-  state.delegations.loading = true;
-  state.delegations.error = null;
-})
-.addCase(addDelegation.fulfilled, (state, action) => {
-  state.delegations.loading = false;
-  state.delegations.items.push(action.payload.data || action.payload);
-})
-.addCase(addDelegation.rejected, (state, action) => {
-  state.delegations.loading = false;
-  state.delegations.error = action.payload;
-})
-.addCase(updateDelegation.pending, (state) => {
-  state.delegations.loading = true;
-  state.delegations.error = null;
-})
-.addCase(updateDelegation.fulfilled, (state, action) => {
-  state.delegations.loading = false;
-  const updatedItem = action.payload.data || action.payload;
-  const index = state.delegations.items.findIndex(item => item.id === updatedItem.id);
-  if (index !== -1) {
-    state.delegations.items[index] = updatedItem;
-  }
-})
-.addCase(updateDelegation.rejected, (state, action) => {
-  state.delegations.loading = false;
-  state.delegations.error = action.payload;
-})
-.addCase(deleteDelegation.pending, (state) => {
-  state.delegations.loading = true;
-  state.delegations.error = null;
-})
-.addCase(deleteDelegation.fulfilled, (state, action) => {
-  state.delegations.loading = false;
-  state.delegations.items = state.delegations.items.filter(
-    item => item.id !== action.payload.id
-  );
-})
-.addCase(deleteDelegation.rejected, (state, action) => {
-  state.delegations.loading = false;
-  state.delegations.error = action.payload;
-})
-.addCase(getDelegationById.pending, (state) => {
-  state.delegations.loading = true;
-  state.delegations.error = null;
-})
-.addCase(getDelegationById.fulfilled, (state, action) => {
-  state.delegations.loading = false;
-  state.delegations.selectedItem = action.payload.data || action.payload;
-})
-.addCase(getDelegationById.rejected, (state, action) => {
-  state.delegations.loading = false;
-  state.delegations.error = action.payload;
-})
-// Visites Entreprise
-.addCase(fetchVisitesEntreprise.pending, (state) => {
-  state.visitesEntreprise.loading = true;
-  state.visitesEntreprise.error = null;
-})
-.addCase(fetchVisitesEntreprise.fulfilled, (state, action) => {
-  state.visitesEntreprise.loading = false;
-  state.visitesEntreprise.items = action.payload.data || action.payload;
-})
-.addCase(fetchVisitesEntreprise.rejected, (state, action) => {
-  state.visitesEntreprise.loading = false;
-  state.visitesEntreprise.error = action.payload;
-})
-.addCase(addVisiteEntreprise.pending, (state) => {
-  state.visitesEntreprise.loading = true;
-  state.visitesEntreprise.error = null;
-})
-.addCase(addVisiteEntreprise.fulfilled, (state, action) => {
-  state.visitesEntreprise.loading = false;
-  state.visitesEntreprise.items.push(action.payload.data || action.payload);
-})
-.addCase(addVisiteEntreprise.rejected, (state, action) => {
-  state.visitesEntreprise.loading = false;
-  state.visitesEntreprise.error = action.payload;
-})
-.addCase(updateVisiteEntreprise.pending, (state) => {
-  state.visitesEntreprise.loading = true;
-  state.visitesEntreprise.error = null;
-})
-.addCase(updateVisiteEntreprise.fulfilled, (state, action) => {
-  state.visitesEntreprise.loading = false;
-  const updatedItem = action.payload.data || action.payload;
-  const index = state.visitesEntreprise.items.findIndex(item => item.id === updatedItem.id);
-  if (index !== -1) {
-    state.visitesEntreprise.items[index] = updatedItem;
-  }
-})
-.addCase(updateVisiteEntreprise.rejected, (state, action) => {
-  state.visitesEntreprise.loading = false;
-  state.visitesEntreprise.error = action.payload;
-})
-.addCase(deleteVisiteEntreprise.pending, (state) => {
-  state.visitesEntreprise.loading = true;
-  state.visitesEntreprise.error = null;
-})
-.addCase(deleteVisiteEntreprise.fulfilled, (state, action) => {
-  state.visitesEntreprise.loading = false;
-  state.visitesEntreprise.items = state.visitesEntreprise.items.filter(
-    item => item.id !== action.payload.id
-  );
-})
-.addCase(deleteVisiteEntreprise.rejected, (state, action) => {
-  state.visitesEntreprise.loading = false;
-  state.visitesEntreprise.error = action.payload;
-})
-.addCase(getVisiteEntrepriseById.pending, (state) => {
-  state.visitesEntreprise.loading = true;
-  state.visitesEntreprise.error = null;
-})
-.addCase(getVisiteEntrepriseById.fulfilled, (state, action) => {
-  state.visitesEntreprise.loading = false;
-  state.visitesEntreprise.selectedItem = action.payload.data || action.payload;
-})
-.addCase(getVisiteEntrepriseById.rejected, (state, action) => {
-  state.visitesEntreprise.loading = false;
-  state.visitesEntreprise.error = action.payload;
-})
-.addCase(fetchResponsableSuivi.pending, (state) => {
-  state.responsableSuivi.loading = true;
-  state.responsableSuivi.error = null;
-})
-.addCase(fetchResponsableSuivi.fulfilled, (state, action) => {
-  state.responsableSuivi.loading = false;
-  state.responsableSuivi.items = action.payload.data || action.payload;
-})
-.addCase(fetchResponsableSuivi.rejected, (state, action) => {
-  state.responsableSuivi.loading = false;
-  state.responsableSuivi.error = action.payload;
-})
+      .addCase(fetchSeminairesSecteur.pending, (state) => {
+        state.seminairesSecteur.loading = true;
+        state.seminairesSecteur.error = null;
+      })
+      .addCase(fetchSeminairesSecteur.fulfilled, (state, action) => {
+        state.seminairesSecteur.loading = false;
+        state.seminairesSecteur.items = action.payload.data || action.payload;
+      })
+      .addCase(fetchSeminairesSecteur.rejected, (state, action) => {
+        state.seminairesSecteur.loading = false;
+        state.seminairesSecteur.error = action.payload;
+      })
+      .addCase(addSeminaireSecteur.pending, (state) => {
+        state.seminairesSecteur.loading = true;
+        state.seminairesSecteur.error = null;
+      })
+      .addCase(addSeminaireSecteur.fulfilled, (state, action) => {
+        state.seminairesSecteur.loading = false;
+        state.seminairesSecteur.items.push(action.payload.data || action.payload);
+      })
+      .addCase(addSeminaireSecteur.rejected, (state, action) => {
+        state.seminairesSecteur.loading = false;
+        state.seminairesSecteur.error = action.payload;
+      })
+      .addCase(updateSeminaireSecteur.pending, (state) => {
+        state.seminairesSecteur.loading = true;
+        state.seminairesSecteur.error = null;
+      })
+      .addCase(updateSeminaireSecteur.fulfilled, (state, action) => {
+        state.seminairesSecteur.loading = false;
+        const updatedItem = action.payload.data || action.payload;
+        const index = state.seminairesSecteur.items.findIndex(item => item.id === updatedItem.id);
+        if (index !== -1) {
+          state.seminairesSecteur.items[index] = updatedItem;
+        }
+      })
+      .addCase(updateSeminaireSecteur.rejected, (state, action) => {
+        state.seminairesSecteur.loading = false;
+        state.seminairesSecteur.error = action.payload;
+      })
+      .addCase(deleteSeminaireSecteur.pending, (state) => {
+        state.seminairesSecteur.loading = true;
+        state.seminairesSecteur.error = null;
+      })
+      .addCase(deleteSeminaireSecteur.fulfilled, (state, action) => {
+        state.seminairesSecteur.loading = false;
+        state.seminairesSecteur.items = state.seminairesSecteur.items.filter(
+          item => item.id !== action.payload.id
+        );
+      })
+      .addCase(deleteSeminaireSecteur.rejected, (state, action) => {
+        state.seminairesSecteur.loading = false;
+        state.seminairesSecteur.error = action.payload;
+      })
+      .addCase(getSeminaireSecteurById.pending, (state) => {
+        state.seminairesSecteur.loading = true;
+        state.seminairesSecteur.error = null;
+      })
+      .addCase(getSeminaireSecteurById.fulfilled, (state, action) => {
+        state.seminairesSecteur.loading = false;
+        state.seminairesSecteur.selectedItem = action.payload.data || action.payload;
+      })
+      .addCase(getSeminaireSecteurById.rejected, (state, action) => {
+        state.seminairesSecteur.loading = false;
+        state.seminairesSecteur.error = action.payload;
+      })
+      .addCase(fetchGroupes.pending, (state) => {
+        state.groupes.loading = true;
+        state.groupes.error = null;
+      })
+      .addCase(fetchGroupes.fulfilled, (state, action) => {
+        state.groupes.loading = false;
+        state.groupes.items = action.payload.data || action.payload;
+      })
+      .addCase(fetchGroupes.rejected, (state, action) => {
+        state.groupes.loading = false;
+        state.groupes.error = action.payload;
+      })
+      // Nationalités
+      .addCase(fetchNationalites.pending, (state) => {
+        state.nationalites.loading = true;
+        state.nationalites.error = null;
+      })
+      .addCase(fetchNationalites.fulfilled, (state, action) => {
+        state.nationalites.loading = false;
+        state.nationalites.items = action.payload.data || action.payload;
+      })
+      .addCase(fetchNationalites.rejected, (state, action) => {
+        state.nationalites.loading = false;
+        state.nationalites.error = action.payload;
+      })
+      // Responsables Bureaux
+      .addCase(fetchResponsablesBureaux.pending, (state) => {
+        state.responsablesBureaux.loading = true;
+        state.responsablesBureaux.error = null;
+      })
+      .addCase(fetchResponsablesBureaux.fulfilled, (state, action) => {
+        state.responsablesBureaux.loading = false;
+        state.responsablesBureaux.items = action.payload.data || action.payload;
+      })
+      .addCase(fetchResponsablesBureaux.rejected, (state, action) => {
+        state.responsablesBureaux.loading = false;
+        state.responsablesBureaux.error = action.payload;
+      })
+      .addCase(fetchVavSiege.pending, (state) => {
+        state.vavSiege.loading = true;
+        state.vavSiege.error = null;
+      })
+      .addCase(fetchVavSiege.fulfilled, (state, action) => {
+        state.vavSiege.loading = false;
+        state.vavSiege.items = action.payload.data || action.payload;
+      })
+      .addCase(fetchVavSiege.rejected, (state, action) => {
+        state.vavSiege.loading = false;
+        state.vavSiege.error = action.payload;
+      })
+      .addCase(fetchInitiateurs.pending, (state) => {
+        state.initiateurs.loading = true;
+        state.initiateurs.error = null;
+      })
+      .addCase(fetchInitiateurs.fulfilled, (state, action) => {
+        state.initiateurs.loading = false;
+        state.initiateurs.items = action.payload.data || action.payload;
+      })
+      .addCase(fetchInitiateurs.rejected, (state, action) => {
+        state.initiateurs.loading = false;
+        state.initiateurs.error = action.payload;
+      })
+      // Pays
+      .addCase(fetchPays.pending, (state) => {
+        state.pays.loading = true;
+        state.pays.error = null;
+      })
+      .addCase(fetchPays.fulfilled, (state, action) => {
+        state.pays.loading = false;
+        state.pays.items = action.payload.data || action.payload;
+      })
+      .addCase(fetchPays.rejected, (state, action) => {
+        state.pays.loading = false;
+        state.pays.error = action.payload;
+      })
+      // Secteurs
+      .addCase(fetchSecteurs.pending, (state) => {
+        state.secteurs.loading = true;
+        state.secteurs.error = null;
+      })
+      .addCase(fetchSecteurs.fulfilled, (state, action) => {
+        state.secteurs.loading = false;
+        state.secteurs.items = action.payload.data || action.payload;
+      })
+      .addCase(fetchSecteurs.rejected, (state, action) => {
+        state.secteurs.loading = false;
+        state.secteurs.error = action.payload;
+      })
+      // Binomes
+      .addCase(fetchBinomes.pending, (state) => {
+        state.binomes.loading = true;
+        state.binomes.error = null;
+      })
+      .addCase(fetchBinomes.fulfilled, (state, action) => {
+        state.binomes.loading = false;
+        state.binomes.items = action.payload.data || action.payload;
+      })
+      .addCase(fetchBinomes.rejected, (state, action) => {
+        state.binomes.loading = false;
+        state.binomes.error = action.payload;
+      })
+      .addCase(fetchResponsableFipa.pending, (state) => {
+        state.responsableFipa.loading = true;
+        state.responsableFipa.error = null;
+      })
+      .addCase(fetchResponsableFipa.fulfilled, (state, action) => {
+        state.responsableFipa.loading = false;
+        state.responsableFipa.items = action.payload.data || action.payload;
+      })
+      .addCase(fetchResponsableFipa.rejected, (state, action) => {
+        state.responsableFipa.loading = false;
+        state.responsableFipa.error = action.payload;
+      })
+      // Salons Sectoriels
+      .addCase(fetchSalonsSectoriels.pending, (state) => {
+        state.salonsSectoriels.loading = true;
+        state.salonsSectoriels.error = null;
+      })
+      .addCase(fetchSalonsSectoriels.fulfilled, (state, action) => {
+        state.salonsSectoriels.loading = false;
+        state.salonsSectoriels.items = action.payload.data || action.payload;
+      })
+      .addCase(fetchSalonsSectoriels.rejected, (state, action) => {
+        state.salonsSectoriels.loading = false;
+        state.salonsSectoriels.error = action.payload;
+      })
+      .addCase(addSalonSectoriel.pending, (state) => {
+        state.salonsSectoriels.loading = true;
+        state.salonsSectoriels.error = null;
+      })
+      .addCase(addSalonSectoriel.fulfilled, (state, action) => {
+        state.salonsSectoriels.loading = false;
+        state.salonsSectoriels.items.push(action.payload.data || action.payload);
+      })
+      .addCase(addSalonSectoriel.rejected, (state, action) => {
+        state.salonsSectoriels.loading = false;
+        state.salonsSectoriels.error = action.payload;
+      })
+      .addCase(updateSalonSectoriel.pending, (state) => {
+        state.salonsSectoriels.loading = true;
+        state.salonsSectoriels.error = null;
+      })
+      .addCase(updateSalonSectoriel.fulfilled, (state, action) => {
+        state.salonsSectoriels.loading = false;
+        const updatedItem = action.payload.data || action.payload;
+        const index = state.salonsSectoriels.items.findIndex(item => item.id === updatedItem.id);
+        if (index !== -1) {
+          state.salonsSectoriels.items[index] = updatedItem;
+        }
+      })
+      .addCase(updateSalonSectoriel.rejected, (state, action) => {
+        state.salonsSectoriels.loading = false;
+        state.salonsSectoriels.error = action.payload;
+      })
+      .addCase(deleteSalonSectoriel.pending, (state) => {
+        state.salonsSectoriels.loading = true;
+        state.salonsSectoriels.error = null;
+      })
+      .addCase(deleteSalonSectoriel.fulfilled, (state, action) => {
+        state.salonsSectoriels.loading = false;
+        state.salonsSectoriels.items = state.salonsSectoriels.items.filter(
+          item => item.id !== action.payload.id
+        );
+      })
+      .addCase(deleteSalonSectoriel.rejected, (state, action) => {
+        state.salonsSectoriels.loading = false;
+        state.salonsSectoriels.error = action.payload;
+      })
+      .addCase(getSalonSectorielById.pending, (state) => {
+        state.salonsSectoriels.loading = true;
+        state.salonsSectoriels.error = null;
+      })
+      .addCase(getSalonSectorielById.fulfilled, (state, action) => {
+        state.salonsSectoriels.loading = false;
+        state.salonsSectoriels.selectedItem = action.payload.data || action.payload;
+      })
+      .addCase(getSalonSectorielById.rejected, (state, action) => {
+        state.salonsSectoriels.loading = false;
+        state.salonsSectoriels.error = action.payload;
+      })
+      // Démarchage Direct
+      .addCase(fetchDemarchagesDirect.pending, (state) => {
+        state.demarchagesDirect.loading = true;
+        state.demarchagesDirect.error = null;
+      })
+      .addCase(fetchDemarchagesDirect.fulfilled, (state, action) => {
+        state.demarchagesDirect.loading = false;
+        state.demarchagesDirect.items = action.payload.data || action.payload;
+      })
+      .addCase(fetchDemarchagesDirect.rejected, (state, action) => {
+        state.demarchagesDirect.loading = false;
+        state.demarchagesDirect.error = action.payload;
+      })
+      .addCase(addDemarchageDirect.pending, (state) => {
+        state.demarchagesDirect.loading = true;
+        state.demarchagesDirect.error = null;
+      })
+      .addCase(addDemarchageDirect.fulfilled, (state, action) => {
+        state.demarchagesDirect.loading = false;
+        state.demarchagesDirect.items.push(action.payload.data || action.payload);
+      })
+      .addCase(addDemarchageDirect.rejected, (state, action) => {
+        state.demarchagesDirect.loading = false;
+        state.demarchagesDirect.error = action.payload;
+      })
+      .addCase(updateDemarchageDirect.pending, (state) => {
+        state.demarchagesDirect.loading = true;
+        state.demarchagesDirect.error = null;
+      })
+      .addCase(updateDemarchageDirect.fulfilled, (state, action) => {
+        state.demarchagesDirect.loading = false;
+        const updatedItem = action.payload.data || action.payload;
+        const index = state.demarchagesDirect.items.findIndex(item => item.id === updatedItem.id);
+        if (index !== -1) {
+          state.demarchagesDirect.items[index] = updatedItem;
+        }
+      })
+      .addCase(updateDemarchageDirect.rejected, (state, action) => {
+        state.demarchagesDirect.loading = false;
+        state.demarchagesDirect.error = action.payload;
+      })
+      .addCase(deleteDemarchageDirect.pending, (state) => {
+        state.demarchagesDirect.loading = true;
+        state.demarchagesDirect.error = null;
+      })
+      .addCase(deleteDemarchageDirect.fulfilled, (state, action) => {
+        state.demarchagesDirect.loading = false;
+        state.demarchagesDirect.items = state.demarchagesDirect.items.filter(
+          item => item.id !== action.payload.id
+        );
+      })
+      .addCase(deleteDemarchageDirect.rejected, (state, action) => {
+        state.demarchagesDirect.loading = false;
+        state.demarchagesDirect.error = action.payload;
+      })
+      .addCase(getDemarchageDirectById.pending, (state) => {
+        state.demarchagesDirect.loading = true;
+        state.demarchagesDirect.error = null;
+      })
+      .addCase(getDemarchageDirectById.fulfilled, (state, action) => {
+        state.demarchagesDirect.loading = false;
+        state.demarchagesDirect.selectedItem = action.payload.data || action.payload;
+      })
+      .addCase(getDemarchageDirectById.rejected, (state, action) => {
+        state.demarchagesDirect.loading = false;
+        state.demarchagesDirect.error = action.payload;
+      })
+      // Délégations
+      .addCase(fetchDelegations.pending, (state) => {
+        state.delegations.loading = true;
+        state.delegations.error = null;
+      })
+      .addCase(fetchDelegations.fulfilled, (state, action) => {
+        state.delegations.loading = false;
+        state.delegations.items = action.payload.data || action.payload;
+      })
+      .addCase(fetchDelegations.rejected, (state, action) => {
+        state.delegations.loading = false;
+        state.delegations.error = action.payload;
+      })
+      .addCase(addDelegation.pending, (state) => {
+        state.delegations.loading = true;
+        state.delegations.error = null;
+      })
+      .addCase(addDelegation.fulfilled, (state, action) => {
+        state.delegations.loading = false;
+        state.delegations.items.push(action.payload.data || action.payload);
+      })
+      .addCase(addDelegation.rejected, (state, action) => {
+        state.delegations.loading = false;
+        state.delegations.error = action.payload;
+      })
+      .addCase(updateDelegation.pending, (state) => {
+        state.delegations.loading = true;
+        state.delegations.error = null;
+      })
+      .addCase(updateDelegation.fulfilled, (state, action) => {
+        state.delegations.loading = false;
+        const updatedItem = action.payload.data || action.payload;
+        const index = state.delegations.items.findIndex(item => item.id === updatedItem.id);
+        if (index !== -1) {
+          state.delegations.items[index] = updatedItem;
+        }
+      })
+      .addCase(updateDelegation.rejected, (state, action) => {
+        state.delegations.loading = false;
+        state.delegations.error = action.payload;
+      })
+      .addCase(deleteDelegation.pending, (state) => {
+        state.delegations.loading = true;
+        state.delegations.error = null;
+      })
+      .addCase(deleteDelegation.fulfilled, (state, action) => {
+        state.delegations.loading = false;
+        state.delegations.items = state.delegations.items.filter(
+          item => item.id !== action.payload.id
+        );
+      })
+      .addCase(deleteDelegation.rejected, (state, action) => {
+        state.delegations.loading = false;
+        state.delegations.error = action.payload;
+      })
+      .addCase(getDelegationById.pending, (state) => {
+        state.delegations.loading = true;
+        state.delegations.error = null;
+      })
+      .addCase(getDelegationById.fulfilled, (state, action) => {
+        state.delegations.loading = false;
+        state.delegations.selectedItem = action.payload.data || action.payload;
+      })
+      .addCase(getDelegationById.rejected, (state, action) => {
+        state.delegations.loading = false;
+        state.delegations.error = action.payload;
+      })
+      // Visites Entreprise
+      .addCase(fetchVisitesEntreprise.pending, (state) => {
+        state.visitesEntreprise.loading = true;
+        state.visitesEntreprise.error = null;
+      })
+      .addCase(fetchVisitesEntreprise.fulfilled, (state, action) => {
+        state.visitesEntreprise.loading = false;
+        state.visitesEntreprise.items = action.payload.data || action.payload;
+      })
+      .addCase(fetchVisitesEntreprise.rejected, (state, action) => {
+        state.visitesEntreprise.loading = false;
+        state.visitesEntreprise.error = action.payload;
+      })
+      .addCase(addVisiteEntreprise.pending, (state) => {
+        state.visitesEntreprise.loading = true;
+        state.visitesEntreprise.error = null;
+      })
+      .addCase(addVisiteEntreprise.fulfilled, (state, action) => {
+        state.visitesEntreprise.loading = false;
+        state.visitesEntreprise.items.push(action.payload.data || action.payload);
+      })
+      .addCase(addVisiteEntreprise.rejected, (state, action) => {
+        state.visitesEntreprise.loading = false;
+        state.visitesEntreprise.error = action.payload;
+      })
+      .addCase(updateVisiteEntreprise.pending, (state) => {
+        state.visitesEntreprise.loading = true;
+        state.visitesEntreprise.error = null;
+      })
+      .addCase(updateVisiteEntreprise.fulfilled, (state, action) => {
+        state.visitesEntreprise.loading = false;
+        const updatedItem = action.payload.data || action.payload;
+        const index = state.visitesEntreprise.items.findIndex(item => item.id === updatedItem.id);
+        if (index !== -1) {
+          state.visitesEntreprise.items[index] = updatedItem;
+        }
+      })
+      .addCase(updateVisiteEntreprise.rejected, (state, action) => {
+        state.visitesEntreprise.loading = false;
+        state.visitesEntreprise.error = action.payload;
+      })
+      .addCase(deleteVisiteEntreprise.pending, (state) => {
+        state.visitesEntreprise.loading = true;
+        state.visitesEntreprise.error = null;
+      })
+      .addCase(deleteVisiteEntreprise.fulfilled, (state, action) => {
+        state.visitesEntreprise.loading = false;
+        state.visitesEntreprise.items = state.visitesEntreprise.items.filter(
+          item => item.id !== action.payload.id
+        );
+      })
+      .addCase(deleteVisiteEntreprise.rejected, (state, action) => {
+        state.visitesEntreprise.loading = false;
+        state.visitesEntreprise.error = action.payload;
+      })
+      .addCase(getVisiteEntrepriseById.pending, (state) => {
+        state.visitesEntreprise.loading = true;
+        state.visitesEntreprise.error = null;
+      })
+      .addCase(getVisiteEntrepriseById.fulfilled, (state, action) => {
+        state.visitesEntreprise.loading = false;
+        state.visitesEntreprise.selectedItem = action.payload.data || action.payload;
+      })
+      .addCase(getVisiteEntrepriseById.rejected, (state, action) => {
+        state.visitesEntreprise.loading = false;
+        state.visitesEntreprise.error = action.payload;
+      })
+      .addCase(fetchResponsableSuivi.pending, (state) => {
+        state.responsableSuivi.loading = true;
+        state.responsableSuivi.error = null;
+      })
+      .addCase(fetchResponsableSuivi.fulfilled, (state, action) => {
+        state.responsableSuivi.loading = false;
+        state.responsableSuivi.items = action.payload.data || action.payload;
+      })
+      .addCase(fetchResponsableSuivi.rejected, (state, action) => {
+        state.responsableSuivi.loading = false;
+        state.responsableSuivi.error = action.payload;
+      })
+      .addCase(fetchActions.pending, (state) => {
+        state.actions.loading = true;
+        state.actions.error = null;
+      })
+      .addCase(fetchActions.fulfilled, (state, action) => {
+        state.actions.loading = false;
+        state.actions.items = action.payload.data || []; // Assurez-vous de toujours avoir un tableau
+        state.actions.error = null;
+      })
+      .addCase(fetchActions.rejected, (state, action) => {
+        state.actions.loading = false;
+        state.actions.error = action.payload;
+      })
+      .addCase(addAction.pending, (state) => {
+        state.actions.loading = true;
+        state.actions.error = null;
+      })
+      .addCase(addAction.fulfilled, (state, action) => {
+        state.actions.loading = false;
+        
+        // Vérifier si items est un tableau, sinon l'initialiser
+        if (!Array.isArray(state.actions.items)) {
+          state.actions.items = [];
+        }
+        
+        // Ensuite ajouter l'élément
+        state.actions.items.push(action.payload.data || action.payload);
+      })
+      .addCase(addAction.rejected, (state, action) => {
+        state.actions.loading = false;
+        state.actions.error = action.payload;
+      })
+      .addCase(updateAction.pending, (state) => {
+        state.actions.loading = true;
+        state.actions.error = null;
+      })
+      .addCase(updateAction.fulfilled, (state, action) => {
+        state.actions.loading = false;
+        const updatedItem = action.payload.data || action.payload;
+        const index = state.actions.items.findIndex(item => item.id === updatedItem.id);
+        if (index !== -1) {
+          state.actions.items[index] = updatedItem;
+        }
+      })
+      .addCase(updateAction.rejected, (state, action) => {
+        state.actions.loading = false;
+        state.actions.error = action.payload;
+      })
+      .addCase(deleteAction.pending, (state) => {
+        state.actions.loading = true;
+        state.actions.error = null;
+      })
+      .addCase(deleteAction.fulfilled, (state, action) => {
+        state.actions.loading = false;
+        state.actions.items = state.actions.items.filter(
+          item => item.id !== action.payload.id
+        );
+      })
+      .addCase(deleteAction.rejected, (state, action) => {
+        state.actions.loading = false;
+        state.actions.error = action.payload;
+      })
+      .addCase(getActionById.pending, (state) => {
+        state.actions.loading = true;
+        state.actions.error = null;
+      })
+      .addCase(getActionById.fulfilled, (state, action) => {
+        state.actions.loading = false;
+        state.actions.selectedItem = action.payload.data || action.payload;
+      })
+      .addCase(getActionById.rejected, (state, action) => {
+        state.actions.loading = false;
+        state.actions.error = action.payload;
+      })
+      .addCase(updateActionStatus.pending, (state) => {
+        state.actions.loading = true;
+        state.actions.error = null;
+      })
+      .addCase(updateActionStatus.fulfilled, (state, action) => {
+        state.actions.loading = false;
+        const updatedItem = action.payload.data || action.payload;
+        const index = state.actions.items.findIndex(item => item.id === updatedItem.id);
+        if (index !== -1) {
+          state.actions.items[index] = updatedItem;
+        }
+        // Optionnel : mettre à jour selectedItem si c'est celui modifié
+        if (state.actions.selectedItem && state.actions.selectedItem.id === updatedItem.id) {
+          state.actions.selectedItem = updatedItem;
+        }
+      })
+      .addCase(updateActionStatus.rejected, (state, action) => {
+        state.actions.loading = false;
+        state.actions.error = action.payload;
+      });
 
-    
+
   },
 });
 

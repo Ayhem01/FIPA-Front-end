@@ -1,158 +1,183 @@
-:root {
-    --header-height: 70px;
-    --header-bg: #ffffff;
-    --header-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    --header-border-radius: 12px;
-    --primary-color: #50b0ff;
-    --text-color: #333333;
-    --text-secondary: #718096;
-    --transition-speed: 0.3s;
-  }
-  
-  /* Main header container */
-  .header-container {
-    height: var(--header-height);
-    background-color: var(--header-bg);
-    border-radius: var(--header-border-radius);
-    box-shadow: var(--header-shadow);
-    margin: 0 0 10px calc(var(--sidebar-width) + 20px);
-    transition: margin var(--transition-speed) ease;
-    position: fixed;
-    top: 0;
-    right: 0;
-    left: 0;
-    z-index: 90;
-  }
-  
-  /* When sidebar is collapsed */
-  .header-container.collapsed {
-    margin-left: calc(var(--sidebar-collapsed-width) + 20px);
-  }
-  
-  /* Header content styling */
-  .header-content {
-    padding: 0 24px;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  
-  /* Breadcrumb styling */
-  .header-breadcrumb {
-    display: flex;
-    align-items: center;
-  }
-  
-  .header-breadcrumb .ant-breadcrumb {
-    font-size: 14px;
-  }
-  
-  .header-breadcrumb .ant-breadcrumb-link {
-    color: var(--text-color);
-    font-weight: 500;
-  }
-  
-  .header-breadcrumb .ant-breadcrumb-separator {
-    margin: 0 8px;
-    color: var(--text-secondary);
-  }
-  
-  /* Right controls area */
-  .header-control {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-  
-  /* Profile dropdown styling */
-  .header-control .ant-dropdown-link {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 12px;
-    border-radius: 8px;
-    transition: background-color var(--transition-speed) ease;
-    cursor: pointer;
-  }
-  
-  .header-control .ant-dropdown-link:hover {
-    background-color: rgba(0, 0, 0, 0.03);
-  }
-  
-  .header-control .ant-dropdown-link span {
-    font-weight: 500;
-    color: var(--text-color);
-  }
-  
-  /* User avatar */
-  .user-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    overflow: hidden;
-    background-color: #f5f5f5;
-    border: 1px solid #f0f0f0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  /* Icon styling */
-  .header-control .ant-btn.sidebar-toggler {
+.main-header {
+  position: fixed;
+  width: 100%;
+  z-index: 1000;
+  padding: 0;
+  background: linear-gradient(135deg, #004165 0%, #00334e 100%); /* Ocean dark bleu */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  height: 64px;
+}
+
+.header-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  padding: 0 20px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* Logo et marque */
+.header-brand {
+  display: flex;
+  align-items: center;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.logo-image {
+  height: 32px;
+  margin-right: 16px;
+}
+
+.brand-name {
+  color: #ffffff;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Navigation principale */
+.main-navigation {
+  flex-grow: 1;
+  margin: 0 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.main-menu {
+  background: transparent;
+  border-bottom: none;
+  color: white;
+  display: flex;
+  justify-content: center;
+}
+
+/* Style de menu personnalisé */
+.main-menu.ant-menu-dark.ant-menu-horizontal {
+  line-height: 64px;
+}
+
+.main-menu.ant-menu-dark.ant-menu-horizontal > .ant-menu-item:hover,
+.main-menu.ant-menu-dark.ant-menu-horizontal > .ant-menu-submenu:hover {
+  background-color: rgba(255, 215, 0, 0.15); /* FFD700 avec transparence */
+}
+
+.main-menu.ant-menu-dark.ant-menu-horizontal > .ant-menu-item-selected {
+  background-color: #FFD700; /* Couleur or demandée */
+  color: #004165; /* Texte en ocean dark pour contraste sur fond or */
+  font-weight: bold;
+}
+
+/* Sous-menus */
+.ant-menu-submenu-popup > .ant-menu {
+  background-color: #004165;
+}
+
+.ant-menu-dark .ant-menu-submenu-title:hover {
+  color: #FFD700;
+}
+
+/* Contrôles à droite */
+.header-controls {
+  display: flex;
+  align-items: center;
+}
+
+.header-control-button {
+  color: #ffffff;
+  font-size: 18px;
+  padding: 0 12px;
+  background: transparent;
+  border: none;
+}
+
+.header-control-button:hover {
+  color: #FFD700;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.notification-badge .ant-badge-count {
+  background: #FFD700;
+  color: #004165;
+}
+
+.lang-switcher-container {
+  margin: 0 16px;
+}
+
+.user-dropdown-link {
+  display: flex;
+  align-items: center;
+  color: #ffffff;
+  padding: 0 8px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.user-dropdown-link:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.user-avatar {
+  background-color: #FFD700;
+  color: #004165;
+  margin-right: 8px;
+}
+
+.username {
+  margin-right: 8px;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Version mobile */
+.mobile-controls {
+  display: none;
+}
+
+.mobile-menu-button {
+  color: white;
+  font-size: 20px;
+}
+
+.mobile-menu-drawer .ant-drawer-body {
+  padding: 0;
+}
+
+.mobile-menu {
+  border-right: none;
+}
+
+/* Media queries pour la responsivité */
+@media (max-width: 1200px) {
+  .main-navigation {
     display: none;
-    padding: 8px;
-    height: auto;
-    line-height: 1;
-    border-radius: 8px;
+  }
+
+  .mobile-controls {
+    display: block;
+  }
+
+  .header-brand {
+    flex-grow: 1;
+  }
+}
+
+@media (max-width: 576px) {
+  .username {
+    display: none;
   }
   
-  .header-control svg {
-    width: 20px;
-    height: 20px;
+  .header-control-button {
+    padding: 0 8px;
   }
-  
-  /* Notification badge */
-  .header-control .ant-badge {
-    display: flex;
-    align-items: center;
-  }
-  
-  /* Language switcher styling */
-  .lang-switcher {
-    margin-left: 8px;
-    display: flex;
-    align-items: center;
-  }
-  
-  .lang-switcher .ant-select {
-    width: auto;
-  }
-  
-  .lang-switcher .ant-select-selector {
-    border-radius: 8px;
-    padding: 4px 8px;
-    border: 1px solid #f0f0f0;
-  }
-  
-  /* Responsive adjustments */
-  @media (max-width: 768px) {
-    .header-container {
-      margin-left: 10px;
-    }
-  
-    .header-content {
-      padding: 0 16px;
-    }
-  
-    .header-control .ant-btn.sidebar-toggler {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    
-    /* Hide username on mobile */
-    .header-control .ant-dropdown-link span {
-      display: none;
-    }
-  }
+}

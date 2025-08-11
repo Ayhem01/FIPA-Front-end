@@ -1,0 +1,234 @@
+.action-list-container {
+    margin: 20px 0;
+    animation: fadeIn 0.4s ease-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .action-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  
+  .page-title {
+    color: #004165 !important;
+    margin: 0 !important;
+  }
+  
+  .action-list-tools {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+  
+  .add-action-btn {
+    background: linear-gradient(145deg, #004165, #006494);
+    border: none;
+    border-radius: 8px;
+  }
+  
+  .add-action-btn:hover {
+    background: linear-gradient(145deg, #006494, #004165);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 65, 101, 0.3);
+  }
+  
+  .active-filter-btn {
+    background-color: #FFD700;
+    border-color: #FFD700;
+    color: #004165;
+  }
+  
+  .active-filter-btn:hover {
+    background-color: #f8ce00;
+    border-color: #f8ce00;
+  }
+  
+  .action-filters {
+    background: linear-gradient(145deg, #f5f7fa, #ffffff);
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 12px rgba(0, 65, 101, 0.05);
+    border-left: 4px solid #FFD700;
+    animation: slideDown 0.3s ease-out;
+  }
+  
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .action-list-card {
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0, 65, 101, 0.1);
+    overflow: hidden;
+    position: relative;
+  }
+  
+  .action-list-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 8px;
+    background: linear-gradient(90deg, #004165, #006494);
+    z-index: 1;
+  }
+  
+  /* Table styles */
+  .actions-table {
+    margin-top: 10px;
+  }
+  
+  .actions-table .ant-table-thead > tr > th {
+    background-color: #f5f7fa;
+    color: #004165;
+    font-weight: 600;
+  }
+  
+  .action-table-row {
+    transition: all 0.3s;
+  }
+  
+  .action-table-row:hover {
+    background-color: rgba(0, 65, 101, 0.04) !important;
+  }
+  
+  .action-table-row td {
+    padding: 16px 12px !important;
+  }
+  
+  /* Action buttons */
+  .action-button {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  
+  .action-button.view {
+    color: #004165;
+  }
+  
+  .action-button.edit {
+    color: #faad14;
+  }
+  
+  .action-button.delete {
+    color: #ff4d4f;
+  }
+  
+  .action-button:hover {
+    transform: scale(1.1);
+    background-color: #f5f7fa;
+  }
+  
+  .action-name {
+    font-weight: 500;
+  }
+  
+  .action-name a {
+    color: #004165;
+  }
+  
+  .action-name a:hover {
+    color: #FFD700;
+    text-decoration: underline;
+  }
+  
+  /* Tags styling */
+  .actions-table .ant-tag {
+    border-radius: 4px;
+    padding: 0 8px;
+    font-size: 12px;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  
+  .batch-actions {
+    padding: 12px 16px;
+    background-color: rgba(0, 65, 101, 0.04);
+    border-top: 1px solid rgba(0, 65, 101, 0.1);
+    display: flex;
+    justify-content: flex-end;
+  }
+  
+  .loading-container {
+    padding: 40px 0;
+    text-align: center;
+    color: #004165;
+  }
+  
+  .loading-container p {
+    margin-top: 12px;
+  }
+  /* Ajouter ces styles à votre fichier action-list.css existant */
+
+.pagination-container {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 16px;
+    padding: 16px;
+    border-top: 1px solid rgba(0, 65, 101, 0.1);
+  }
+  
+  .ant-radio-button-wrapper {
+    font-size: 12px;
+    padding: 0 8px;
+  }
+  
+  .ant-radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  
+  .ant-pagination-options {
+    margin-left: 16px;
+  }
+  
+  /* Style pour la pagination */
+  .ant-pagination-item-active {
+    border-color: #004165;
+  }
+  
+  .ant-pagination-item-active a {
+    color: #004165;
+  }
+  
+  .ant-pagination-item:hover {
+    border-color: #FFD700;
+  }
+  
+  .ant-pagination-item:hover a {
+    color: #FFD700;
+  }
+  
+  /* Style pour les boutons de période */
+  .ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled) {
+    background: #004165;
+    border-color: #004165;
+    color: white;
+  }
+  
+  .ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled):hover {
+    background: #00548c;
+    border-color: #00548c;
+    color: white;
+  }
+  
+  .ant-radio-button-wrapper:hover {
+    color: #FFD700;
+  }

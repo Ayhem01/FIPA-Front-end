@@ -3920,3 +3920,28 @@ h2 {
 
 
 
+.layout-container {
+  min-height: 100vh;
+  background-color: #f0f2f5;
+}
+
+.site-content {
+  padding-top: 64px; /* Hauteur du header */
+  min-height: calc(100vh - 64px - 69px); /* 100vh - header - footer */
+}
+
+.site-content-wrapper {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* Styles pour les contenus spécifiques comme profile */
+.layout-container.layout-profile .site-content {
+  padding-top: 0;
+}
+
+/* Pour conserver la compatibilité avec les styles existants */
+.content-ant {
+  min-height: calc(100vh - 64px - 69px);
+}

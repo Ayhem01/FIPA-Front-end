@@ -1,0 +1,132 @@
+/* Styles pour tous les sous-formulaires (Media, CTE, etc.) */
+.sub-form {
+    margin-top: 12px;
+  }
+  
+  .sub-form .ant-tabs-tab {
+    padding: 10px 16px;
+    transition: all 0.3s;
+    border-radius: 8px 8px 0 0 !important;
+  }
+  
+  .sub-form .ant-tabs-tab-active {
+    background-color: #f5f7fa !important;
+  }
+  
+  .sub-form .ant-tabs-nav {
+    margin-bottom: 0;
+  }
+  
+  .sub-form .ant-tabs-content {
+    background: linear-gradient(145deg, #f5f7fa, #ffffff);
+    border-radius: 0 8px 8px 8px;
+    padding: 0;
+  }
+  
+  /* Style spécial pour les onglets dorés */
+  .gold-tabs .ant-tabs-tab:hover {
+    color: #FFD700 !important;
+  }
+  
+  .gold-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+    color: #004165 !important;
+    font-weight: 600;
+  }
+  
+  .gold-tabs .ant-tabs-ink-bar {
+    background: #FFD700 !important;
+  }
+  
+  /* Contenu des onglets */
+  .tab-content-wrapper {
+    padding: 20px;
+  }
+  
+  /* Style pour les dividers personnalisés */
+  .custom-divider {
+    color: #004165;
+    font-weight: 600;
+    font-size: 16px;
+    margin: 16px 0 20px;
+  }
+  
+  .custom-divider::before,
+  .custom-divider::after {
+    border-top-color: rgba(0, 65, 101, 0.1);
+  }
+  
+  /* Style pour les groupes de checkboxes */
+  .checkbox-group .ant-checkbox-wrapper {
+    margin-bottom: 10px;
+    transition: all 0.3s;
+  }
+  
+  .checkbox-group .ant-checkbox-wrapper:hover {
+    color: #004165;
+  }
+  
+  .checkbox-group .ant-checkbox-checked .ant-checkbox-inner {
+    background-color: #004165;
+    border-color: #004165;
+  }
+  
+  /* Style pour les textarea */
+  .styled-textarea {
+    border-radius: 8px;
+    resize: none;
+    border: 1px solid rgba(0, 65, 101, 0.15);
+  }
+  
+  .styled-textarea:hover {
+    border-color: rgba(255, 215, 0, 0.5);
+  }
+  
+  .styled-textarea:focus {
+    border-color: #FFD700;
+    box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
+  }
+  
+  /* Animation légère au chargement */
+  .sub-form {
+    animation: fadeIn 0.4s ease-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  /* Classes pour les champs requis */
+  .sub-form .required-field .ant-form-item-label > label::before {
+    display: inline-block;
+    margin-right: 4px;
+    color: #ff4d4f;
+    font-size: 14px;
+    font-family: SimSun, sans-serif;
+    line-height: 1;
+    content: '*';
+  }
+  
+  /* Amélioration pour les select et input */
+  .sub-form .ant-select-selector,
+  .sub-form .ant-input,
+  .sub-form .ant-input-number,
+  .sub-form .ant-picker {
+    border-radius: 8px;
+    transition: all 0.3s;
+  }
+  
+  .sub-form .ant-select-selector:hover,
+  .sub-form .ant-input:hover,
+  .sub-form .ant-input-number:hover,
+  .sub-form .ant-picker:hover {
+    border-color: rgba(255, 215, 0, 0.5) !important;
+  }
+  
+  .sub-form .ant-select-focused .ant-select-selector,
+  .sub-form .ant-input:focus,
+  .sub-form .ant-input-number-focused,
+  .sub-form .ant-picker-focused {
+    border-color: #FFD700 !important;
+    box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2) !important;
+  }
