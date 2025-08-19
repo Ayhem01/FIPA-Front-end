@@ -4,6 +4,7 @@ import marketingReducer from './marketingSlice';
 import taskReducer from './taskSlice';
 import projectReducer from './projectSlice';
 import inviteReducer from './inviteSlice';
+import prospectReducer from './prospectSlice';
 
 
 
@@ -14,6 +15,7 @@ export const store = configureStore({
         tasks: taskReducer,
         projects: projectReducer,
         invites: inviteReducer,
+        prospects: prospectReducer,
             },
 });
 

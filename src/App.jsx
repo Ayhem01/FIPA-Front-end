@@ -53,6 +53,8 @@ import ProjectTasksTab from "./components/Tasks/ProjectTasksTab";
 import ActionForm from "./components/Actions/ActionForm";
 import ActionList from "./components/Actions/ActionList";
 import ActionDetail from "./components/Actions/ActionDetail";
+import ProspectDetails from "./components/Portefeuille/ProspectDetails";
+
 
 
 
@@ -95,6 +97,7 @@ function App() {
               <Route path="/actions/edit/:id" element={<ActionForm />} />
               <Route path="/actions" element={<ActionList />} />
               <Route path="/actions/:id" element={<ActionDetail />} />
+              <Route path="/prospects/:id" element={<ProspectDetails />} />
 
 
               <Route path="/invites" element={<InvitesList />} />

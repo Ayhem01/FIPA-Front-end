@@ -4,35 +4,82 @@ import { useDispatch, useSelector } from 'react-redux';
 import {
   Card, Row, Col, Typography, Tag, Button, Space, Spin,
   Descriptions, Tabs, Table, Statistic, Divider, Tooltip,
-  Timeline, Modal, Empty, Breadcrumb, Badge, Avatar,Result
+  Timeline, Modal, Empty, Breadcrumb, Badge, Avatar, Result,
+  Form, Input, Select, Radio, message
 } from 'antd';
 import {
   ArrowLeftOutlined, EditOutlined, DeleteOutlined, CalendarOutlined,
   FileTextOutlined, UserOutlined, GlobalOutlined, TeamOutlined,
   ClockCircleOutlined, CheckCircleOutlined, InfoCircleOutlined,
   ExclamationCircleOutlined, EnvironmentOutlined, ProfileOutlined,
-  PlusOutlined, MailOutlined, PhoneOutlined, FundOutlined,CloseCircleOutlined
+  PlusOutlined, MailOutlined, PhoneOutlined, FundOutlined, CloseCircleOutlined,
+  UserAddOutlined
 } from '@ant-design/icons';
-import { getActionById, deleteAction } from '../../features/marketingSlice';
+import { getActionById, deleteAction, fetchEntreprises, 
+  fetchEtapes } from '../../features/marketingSlice';
+import { createInvite } from '../../features/inviteSlice';
 import moment from 'moment';
+import { API_BASE_URL, getAuthHeader } from '../../features/taskSlice';
 import '../../../src/assets/styles/action-form.css';
+import { getCurrentUser } from '../../features/userSlice';
 
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
+const { Option } = Select;
+const { TextArea } = Input;
 
 const ActionDetail = () => {
   const { id } = useParams();
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
+  // Récupération de l'utilisateur courant depuis le Redux store
+  const currentUser = useSelector((state) => state.user.user);
+
+  // Récupérer les données depuis le Redux store
   const { selectedItem: action, loading } = useSelector((state) => state.marketing.actions);
+  const { items: entreprises, loading: entreprisesLoading } = useSelector((state) => state.marketing.entreprises);
+  const { items: etapes, loading: etapesLoading } = useSelector((state) => state.marketing.etapes);
+  
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [addInviteModalVisible, setAddInviteModalVisible] = useState(false);
+  const [inviteForm] = Form.useForm();
+  
+  // Définir le loading des dépendances sans inclure usersLoading
+  const loadingDependencies = entreprisesLoading || etapesLoading;
 
   // Charger les détails de l'action
   useEffect(() => {
     dispatch(getActionById(id));
+    dispatch(getCurrentUser());
   }, [dispatch, id]);
 
-  // Gérer la suppression
+  // Fonction pour charger les données nécessaires pour le formulaire (sans les utilisateurs)
+  const loadFormDependencies = () => {
+    // Charger uniquement les entreprises et les étapes
+    dispatch(fetchEntreprises());
+    dispatch(fetchEtapes());
+  };
+
+  // Ouvrir le modal et charger les données
+  const openAddInviteModal = () => {
+    // Réinitialiser le formulaire
+    inviteForm.resetFields();
+    
+    // Définir des valeurs initiales, avec l'utilisateur courant comme propriétaire
+    inviteForm.setFieldsValue({
+      type_invite: 'externe', 
+      statut: 'en_attente',
+      action_id: id,
+      proprietaire_id: currentUser?.id  // Définir l'ID de l'utilisateur courant
+    });
+    
+    // Charger les dépendances et afficher le modal
+    loadFormDependencies();
+    setAddInviteModalVisible(true);
+  };
+
+  // Gérer la suppression d'une action
   const handleDeleteAction = async () => {
     try {
       await dispatch(deleteAction(id)).unwrap();
@@ -43,6 +90,46 @@ const ActionDetail = () => {
       message.error('Impossible de supprimer cette action');
     }
     setDeleteModalVisible(false);
+  };
+
+  // Gérer l'ajout d'un invité
+  const handleAddInvite = () => {
+    inviteForm
+      .validateFields()
+      .then(values => {
+        // Ajout de l'action_id et proprietaire_id à l'objet invité
+        const inviteData = {
+          ...values,
+          action_id: id,
+          statut: values.statut || 'en_attente',
+          proprietaire_id: currentUser?.id  // S'assurer que l'ID du propriétaire est bien défini
+        };
+
+        message.loading('Ajout de l\'invité en cours...', 0.5);
+        dispatch(createInvite(inviteData))
+          .unwrap()
+          .then(() => {
+            message.success('Invité ajouté avec succès');
+            inviteForm.resetFields();
+            setAddInviteModalVisible(false);
+            // Rafraîchir les détails de l'action pour voir le nouvel invité
+            dispatch(getActionById(id));
+          })
+          .catch(error => {
+            console.error('Erreur complète:', error);
+            
+            // Afficher les messages d'erreur spécifiques si disponibles
+            if (error && error.errors) {
+              const errorMessages = Object.values(error.errors).flat().join(', ');
+              message.error(`Erreur lors de l'ajout: ${errorMessages}`);
+            } else {
+              message.error(`Erreur lors de l'ajout: ${error.message || error}`);
+            }
+          });
+      })
+      .catch(info => {
+        console.log('Validation échouée:', info);
+      });
   };
 
   // Utilitaires pour l'affichage
@@ -472,12 +559,8 @@ const ActionDetail = () => {
     );
   };
 
-  // Rendu des invités si disponibles
+  // Rendu des invités avec bouton d'ajout
   const renderInvites = () => {
-    if (!action || !action.invites || action.invites.length === 0) {
-      return <Empty description="Aucun invité pour cette action" />;
-    }
-    
     const columns = [
       {
         title: 'Nom',
@@ -486,7 +569,7 @@ const ActionDetail = () => {
         render: (text, record) => (
           <Space>
             <Avatar icon={<UserOutlined />} />
-            <Text>{text}</Text>
+            <Text>{text} {record.prenom}</Text>
           </Space>
         ),
       },
@@ -518,9 +601,10 @@ const ActionDetail = () => {
         key: 'statut',
         render: statut => {
           const statusMap = {
-            'confirme': { color: 'green', text: 'Confirmé', icon: <CheckCircleOutlined /> },
+            'confirmee': { color: 'green', text: 'Confirmé', icon: <CheckCircleOutlined /> },
             'en_attente': { color: 'gold', text: 'En attente', icon: <ClockCircleOutlined /> },
-            'decline': { color: 'red', text: 'Décliné', icon: <CloseCircleOutlined /> },
+            'refusee': { color: 'red', text: 'Décliné', icon: <CloseCircleOutlined /> },
+            'participee': { color: 'blue', text: 'Participé', icon: <CheckCircleOutlined /> }
           };
           
           const { color, text, icon } = statusMap[statut] || { color: 'default', text: statut, icon: <InfoCircleOutlined /> };
@@ -538,16 +622,43 @@ const ActionDetail = () => {
         key: 'created_at',
         render: date => formatDateTime(date),
       },
+      {
+        title: 'Actions',
+        key: 'actions',
+        render: (_, record) => (
+          <Space>
+            <Link to={`/invites/${record.id}`}>
+              <Button type="link" icon={<FileTextOutlined />}>Voir</Button>
+            </Link>
+          </Space>
+        ),
+      }
     ];
-    
+
     return (
-      <Table 
-        dataSource={action.invites.map(invite => ({ ...invite, key: invite.id }))}
-        columns={columns}
-        pagination={false}
-        size="middle"
-        className="invites-table"
-      />
+      <>
+        <div style={{ marginBottom: 16, textAlign: 'right' }}>
+          <Button 
+            type="primary" 
+            icon={<UserAddOutlined />}
+            onClick={openAddInviteModal}
+          >
+            Ajouter un invité
+          </Button>
+        </div>
+        
+        {!action || !action.invites || action.invites.length === 0 ? (
+          <Empty description="Aucun invité pour cette action" />
+        ) : (
+          <Table 
+            dataSource={action.invites.map(invite => ({ ...invite, key: invite.id }))}
+            columns={columns}
+            pagination={false}
+            size="middle"
+            className="invites-table"
+          />
+        )}
+      </>
     );
   };
 
@@ -829,6 +940,187 @@ const ActionDetail = () => {
       >
         <p>Êtes-vous sûr de vouloir supprimer cette action ?</p>
         <p>Cette opération est irréversible et supprimera également toutes les données associées.</p>
+      </Modal>
+
+      {/* Modal pour ajouter un invité avec les champs obligatoires */}
+      <Modal
+        title="Ajouter un invité"
+        visible={addInviteModalVisible}
+        onCancel={() => setAddInviteModalVisible(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setAddInviteModalVisible(false)}>
+            Annuler
+          </Button>,
+          <Button 
+            key="submit" 
+            type="primary" 
+            onClick={handleAddInvite}
+            loading={loadingDependencies}
+            disabled={loadingDependencies}
+          >
+            Ajouter
+          </Button>,
+        ]}
+        width={700}
+      >
+        {loadingDependencies ? (
+          <div style={{ textAlign: 'center', padding: '30px' }}>
+            <Spin size="large" />
+            <p>Chargement des données...</p>
+          </div>
+        ) : (
+          <Form
+            form={inviteForm}
+            layout="vertical"
+            initialValues={{ 
+              type_invite: 'externe', 
+              statut: 'en_attente',
+              action_id: id,
+              proprietaire_id: currentUser?.id // Initialisation avec l'utilisateur courant
+            }}
+          >
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="nom"
+                  label="Nom"
+                  rules={[{ required: true, message: 'Veuillez entrer le nom' }]}
+                >
+                  <Input placeholder="Nom" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="prenom"
+                  label="Prénom"
+                  rules={[{ required: true, message: 'Veuillez entrer le prénom' }]}
+                >
+                  <Input placeholder="Prénom" />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="email"
+                  label="Email"
+                  rules={[
+                    { required: true, message: 'Veuillez entrer l\'email' },
+                    { type: 'email', message: 'Email invalide' }
+                  ]}
+                >
+                  <Input placeholder="Email" prefix={<MailOutlined />} />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="telephone" label="Téléphone">
+                  <Input placeholder="Téléphone" prefix={<PhoneOutlined />} />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="entreprise_id"
+                  label="Entreprise"
+                  rules={[{ required: true, message: 'L\'entreprise est obligatoire' }]}
+                >
+                  <Select 
+                    placeholder="Sélectionner une entreprise" 
+                    showSearch
+                    loading={entreprisesLoading}
+                    filterOption={(input, option) =>
+                      option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                    }
+                    notFoundContent={entreprisesLoading ? <Spin size="small" /> : <Empty description="Aucune entreprise trouvée" />}
+                  >
+                    {Array.isArray(entreprises?.data) 
+                      ? entreprises.data.map(entreprise => (
+                          <Option key={entreprise.id} value={entreprise.id}>{entreprise.nom || entreprise.name}</Option>
+                        ))
+                      : Array.isArray(entreprises) 
+                        ? entreprises.map(entreprise => (
+                            <Option key={entreprise.id} value={entreprise.id}>{entreprise.nom || entreprise.name}</Option>
+                          ))
+                        : null
+                    }
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="etape_id"
+                  label="Étape"
+                  rules={[{ required: true, message: 'L\'étape est obligatoire' }]}
+                >
+                  <Select 
+                    placeholder="Sélectionner une étape"
+                    loading={etapesLoading}
+                    notFoundContent={etapesLoading ? <Spin size="small" /> : <Empty description="Aucune étape trouvée" />}
+                  >
+                    {Array.isArray(etapes) && etapes.map(etape => (
+                      <Option key={etape.id} value={etape.id}>{etape.nom}</Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Row gutter={16}>
+              <Col span={12}>
+                {/* Champ caché pour l'ID du propriétaire */}
+                <Form.Item
+                  name="proprietaire_id"
+                  hidden
+                >
+                  <Input type="hidden" />
+                </Form.Item>
+                
+                {/* Champ informatif pour afficher le nom de l'utilisateur courant */}
+                <Form.Item label="Propriétaire">
+                  <Input 
+                    value={currentUser?.name || "Vous"} 
+                    disabled 
+                    prefix={<UserOutlined />} 
+                    style={{ color: "#555", cursor: "default" }} 
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="fonction" label="Fonction">
+                  <Input placeholder="Fonction" />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item name="type_invite" label="Type d'invité">
+                  <Radio.Group>
+                    <Radio value="externe">Externe</Radio>
+                    <Radio value="interne">Interne</Radio>
+                  </Radio.Group>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="statut" label="Statut">
+                  <Select placeholder="Sélectionner un statut">
+                    <Option value="en_attente">En attente</Option>
+                    <Option value="confirmee">Confirmé</Option>
+                    <Option value="refusee">Refusé</Option>
+                    <Option value="participee">Participé</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Form.Item name="commentaires" label="Commentaires">
+              <TextArea rows={4} placeholder="Commentaires" />
+            </Form.Item>
+          </Form>
+        )}
       </Modal>
     </div>
   );

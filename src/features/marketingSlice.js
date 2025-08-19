@@ -696,6 +696,7 @@ export const getDelegationById = createAsyncThunk(
     }
   }
 );
+
 // =========== Visites Entreprise ===========
 export const fetchVisitesEntreprise = createAsyncThunk(
   "marketing/fetchVisitesEntreprise",
@@ -1059,6 +1060,32 @@ export const updateActionStatus = createAsyncThunk(
     }
   }
 );
+export const fetchEntreprises = createAsyncThunk(
+  "marketing/fetchEntreprises",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/entreprises`, getAuthHeader());
+      return response.data;
+    } catch (error) {
+      console.error("Erreur lors du chargement des entreprises:", error);
+      return rejectWithValue(error.response?.data || "Une erreur s'est produite");
+    }
+  }
+);
+
+// Récupérer la liste des étapes
+export const fetchEtapes = createAsyncThunk(
+  "marketing/fetchEtapes",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/etapes`, getAuthHeader());
+      return response.data;
+    } catch (error) {
+      console.error("Erreur lors du chargement des étapes:", error);
+      return rejectWithValue(error.response?.data || "Une erreur s'est produite");
+    }
+  }
+);
 
 
 // =========== Slice ===========
@@ -1172,6 +1199,17 @@ const marketingSlice = createSlice({
     actions: {
       items: [],
       selectedItem: null,
+      loading: false,
+      error: null
+    },
+    entreprises: {
+      items: [],
+      loading: false,
+      error: null
+    },
+
+    etapes: {
+      items: [],
       loading: false,
       error: null
     },
@@ -2018,6 +2056,30 @@ const marketingSlice = createSlice({
       .addCase(updateActionStatus.rejected, (state, action) => {
         state.actions.loading = false;
         state.actions.error = action.payload;
+      })
+      .addCase(fetchEntreprises.pending, (state) => {
+        state.entreprises.loading = true;
+        state.entreprises.error = null;
+      })
+      .addCase(fetchEntreprises.fulfilled, (state, action) => {
+        state.entreprises.loading = false;
+        state.entreprises.items = action.payload.data || action.payload || [];
+      })
+      .addCase(fetchEntreprises.rejected, (state, action) => {
+        state.entreprises.loading = false;
+        state.entreprises.error = action.payload;
+      })
+      .addCase(fetchEtapes.pending, (state) => {
+        state.etapes.loading = true;
+        state.etapes.error = null;
+      })
+      .addCase(fetchEtapes.fulfilled, (state, action) => {
+        state.etapes.loading = false;
+        state.etapes.items = action.payload.data || action.payload || [];
+      })
+      .addCase(fetchEtapes.rejected, (state, action) => {
+        state.etapes.loading = false;
+        state.etapes.error = action.payload;
       });
 
 

@@ -147,6 +147,117 @@ export const fetchInvitesByEntreprise = createAsyncThunk(
     }
   }
 );
+
+// src/features/inviteSlice.js
+export const getInvitePipeline = createAsyncThunk(
+  'invites/getPipeline',
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/invites/${id}/pipeline`,
+        getAuthHeader()
+      );
+
+      // Vérifier si la réponse contient la nouvelle structure
+      if (response.data.data && response.data.data.pipeline) {
+        // Adapter le format des données renvoyées par le backend
+        return {
+          stages: response.data.data.pipeline.next_stages || [],
+          currentStage: response.data.data.pipeline.current_stage || null,
+          progression: response.data.data.pipeline.progressions || []
+        };
+      } 
+      // Utiliser directement la structure si c'est l'ancien format
+      return response.data.data;
+    } catch (error) {
+      console.error('Erreur pipeline:', error.response || error);
+      return rejectWithValue(error.response?.data?.message || "Erreur lors du chargement du pipeline");
+    }
+  }
+);
+// Envoyer une invitation
+export const sendInvitation = createAsyncThunk(
+  'invites/sendInvitation',
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/invites/${id}/send`,
+        {},
+        getAuthHeader()
+      );
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Erreur lors de l'envoi de l'invitation");
+    }
+  }
+);
+// src/features/inviteSlice.js
+export const initializePipeline = createAsyncThunk(
+  'invites/initializePipeline',
+  async (id, { rejectWithValue, dispatch }) => {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/invites/${id}/pipeline/initialize`,
+        {},
+        getAuthHeader()
+      );
+      
+      console.log('Réponse initialisation:', response.data);
+      
+      // Extraire les données de pipeline de la réponse
+      if (response.data.success && response.data.data.pipeline) {
+        // Transformation pour notre store Redux
+        const pipelineData = {
+          stages: response.data.data.pipeline.next_stages || [],
+          currentStage: response.data.data.pipeline.current_stage || null,
+          progression: response.data.data.pipeline.progressions || []
+        };
+        
+        // Mettre à jour immédiatement l'état du pipeline 
+        // sans attendre un nouvel appel à getInvitePipeline
+        return pipelineData;
+      }
+      
+      return response.data.data;
+    } catch (error) {
+      console.error("Erreur d'initialisation:", error.response || error);
+      return rejectWithValue(error.response?.data?.message || "Erreur lors de l'initialisation du pipeline");
+    }
+  }
+);
+// Avancer dans le pipeline
+export const advancePipeline = createAsyncThunk(
+  'invites/advancePipeline',
+  async ({ id, stage_id, notes, date }, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/invites/${id}/pipeline/advance`,
+        { stage_id, notes, date },
+        getAuthHeader()
+      );
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Erreur lors de la progression dans le pipeline");
+    }
+  }
+);
+// Convertir un invité en prospect
+export const convertToProspect = createAsyncThunk(
+  'invites/convertToProspect',
+  async ({ id, secteur_id, pays_id, potentiel, notes }, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/invites/${id}/convert-to-prospect`,
+        { secteur_id, pays_id, potentiel, notes },
+        getAuthHeader()
+      );
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Erreur lors de la conversion en prospect");
+    }
+  }
+);
+
 // Fetch entreprises (liste paginée ou complète selon backend)
 export const fetchEntreprises = createAsyncThunk(
   "invites/fetchEntreprises",
@@ -235,7 +346,10 @@ const inviteSlice = createSlice({
       items: [],
       loading: false,
       error: null
-    }
+    },
+    selectedInvite: { data: null, loading: false, error: null },
+    pipeline: { stages: [], currentStage: null, progression: [], loading: false, error: null }
+   
   },
   reducers: {
     setFilters: (state, action) => {
@@ -292,6 +406,21 @@ const inviteSlice = createSlice({
         state.selectedInvite.error = typeof action.payload === 'string'
           ? action.payload
           : "Erreur lors de la récupération de l'invité";
+      })
+       // Traitement des états pour getInvitePipeline
+       .addCase(getInvitePipeline.pending, (state) => {
+        state.pipeline.loading = true;
+        state.pipeline.error = null;
+      })
+      .addCase(getInvitePipeline.fulfilled, (state, action) => {
+        state.pipeline.loading = false;
+        state.pipeline.stages = action.payload.stages || [];
+        state.pipeline.currentStage = action.payload.currentStage || null;
+        state.pipeline.progression = action.payload.progression || [];
+      })
+      .addCase(getInvitePipeline.rejected, (state, action) => {
+        state.pipeline.loading = false;
+        state.pipeline.error = action.payload || 'Une erreur est survenue';
       })
 
       // createInvite
@@ -392,6 +521,74 @@ const inviteSlice = createSlice({
             ? action.payload
             : "Erreur lors de la mise à jour du statut",
           targetId: action.meta?.arg?.id
+        };
+      })
+       // Traitement des états pour sendInvitation
+       .addCase(sendInvitation.pending, (state) => {
+        state.operation = { success: false, error: null, type: 'send_invitation' };
+      })
+      .addCase(sendInvitation.fulfilled, (state, action) => {
+        state.operation = { success: true, error: null, type: 'send_invitation' };
+        if (state.selectedInvite.data) {
+          state.selectedInvite.data = { ...state.selectedInvite.data, ...action.payload };
+        }
+      })
+      .addCase(sendInvitation.rejected, (state, action) => {
+        state.operation = { 
+          success: false, 
+          error: action.payload || 'Une erreur est survenue', 
+          type: 'send_invitation' 
+        };
+      })
+       // Traitement des états pour initializePipeline
+       .addCase(initializePipeline.pending, (state) => {
+        state.operation = { success: false, error: null, type: 'initialize_pipeline' };
+      })
+      .addCase(initializePipeline.fulfilled, (state, action) => {
+        state.operation = { success: true, error: null, type: 'initialize_pipeline' };
+        
+        // Si les données de pipeline sont incluses dans la réponse, 
+        // les utiliser directement pour mettre à jour le state
+        if (action.payload) {
+          state.pipeline.stages = action.payload.stages || [];
+          state.pipeline.currentStage = action.payload.currentStage || null;
+          state.pipeline.progression = action.payload.progression || [];
+          state.pipeline.loading = false;
+        }
+      })
+      .addCase(initializePipeline.rejected, (state, action) => {
+        state.operation = { 
+          success: false, 
+          error: action.payload || 'Une erreur est survenue', 
+          type: 'initialize_pipeline' 
+        };
+      })
+      // Traitement des états pour advancePipeline
+      .addCase(advancePipeline.pending, (state) => {
+        state.operation = { success: false, error: null, type: 'advance_pipeline' };
+      })
+      .addCase(advancePipeline.fulfilled, (state) => {
+        state.operation = { success: true, error: null, type: 'advance_pipeline' };
+      })
+      .addCase(advancePipeline.rejected, (state, action) => {
+        state.operation = { 
+          success: false, 
+          error: action.payload || 'Une erreur est survenue', 
+          type: 'advance_pipeline' 
+        };
+      })
+       // Traitement des états pour convertToProspect
+       .addCase(convertToProspect.pending, (state) => {
+        state.operation = { success: false, error: null, type: 'convert_to_prospect' };
+      })
+      .addCase(convertToProspect.fulfilled, (state) => {
+        state.operation = { success: true, error: null, type: 'convert_to_prospect' };
+      })
+      .addCase(convertToProspect.rejected, (state, action) => {
+        state.operation = { 
+          success: false, 
+          error: action.payload || 'Une erreur est survenue', 
+          type: 'convert_to_prospect' 
         };
       })
 

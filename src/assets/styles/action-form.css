@@ -575,4 +575,122 @@
     .header-actions button {
       width: 100%;
     }
+    /* src/assets/styles/pipeline.css */
+.pipeline-card {
+  margin-bottom: 24px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.ant-steps-item-process .ant-steps-item-icon {
+  background-color: #1890ff;
+  border-color: #1890ff;
+}
+
+.ant-steps-item-finish .ant-steps-item-icon {
+  background-color: #52c41a;
+  border-color: #52c41a;
+}
+
+.copy-link-container {
+  display: flex;
+  align-items: center;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  padding: 12px;
+}
+
+.timeline-container {
+  margin-top: 24px;
+}
+
+.ant-timeline-item-content {
+  padding-bottom: 20px;
+}
+
+/* Animation pour les changements d'étape */
+.ant-steps-item-icon {
+  transition: all 0.3s;
+}
+
+.ant-steps-item-process .ant-steps-item-icon {
+  transform: scale(1.1);
+}
+/* Style pour le pipeline d'invités */
+.invites-pipeline .ant-steps-item-title {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.invites-pipeline .ant-steps-item-description {
+  min-height: 32px;
+}
+
+.invites-pipeline .ant-steps-item-finish .ant-steps-icon {
+  color: #52c41a !important;
+}
+
+.invites-pipeline .ant-steps-item-process .ant-steps-icon {
+  color: #1890ff !important;
+}
+
+.invites-pipeline .ant-steps-item-process .ant-steps-item-container .ant-steps-item-content .ant-steps-item-title {
+  color: #1890ff;
+  font-weight: 600;
+}
+
+.invites-pipeline .ant-steps-item-finish .ant-steps-item-container .ant-steps-item-content .ant-steps-item-title {
+  color: #52c41a;
+  font-weight: 600;
+}
+
+/* Animation pour l'étape en cours */
+@keyframes pipeline-pulse {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+
+.invites-pipeline .ant-steps-item-process .ant-steps-icon {
+  animation: pipeline-pulse 2s infinite;
+}
+
+/* Style pour la date de complétion d'étape */
+.stage-completion-date {
+  font-style: italic;
+  font-size: 11px;
+}
+/* À ajouter dans action-form.css ou dans un nouveau fichier prospect.css */
+.prospect-pipeline .ant-steps-item-title {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.prospect-pipeline .ant-steps-item-description {
+  min-height: 32px;
+}
+
+.prospect-pipeline .ant-steps-item-finish .ant-steps-icon {
+  color: #52c41a !important;
+}
+
+.prospect-pipeline .ant-steps-item-process .ant-steps-icon {
+  color: #1890ff !important;
+  animation: prospect-pulse 2s infinite;
+}
+
+@keyframes prospect-pulse {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+
+.quick-actions-card {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.stats-row {
+  margin-bottom: 16px;
+}
   }

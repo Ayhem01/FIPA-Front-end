@@ -536,4 +536,4 @@ const taskSlice = createSlice({
 export const { resetTaskOperation, clearSelectedTask } = taskSlice.actions;
 
 export default taskSlice.reducer;
-export {getAuthHeader};
+export {getAuthHeader, API_BASE_URL};
