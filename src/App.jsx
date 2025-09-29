@@ -32,15 +32,19 @@ import TaskCalendar from "./components/Tasks/TaskCalendar";
 import InvitesList from './components/Portefeuille/InvitesList';
 import InviteForm from './components/Portefeuille/InviteForm';
 import InviteDetails from './components/Portefeuille/InviteDetails';
+import InvestisseursList from "./components/Portefeuille/InvestisseursList";
+import InvestisseurForm from "./components/Portefeuille/InvestisseurForm";
+import ProjetForm from "./components/Portefeuille/ProjetForm";
+import ProjetsList from "./components/Portefeuille/ProjetsList";
 
 
-import ProjectList from "./components/PipelineProject/ProjectList";
-import ProjectDetails from "./components/PipelineProject/ProjectDetails";
-import ProjectForm from "./components/PipelineProject/ProjectForm";
+// import ProjectList from "./components/PipelineProject/ProjectList";
+import ProjetDetails from "./components/Portefeuille/ProjetDetails";
+// import ProjectForm from "./components/PipelineProject/ProjectForm";
 // import ProjectDashboard from "./components/PipelineProject/ProjectDashboard";
-import PipelineVisualizer from "./components/PipelineProject/PipelineVisualizer";
-import ProjectStats from "./components/PipelineProject/ProjectStats";
-import ProjectTasksTab from "./components/Tasks/ProjectTasksTab";
+// import PipelineVisualizer from "./components/PipelineProject/PipelineVisualizer";
+// import ProjectStats from "./components/PipelineProject/ProjectStats";
+// import ProjectTasksTab from "./components/Tasks/ProjectTasksTab";
 // import PipelineTypesList from "./components/PipelineProject/PipelineTypesList";
 // import PipelineTypeDetails from "./components/PipelineProject/PipelineTypeDetails";
 // import PipelineTypeForm from "./components/PipelineProject/PipelineTypeForm";
@@ -53,7 +57,13 @@ import ProjectTasksTab from "./components/Tasks/ProjectTasksTab";
 import ActionForm from "./components/Actions/ActionForm";
 import ActionList from "./components/Actions/ActionList";
 import ActionDetail from "./components/Actions/ActionDetail";
-import ProspectDetails from "./components/Portefeuille/ProspectDetails";
+import ProspectDetails from "./components/Portefeuille/prospectDetails";
+import InvestisseurDetails from "./components/Portefeuille/InvestisseurDetails";
+import BlockagesPage from './components/Blockages/BlockagesPage';
+import BlockageCard from './components/Blockages/BlockageCard';
+import ProspectsList from "./components/Portefeuille/ProspectsList";
+import ProspectForm from "./components/Portefeuille/ProspectForm";
+import Dashboard from "./components/chart/dashboard";
 
 
 
@@ -89,7 +99,7 @@ function App() {
               <Route path="/tasks" element={<TasksList />} />
               <Route path="/tasks/create" element={<TaskCreateModal />} />
               <Route path="/tasks/edit/:id" element={<TaskCreateModal />} />
-              <Route path="/tasks/details/:id" element={<TaskDetails />} />
+              <Route path="/tasks/:id" element={<TaskDetails />} />
               <Route path="/tasks/my-tasks" element={<MyTasks />} />
               <Route path="/tasks/dashboard" element={<TasksDashboard />} />
               <Route path="/tasks/calendar" element={<TaskCalendar />} />
@@ -98,6 +108,28 @@ function App() {
               <Route path="/actions" element={<ActionList />} />
               <Route path="/actions/:id" element={<ActionDetail />} />
               <Route path="/prospects/:id" element={<ProspectDetails />} />
+              <Route path="/investisseurs/:id" element={<InvestisseurDetails />} />
+              <Route path="/investisseurs/create" element={<InvestisseurForm />} />
+              <Route path="/investisseurs/:id/edit" element={<InvestisseurForm />} />
+              <Route path="/investisseurs" element={<InvestisseursList />} />
+
+              <Route path="/projets/create" element={<ProjetForm />} />
+              <Route path="/projets/:id/edit" element={<ProjetForm />} />
+              <Route path="/projets" element={<ProjetsList />} />
+
+
+              <Route path="/blocages" element={<BlockagesPage />} />
+              <Route path="/blocageCard" element={<BlockageCard />} />
+              <Route path="/projets/:id" element={<ProjetDetails />} />
+              <Route path="/prospects" element={<ProspectsList />} />
+              <Route path="/prospects/create" element={<ProspectForm />} />
+              <Route path="/prospects/:id" element={<ProspectDetails />} />
+              <Route path="/prospects/:id/edit" element={<ProspectForm />} />
+
+
+              
+
+
 
 
               <Route path="/invites" element={<InvitesList />} />
@@ -107,17 +139,23 @@ function App() {
 
 
 
+              <Route path="/dashboard" element={<Dashboard />} />
 
 
 
-              <Route path="/tasks/projects" element={<ProjectTasksTab />} />
 
-              <Route path="/projects" element={<ProjectList />} />
-              <Route path="/projects/new" element={<ProjectForm />} />
-              <Route path="/projects/:id" element={<ProjectDetails />} />
-              <Route path="/projects/edit/:id" element={<ProjectForm />} />
-              <Route path="/pipeline-visualizer" element={<PipelineVisualizer />} />
-              <Route path="/projects/stats" element={<ProjectStats />} />
+
+
+
+
+              {/* <Route path="/tasks/projects" element={<ProjectTasksTab />} /> */}
+
+              {/* <Route path="/projects" element={<ProjectList />} />
+              <Route path="/projects/new" element={<ProjectForm />} /> */}
+              {/* <Route path="/projects/:id" element={<ProjectDetails />} /> */}
+              {/* <Route path="/projects/edit/:id" element={<ProjectForm />} /> */}
+              {/* <Route path="/pipeline-visualizer" element={<PipelineVisualizer />} /> */}
+              {/* <Route path="/projects/stats" element={<ProjectStats />} /> */}
               {/* <Route path="/pipeline/types" element={<PipelineTypesList />} /> */}
               {/* <Route path="/pipeline/types/new" element={<PipelineTypeForm />} /> */}
               {/* <Route path="/pipeline/types/:id" element={<PipelineTypeDetails />} /> */}

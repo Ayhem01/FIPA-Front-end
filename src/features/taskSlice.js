@@ -4,6 +4,26 @@ import axios from "axios";
 // Base URL pour les API de tâches
 const API_BASE_URL = "http://127.0.0.1:8000/api";
 
+
+
+const formatErrorMessage = (error) => {
+  if (error.response) {
+    // Le serveur a répondu avec un code d'erreur
+    if (error.response.data && typeof error.response.data === 'object') {
+      return error.response.data.message || JSON.stringify(error.response.data);
+    } else {
+      return error.response.data || `Erreur ${error.response.status}`;
+    }
+  } else if (error.request) {
+    // La requête a été faite mais aucune réponse n'a été reçue
+    return "Aucune réponse du serveur";
+  } else {
+    // Une erreur s'est produite lors de la configuration de la requête
+    return error.message || "Une erreur s'est produite";
+  }
+};
+
+
 // Helper pour obtenir le token d'authentification
 const getAuthHeader = () => {
   const token = localStorage.getItem("token");
@@ -55,41 +75,203 @@ export const fetchTasks = createAsyncThunk(
     }
   }
 );
-
-// =========== Créer une nouvelle tâche ===========
-export const createTask = createAsyncThunk(
-  "tasks/createTask",
-  async (taskData, { rejectWithValue }) => {
+export const getTasksByPipelineStage = createAsyncThunk(
+  'tasks/getByPipelineStage',
+  async ({ stage_id, entity_id, entity_type }, { rejectWithValue }) => {
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/tasks/`,
-        taskData,
+      const response = await axios.get(
+        `${API_BASE_URL}/tasks/pipeline`,
+        {
+          params: { stage_id, entity_id, entity_type },
+          ...getAuthHeader()
+        }
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(formatErrorMessage(error));
+    }
+  }
+);
+export const getPipelineTaskById = createAsyncThunk(
+  "tasks/getPipelineTaskById",
+  async (taskId, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/pipeline-tasks/${taskId}`,
         getAuthHeader()
       );
       return response.data;
     } catch (error) {
-      console.error("Erreur lors de la création de la tâche:", error);
+      return rejectWithValue(formatErrorMessage(error));
+    }
+  }
+);
 
-      // Extraire un message d'erreur utilisable
-      let errorMessage;
+// =========== Créer une nouvelle tâche ===========
+// export const createTask = createAsyncThunk(
+//   "tasks/createTask",
+//   async (taskData, { rejectWithValue }) => {
+//     try {
+//       const response = await axios.post(
+//         `${API_BASE_URL}/tasks/`,
+//         taskData,
+//         getAuthHeader()
+//       );
+//       return response.data;
+//     } catch (error) {
+//       console.error("Erreur lors de la création de la tâche:", error);
 
-      if (error.response) {
-        // Le serveur a répondu avec un code d'erreur
-        if (error.response.data && typeof error.response.data === 'object') {
-          // Si le backend renvoie un objet avec une propriété message
-          errorMessage = error.response.data.message || JSON.stringify(error.response.data);
-        } else {
-          errorMessage = error.response.data || `Erreur ${error.response.status}`;
-        }
-      } else if (error.request) {
-        // La requête a été faite mais aucune réponse n'a été reçue
-        errorMessage = "Aucune réponse du serveur";
-      } else {
-        // Une erreur s'est produite lors de la configuration de la requête
-        errorMessage = error.message || "Une erreur s'est produite";
+//       // Extraire un message d'erreur utilisable
+//       let errorMessage;
+
+//       if (error.response) {
+//         // Le serveur a répondu avec un code d'erreur
+//         if (error.response.data && typeof error.response.data === 'object') {
+//           // Si le backend renvoie un objet avec une propriété message
+//           errorMessage = error.response.data.message || JSON.stringify(error.response.data);
+//         } else {
+//           errorMessage = error.response.data || `Erreur ${error.response.status}`;
+//         }
+//       } else if (error.request) {
+//         // La requête a été faite mais aucune réponse n'a été reçue
+//         errorMessage = "Aucune réponse du serveur";
+//       } else {
+//         // Une erreur s'est produite lors de la configuration de la requête
+//         errorMessage = error.message || "Une erreur s'est produite";
+//       }
+
+//       return rejectWithValue(errorMessage);
+//     }
+//   }
+// );
+export const createTask = createAsyncThunk(
+  'tasks/create',
+  async (taskData, { rejectWithValue }) => {
+    try {
+      // Ajouter les champs pour l'association au pipeline si présents
+      const taskPayload = {
+        ...taskData,
+        // Ces champs permettent de lier la tâche à l'invité et à l'étape du pipeline
+        related_type: taskData.related_type || null,
+        related_id: taskData.related_id || null,
+        pipeline_stage_id: taskData.pipeline_stage_id || null,
+        pipeline_stage_name: taskData.pipeline_stage_name || null
+      };
+
+      const response = await axios.post(
+        `${API_BASE_URL}/tasks`,
+        taskPayload,
+        getAuthHeader()
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(formatErrorMessage(error));
+    }
+  }
+);
+
+export const createPipelineStageTask = createAsyncThunk(
+  'tasks/createPipelineStageTask',
+  async (payload, { rejectWithValue }) => {
+    try {
+      const { entityType, entityId, stageId, taskData } = payload;
+
+      // Conversion de l'ancien format au nouveau format
+      let actualEntityType = entityType;
+      if (payload.inviteId) {
+        actualEntityType = 'invite';
+        entityId = payload.inviteId;
+      } else if (payload.prospectId) {
+        actualEntityType = 'prospect';
+        entityId = payload.prospectId;
+      } else if (payload.investisseurId) {
+        actualEntityType = 'investisseur';
+        entityId = payload.investisseurId;
+      } else if (payload.projectId) {
+        actualEntityType = 'project';
+        entityId = payload.projectId;
       }
 
-      return rejectWithValue(errorMessage);
+      const url = `${API_BASE_URL}/pipeline-tasks/${actualEntityType}/${entityId}/${stageId}`;
+
+      const response = await axios.post(url, taskData, getAuthHeader());
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
+  }
+);
+export const getPipelineStageTasks = createAsyncThunk(
+  'tasks/getPipelineStageTasks',
+  async ({ entityType, entityId, stageId }, { rejectWithValue }) => {
+    try {
+      const url = `${API_BASE_URL}/pipeline-tasks/${entityType}/${entityId}/${stageId}`;
+      const response = await axios.get(url, getAuthHeader());
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(formatErrorMessage(error));
+    }
+  }
+);
+export const getAllPipelineTasks = createAsyncThunk(
+  'tasks/getAllPipelineTasks',
+  async ({ entityType, entityId }, { rejectWithValue }) => {
+    try {
+      const url = `${API_BASE_URL}/pipeline-tasks/${entityType}/${entityId}`;
+      const response = await axios.get(url, getAuthHeader());
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(formatErrorMessage(error));
+    }
+  }
+);
+export const updatePipelineTask = createAsyncThunk(
+  'tasks/updatePipelineTask',
+  async ({ taskId, taskData }, { rejectWithValue }) => {
+    try {
+      const url = `${API_BASE_URL}/pipeline-tasks/${taskId}`;
+      const response = await axios.put(url, taskData, getAuthHeader());
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(formatErrorMessage(error));
+    }
+  }
+);
+
+export const updatePipelineTaskStatus = createAsyncThunk(
+  'tasks/updatePipelineTaskStatus',
+  async ({ taskId, status }, { rejectWithValue }) => {
+    try {
+      const url = `${API_BASE_URL}/pipeline-tasks/${taskId}/status`;
+      const response = await axios.patch(url, { status }, getAuthHeader());
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(formatErrorMessage(error));
+    }
+  }
+);
+export const moveTaskToStage = createAsyncThunk(
+  'tasks/moveTaskToStage',
+  async ({ taskId, newStageId }, { rejectWithValue }) => {
+    try {
+      const url = `${API_BASE_URL}/pipeline-tasks/${taskId}/move/${newStageId}`;
+      const response = await axios.patch(url, {}, getAuthHeader());
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(formatErrorMessage(error));
+    }
+  }
+);
+
+export const deletePipelineTask = createAsyncThunk(
+  'tasks/deletePipelineTask',
+  async (taskId, { rejectWithValue }) => {
+    try {
+      const url = `${API_BASE_URL}/pipeline-tasks/${taskId}`;
+      const response = await axios.delete(url, getAuthHeader());
+      return { taskId, ...response.data };
+    } catch (error) {
+      return rejectWithValue(formatErrorMessage(error));
     }
   }
 );
@@ -297,6 +479,90 @@ export const fetchProjectTasks = createAsyncThunk(
     }
   }
 );
+export const fetchAllPipelineTasks = createAsyncThunk(
+  'tasks/fetchAllPipelineTasks',
+  async ({ entityType, entityId }, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/pipeline/${entityType}/${entityId}/tasks`,
+        getAuthHeader()
+      );
+      return response.data.data;
+    } catch (error) {
+      message.error("Erreur lors du chargement des tâches");
+      return rejectWithValue(error.response?.data?.message || "Erreur inconnue");
+    }
+  }
+);
+// Récupérer les tâches d'une étape spécifique
+// export const fetchPipelineStageTasks = createAsyncThunk(
+//   'tasks/fetchPipelineStageTasks',
+//   async ({ entityType, entityId, stageId }, { rejectWithValue }) => {
+//     try {
+//       // Vérifier que tous les paramètres sont fournis
+//       if (!entityType || !entityId || !stageId) {
+//         return rejectWithValue('Paramètres manquants: entityType, entityId et stageId sont requis');
+//       }
+
+//       console.log(`Chargement des tâches: type=${entityType}, id=${entityId}, stageId=${stageId}`);
+      
+//       // Utiliser l'URL correcte
+//       const response = await axios.get(
+//         `${API_BASE_URL}/tasks/pipeline/${entityType}/${entityId}/stages/${stageId}/tasks`,
+//         getAuthHeader()
+//       );
+
+//       console.log('Réponse API pipeline tasks:', response.data);
+      
+//       // Adapter l'extraction des données selon la structure de réponse actuelle
+//       if (response.data.success) {
+//         // La structure a changé - les tâches sont dans data.tasks
+//         return response.data.data?.tasks || [];
+//       } else if (response.data.status === "success") {
+//         // Ancienne structure possible
+//         return response.data.data || [];
+//       }
+      
+//       return [];
+//     } catch (error) {
+//       console.error('Erreur fetchPipelineStageTasks:', error);
+//       return rejectWithValue(error.response?.data?.message || error.message);
+//     }
+//   }
+// );
+export const fetchPipelineStageTasks = createAsyncThunk(
+  'tasks/fetchPipelineStageTasks',
+  async ({ entityType, entityId, stageId }, { rejectWithValue }) => {
+    try {
+      // Vérifier que tous les paramètres sont fournis
+      if (!entityType || !entityId || !stageId) {
+        return rejectWithValue('Paramètres manquants: entityType, entityId et stageId sont requis');
+      }
+
+      console.log(`Chargement des tâches: type=${entityType}, id=${entityId}, stageId=${stageId}`);
+      
+      // Utiliser l'URL correcte qui fonctionne
+      const response = await axios.get(
+        `${API_BASE_URL}/pipeline-stages/${entityType}/${entityId}/stage/${stageId}`,
+        getAuthHeader()
+      );
+
+      console.log('Réponse API pipeline stage:', response.data);
+      
+      // Extraire les tâches de la structure correcte
+      if (response.data.success) {
+        // Les tâches sont dans data.tasks
+        return response.data.data?.tasks || [];
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Erreur fetchPipelineStageTasks:', error);
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
+  }
+);
+
 
 // =========== Slice ===========
 const taskSlice = createSlice({
@@ -338,7 +604,17 @@ const taskSlice = createSlice({
       tasks: [],
       loading: false,
       error: null
-    }
+    },
+    allTasks: {
+      items: [],
+      loading: false,
+      error: null,
+    },
+    stageTasks: [],
+    stageTasksLoading: false,
+    stageTasksError: null,
+    //  selectedTask: null,
+    
   },
   reducers: {
     resetTaskOperation: (state) => {
@@ -354,7 +630,13 @@ const taskSlice = createSlice({
         loading: false,
         error: null
       };
+    },
+    clearStageTasks: (state) => {
+      state.stageTasks = [];
+      state.stageTasksLoading = false;
+      state.stageTasksError = null;
     }
+  
   },
   extraReducers: (builder) => {
     // Fetch Tasks
@@ -530,10 +812,120 @@ const taskSlice = createSlice({
         state.projectTasks.loading = false;
         state.projectTasks.error = action.payload || 'Une erreur est survenue';
       })
+      .addCase(getTasksByPipelineStage.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(getTasksByPipelineStage.fulfilled, (state, action) => {
+        state.loading = false;
+        state.pipelineTasks = action.payload.data || [];
+      })
+      .addCase(getTasksByPipelineStage.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(createPipelineStageTask.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(createPipelineStageTask.fulfilled, (state, action) => {
+        state.loading = false;
+        // Ajouter la nouvelle tâche à la liste si elle existe
+        if (state.items) {
+          state.items.unshift(action.payload);
+        }
+        state.operation = { success: true, type: 'create_task' };
+      })
+      .addCase(createPipelineStageTask.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+        state.operation = { success: false, error: action.payload, type: 'create_task' };
+      })
+      .addCase(getPipelineStageTasks.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getPipelineStageTasks.fulfilled, (state, action) => {
+        state.loading = false;
+        state.pipelineTasks = action.payload.data || [];
+      })
+      .addCase(getPipelineStageTasks.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      // getAllPipelineTasks
+      .addCase(getAllPipelineTasks.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getAllPipelineTasks.fulfilled, (state, action) => {
+        state.loading = false;
+        state.allPipelineTasks = action.payload.data || [];
+      })
+      .addCase(getAllPipelineTasks.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(updatePipelineTask.pending, (state) => {
+        state.taskOperation.loading = true;
+        state.taskOperation.success = false;
+        state.taskOperation.error = null;
+      })
+      .addCase(updatePipelineTask.fulfilled, (state) => {
+        state.taskOperation.loading = false;
+        state.taskOperation.success = true;
+      })
+      .addCase(updatePipelineTask.rejected, (state, action) => {
+        state.taskOperation.loading = false;
+        state.taskOperation.error = action.payload || 'Une erreur est survenue';
+      })
+      .addCase(getPipelineTaskById.pending, (state) => {
+        state.selectedTask.loading = true;
+        state.selectedTask.error = null;
+      })
+      .addCase(getPipelineTaskById.fulfilled, (state, action) => {
+        state.selectedTask.loading = false;
+        state.selectedTask.data = action.payload.data;
+      })
+      .addCase(getPipelineTaskById.rejected, (state, action) => {
+        state.selectedTask.loading = false;
+        state.selectedTask.error = action.payload || 'Une erreur est survenue';
+      })
+    builder.addCase(fetchAllPipelineTasks.pending, (state) => {
+      state.allTasks.loading = true;
+      state.allTasks.error = null;
+    })
+    builder.addCase(fetchAllPipelineTasks.fulfilled, (state, action) => {
+      state.allTasks.loading = false;
+      state.allTasks.items = action.payload;
+    })
+    builder.addCase(fetchAllPipelineTasks.rejected, (state, action) => {
+      state.allTasks.loading = false;
+      state.allTasks.error = action.payload;
+    })
+    builder.addCase(fetchPipelineStageTasks.pending, (state) => {
+      state.stageTasksLoading = true;
+      state.stageTasksError = null;
+      state.stageTasks = [];
+    });
+    
+    builder.addCase(fetchPipelineStageTasks.fulfilled, (state, action) => {
+      state.stageTasksLoading = false;
+      state.stageTasks = action.payload; // ✅ tableau direct
+    });
+    
+    builder.addCase(fetchPipelineStageTasks.rejected, (state, action) => {
+      state.stageTasksLoading = false;
+      state.stageTasksError = action.payload;
+    });
+    
+    
+
+
   }
 });
 
-export const { resetTaskOperation, clearSelectedTask } = taskSlice.actions;
+export const { resetTaskOperation, clearSelectedTask , clearStageTasks} = taskSlice.actions;
 
 export default taskSlice.reducer;
-export {getAuthHeader, API_BASE_URL};
+export { getAuthHeader, API_BASE_URL, formatErrorMessage };

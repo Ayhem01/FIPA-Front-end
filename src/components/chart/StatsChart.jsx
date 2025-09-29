@@ -1,12 +1,12 @@
 import React, { useEffect, useRef } from "react";
 import * as echarts from "echarts";
 
-const LineChart = ({ data, title }) => {
+const StatsChart = ({ data, title, type = "pie" }) => {
   const chartRef = useRef(null);
 
   useEffect(() => {
     if (!chartRef.current || !Array.isArray(data) || data.length === 0) {
-      console.warn("LineChart: données invalides ou vides");
+      console.warn("StatsChart: données invalides ou vides");
       return;
     }
 
@@ -18,27 +18,18 @@ const LineChart = ({ data, title }) => {
         left: "center",
       },
       tooltip: {
-        trigger: "axis",
+        trigger: "item",
       },
-      xAxis: {
-        type: "category",
-        data: data.map((item) => item.name), // Mois
-      },
-      yAxis: {
-        type: "value",
-        minInterval: 1, 
-        axisLabel: {
-          formatter: function (value) {
-            return Math.round(value); // ✅ force l'affichage entier
-          }
-        }
-      },
+      xAxis: type === "bar" ? { type: "category", data: data.map((item) => item.name) } : undefined, // Axe X pour les graphiques en barres
+      yAxis: type === "bar" ? { type: "value" } : undefined, // Axe Y pour les graphiques en barres
       series: [
         {
           name: title,
-          type: "line",
-          data: data.map((item) => item.value), // Nombre de projets
-          smooth: true, // Ligne lissée
+          type: type,
+          data: data.map((item) => ({
+            name: item.name,
+            value: item.value,
+          })),
         },
       ],
     };
@@ -48,9 +39,9 @@ const LineChart = ({ data, title }) => {
     return () => {
       chart.dispose();
     };
-  }, [data, title]);
+  }, [data, title, type]);
 
   return <div ref={chartRef} style={{ width: "100%", height: "400px" }} />;
 };
 
-export default LineChart;
+export default StatsChart;

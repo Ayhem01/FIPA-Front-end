@@ -4,6 +4,22 @@ import { getAuthHeader } from "./taskSlice";
 
 const API_BASE_URL = "http://localhost:8000/api";
 
+const formatDateForMySQL = (dateString) => {
+  if (!dateString) return null;
+  
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return null;
+    
+    // Format MySQL: YYYY-MM-DD HH:MM:SS
+    return date.toISOString().slice(0, 19).replace('T', ' ');
+  } catch (error) {
+    console.error('Erreur de formatage de date:', error);
+    return null;
+  }
+};
+
+
 // Fonction utilitaire pour formater les erreurs
 const formatErrorMessage = (error) => {
   if (!error) return "Une erreur inconnue est survenue";
@@ -148,7 +164,6 @@ export const fetchInvitesByEntreprise = createAsyncThunk(
   }
 );
 
-// src/features/inviteSlice.js
 export const getInvitePipeline = createAsyncThunk(
   'invites/getPipeline',
   async (id, { rejectWithValue }) => {
@@ -158,23 +173,62 @@ export const getInvitePipeline = createAsyncThunk(
         getAuthHeader()
       );
 
-      // Vérifier si la réponse contient la nouvelle structure
-      if (response.data.data && response.data.data.pipeline) {
-        // Adapter le format des données renvoyées par le backend
+      console.log('Pipeline response:', response.data);
+
+      if (response.data.success && response.data.data) {
+        const pipelineData = response.data.data;
+
+        // On récupère currentStage de manière robuste
+        const currentStage = 
+          pipelineData.current_stage ||       // snake_case
+          pipelineData.currentStage ||        // camelCase
+          (pipelineData.all_stages && pipelineData.all_stages.length > 0
+            ? pipelineData.all_stages.find(s => s.is_current) || pipelineData.all_stages[0]
+            : null);
+
         return {
-          stages: response.data.data.pipeline.next_stages || [],
-          currentStage: response.data.data.pipeline.current_stage || null,
-          progression: response.data.data.pipeline.progressions || []
+          stages: pipelineData.all_stages || [],
+          currentStage,
+          progression: pipelineData.progressions || [],
+          canConvert: pipelineData.can_convert || false,
+          progressionPercentage: pipelineData.progression_percentage || 0
         };
-      } 
-      // Utiliser directement la structure si c'est l'ancien format
-      return response.data.data;
+      }
+
+      return {
+        stages: [],
+        currentStage: null,
+        progression: [],
+        canConvert: false,
+        progressionPercentage: 0
+      };
     } catch (error) {
       console.error('Erreur pipeline:', error.response || error);
       return rejectWithValue(error.response?.data?.message || "Erreur lors du chargement du pipeline");
     }
   }
 );
+
+
+export const fetchInviteProgressionById = createAsyncThunk(
+  'invite/fetchInviteProgressionById',
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(
+        `${API_URL}/invites/${id}/progression`,
+        getAuthHeader()
+      );
+      return response.data.data;
+    } catch (error) {
+      console.error("Erreur lors de la récupération de la progression:", error);
+      return rejectWithValue(
+        error.response?.data?.message || 
+        'Erreur lors de la récupération de la progression'
+      );
+    }
+  }
+);
+
 // Envoyer une invitation
 export const sendInvitation = createAsyncThunk(
   'invites/sendInvitation',
@@ -228,11 +282,28 @@ export const initializePipeline = createAsyncThunk(
 // Avancer dans le pipeline
 export const advancePipeline = createAsyncThunk(
   'invites/advancePipeline',
-  async ({ id, stage_id, notes, date }, { rejectWithValue }) => {
+  async ({ id, stage_id, notes, date, create_task, task_title, task_description, task_start, task_end, task_priority, task_type }, { rejectWithValue }) => {
     try {
+      // Construire l'objet de données
+      const data = { 
+        stage_id, 
+        notes, 
+        date,
+        // Ajouter les champs de tâche seulement s'ils existent
+        ...(create_task && { 
+          create_task, 
+          task_title, 
+          task_description, 
+          task_start, 
+          task_end, 
+          task_priority, 
+          task_type 
+        })
+      };
+
       const response = await axios.post(
         `${API_BASE_URL}/invites/${id}/pipeline/advance`,
-        { stage_id, notes, date },
+        data,
         getAuthHeader()
       );
       return response.data.data;
@@ -244,19 +315,36 @@ export const advancePipeline = createAsyncThunk(
 // Convertir un invité en prospect
 export const convertToProspect = createAsyncThunk(
   'invites/convertToProspect',
-  async ({ id, secteur_id, pays_id, potentiel, notes }, { rejectWithValue }) => {
+  async (data, { rejectWithValue }) => {
     try {
+      // Formater les dates avant envoi
+      const formattedData = {
+        ...data,
+        // Formater les dates pour MySQL
+        date_dernier_contact: data.date_dernier_contact 
+          ? formatDateForMySQL(data.date_dernier_contact) 
+          : null,
+        prochain_contact_prevu: data.prochain_contact_prevu 
+          ? formatDateForMySQL(data.prochain_contact_prevu) 
+          : null,
+        converted_at: formatDateForMySQL(new Date().toISOString())
+      };
+
+      console.log('Données formatées pour la conversion:', formattedData);
+
       const response = await axios.post(
-        `${API_BASE_URL}/invites/${id}/convert-to-prospect`,
-        { secteur_id, pays_id, potentiel, notes },
+        `${API_BASE_URL}/invites/${data.id}/convert-to-prospect`,
+        formattedData,
         getAuthHeader()
       );
-      return response.data.data;
+      return response.data.data.prospect;
     } catch (error) {
+      console.error('Erreur lors de la conversion:', error);
       return rejectWithValue(error.response?.data?.message || "Erreur lors de la conversion en prospect");
     }
   }
 );
+
 
 // Fetch entreprises (liste paginée ou complète selon backend)
 export const fetchEntreprises = createAsyncThunk(
@@ -313,6 +401,10 @@ const inviteSlice = createSlice({
     },
     loading: false,
     error: null,
+    currentInvite: null,
+    pipelineStages: [],
+    currentStage: null,
+    progression: [],
     filters: {},
     selectedInvite: {
       data: null,
@@ -347,6 +439,7 @@ const inviteSlice = createSlice({
       loading: false,
       error: null
     },
+
     selectedInvite: { data: null, loading: false, error: null },
     pipeline: { stages: [], currentStage: null, progression: [], loading: false, error: null }
    
@@ -415,7 +508,12 @@ const inviteSlice = createSlice({
       .addCase(getInvitePipeline.fulfilled, (state, action) => {
         state.pipeline.loading = false;
         state.pipeline.stages = action.payload.stages || [];
-        state.pipeline.currentStage = action.payload.currentStage || null;
+        
+        // Définir currentStage soit avec celui reçu de l'API, soit avec la première étape par défaut
+        state.pipeline.currentStage = action.payload.currentStage || 
+          (action.payload.stages && action.payload.stages.length > 0 
+            ? action.payload.stages[0] : null);
+        
         state.pipeline.progression = action.payload.progression || [];
       })
       .addCase(getInvitePipeline.rejected, (state, action) => {
@@ -547,13 +645,22 @@ const inviteSlice = createSlice({
       .addCase(initializePipeline.fulfilled, (state, action) => {
         state.operation = { success: true, error: null, type: 'initialize_pipeline' };
         
-        // Si les données de pipeline sont incluses dans la réponse, 
-        // les utiliser directement pour mettre à jour le state
+        // Mettre à jour directement l'état du pipeline avec la réponse d'initialisation
         if (action.payload) {
           state.pipeline.stages = action.payload.stages || [];
-          state.pipeline.currentStage = action.payload.currentStage || null;
+          
+          // S'assurer que currentStage est défini à la première étape lors de l'initialisation
+          state.pipeline.currentStage = action.payload.currentStage || 
+            (state.pipeline.stages.length > 0 ? state.pipeline.stages[0] : null);
+            
           state.pipeline.progression = action.payload.progression || [];
           state.pipeline.loading = false;
+          
+          console.log('Pipeline state updated after initialization:', {
+            stages: state.pipeline.stages,
+            currentStage: state.pipeline.currentStage,
+            progression: state.pipeline.progression
+          });
         }
       })
       .addCase(initializePipeline.rejected, (state, action) => {
@@ -580,9 +687,11 @@ const inviteSlice = createSlice({
        // Traitement des états pour convertToProspect
        .addCase(convertToProspect.pending, (state) => {
         state.operation = { success: false, error: null, type: 'convert_to_prospect' };
+        state.prospect = null; // reset avant conversion
       })
-      .addCase(convertToProspect.fulfilled, (state) => {
+      .addCase(convertToProspect.fulfilled, (state, action) => {
         state.operation = { success: true, error: null, type: 'convert_to_prospect' };
+        state.prospect = action.payload; // ⚡ stocker le prospect dans Redux
       })
       .addCase(convertToProspect.rejected, (state, action) => {
         state.operation = { 
@@ -590,6 +699,7 @@ const inviteSlice = createSlice({
           error: action.payload || 'Une erreur est survenue', 
           type: 'convert_to_prospect' 
         };
+        state.prospect = null;
       })
 
       // deleteInvite
@@ -689,6 +799,17 @@ const inviteSlice = createSlice({
         state.etapes.error = typeof action.payload === 'string'
           ? action.payload
           : "Erreur lors du chargement des étapes";
+      })
+      builder.addCase(fetchInviteProgressionById.pending, (state) => {
+        state.loading = true;
+      })
+      builder.addCase(fetchInviteProgressionById.fulfilled, (state, action) => {
+        state.progression = action.payload;
+        state.loading = false;
+      })
+      builder.addCase(fetchInviteProgressionById.rejected, (state, action) => {
+        state.error = action.payload;
+        state.loading = false;
       });
   }
 });

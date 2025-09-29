@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Button, Select, Space, message, Alert, Spin, Row, Col, Dropdown, Menu } from 'antd';
-import { PlusOutlined, SettingOutlined } from '@ant-design/icons';
+import { Card, Button, Select, Space, message, Alert, Spin, Row, Col, Dropdown, Menu, Avatar, Typography, Badge } from 'antd';
+import { 
+  PlusOutlined, SettingOutlined, CalendarOutlined, FilterOutlined, 
+  ReloadOutlined, ArrowLeftOutlined, UserOutlined, InfoCircleOutlined 
+} from '@ant-design/icons';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -11,11 +14,10 @@ import { useDispatch, useSelector } from 'react-redux';
 import { getCalendarTasks, moveCalendarTask, resetTaskOperation } from '../../features/taskSlice';
 import moment from 'moment';
 import momentTimezonePlugin from '@fullcalendar/moment-timezone';
-
-
 import 'moment/locale/fr'; // Pour la localisation en français
 
 const { Option } = Select;
+const { Text, Title } = Typography;
 
 const TaskCalendar = () => {
   const navigate = useNavigate();
@@ -28,6 +30,7 @@ const TaskCalendar = () => {
   const [filters, setFilters] = useState({
     status: 'all',
     type: 'all',
+    entity_type: 'all',
     assignee_id: undefined
   });
   const [calendarApi, setCalendarApi] = useState(null);
@@ -68,13 +71,14 @@ const TaskCalendar = () => {
     // Supprimer les valeurs 'all' pour l'API
     if (apiParams.status === 'all') delete apiParams.status;
     if (apiParams.type === 'all') delete apiParams.type;
+    if (apiParams.entity_type === 'all') delete apiParams.entity_type;
     
     dispatch(getCalendarTasks(apiParams));
   };
 
   const handleEventClick = (info) => {
     const taskId = info.event.id;
-    navigate(`/tasks/details/${taskId}`);
+    navigate(`/tasks/${taskId}`);
   };
 
   const handleDateClick = (info) => {
@@ -94,6 +98,9 @@ const TaskCalendar = () => {
 
   const handleViewChange = (view) => {
     setCalendarView(view);
+    if (calendarApi) {
+      calendarApi.changeView(view);
+    }
   };
 
   const handleEventDrop = (info) => {
@@ -131,11 +138,11 @@ const TaskCalendar = () => {
       info.revert();
     });
   };
-  
 
   const renderEventContent = (eventInfo) => {
     const type = eventInfo.event.extendedProps.type;
     const status = eventInfo.event.extendedProps.status;
+    const entity = eventInfo.event.extendedProps.entity;
     
     let statusIcon = '';
     if (status === 'completed') statusIcon = '✓ ';
@@ -151,88 +158,83 @@ const TaskCalendar = () => {
     if (type === 'note') typeIcon = '📝 ';
     if (type === 'todo') typeIcon = '✓ ';
     
+    // Ajout d'informations sur l'entité si disponible
+    const entityInfo = entity ? `[${entity.type}: ${entity.name}] ` : '';
+    
     return (
       <>
         <b>{eventInfo.timeText && `${eventInfo.timeText} · `}</b>
-        <i>{statusIcon}{typeIcon}{eventInfo.event.title}</i>
+        <i>{statusIcon}{typeIcon}{entityInfo}{eventInfo.event.title}</i>
       </>
     );
   };
 
-  const settingsMenu = (
-    <Menu>
-      <Menu.SubMenu title="Vue">
-        <Menu.Item key="month" onClick={() => handleViewChange('dayGridMonth')}>Mois</Menu.Item>
-        <Menu.Item key="week" onClick={() => handleViewChange('timeGridWeek')}>Semaine</Menu.Item>
-        <Menu.Item key="day" onClick={() => handleViewChange('timeGridDay')}>Jour</Menu.Item>
-        <Menu.Item key="list" onClick={() => handleViewChange('listWeek')}>Liste</Menu.Item>
-      </Menu.SubMenu>
-      <Menu.SubMenu title="Filtrer par statut">
-        <Menu.Item key="all-status" onClick={() => setFilters({...filters, status: 'all'})}>
-          Tous les statuts
-        </Menu.Item>
-        <Menu.Item key="not_started" onClick={() => setFilters({...filters, status: 'not_started'})}>
-          Non commencés
-        </Menu.Item>
-        <Menu.Item key="in_progress" onClick={() => setFilters({...filters, status: 'in_progress'})}>
-          En cours
-        </Menu.Item>
-        <Menu.Item key="completed" onClick={() => setFilters({...filters, status: 'completed'})}>
-          Terminés
-        </Menu.Item>
-        <Menu.Item key="waiting" onClick={() => setFilters({...filters, status: 'waiting'})}>
-          En attente
-        </Menu.Item>
-        <Menu.Item key="deferred" onClick={() => setFilters({...filters, status: 'deferred'})}>
-          Reportés
-        </Menu.Item>
-      </Menu.SubMenu>
-      <Menu.SubMenu title="Filtrer par type">
-        <Menu.Item key="all-types" onClick={() => setFilters({...filters, type: 'all'})}>
-          Tous les types
-        </Menu.Item>
-        <Menu.Item key="call" onClick={() => setFilters({...filters, type: 'call'})}>
-          Appels
-        </Menu.Item>
-        <Menu.Item key="meeting" onClick={() => setFilters({...filters, type: 'meeting'})}>
-          Réunions
-        </Menu.Item>
-        <Menu.Item key="email_journal" onClick={() => setFilters({...filters, type: 'email_journal'})}>
-          Emails
-        </Menu.Item>
-        <Menu.Item key="note" onClick={() => setFilters({...filters, type: 'note'})}>
-          Notes
-        </Menu.Item>
-        <Menu.Item key="todo" onClick={() => setFilters({...filters, type: 'todo'})}>
-          À faire
-        </Menu.Item>
-      </Menu.SubMenu>
-    </Menu>
-  );
   const transformEvents = (tasks) => {
     if (!tasks) return [];
     
     return tasks.map(task => {
-      // Créer une copie pour ne pas modifier l'original
-      const event = { ...task };
-      
-      // S'assurer que les dates sont correctement interprétées
-      // en spécifiant explicitement qu'elles sont en UTC
-      if (event.start) {
-        event.start = moment.utc(event.start).format('YYYY-MM-DD[T]HH:mm:ss');
+      // Déterminer la couleur en fonction du type ou du statut
+      let backgroundColor;
+      switch (task.type) {
+        case 'call': backgroundColor = '#1890ff'; break; // bleu
+        case 'meeting': backgroundColor = '#722ed1'; break; // violet
+        case 'email_journal': backgroundColor = '#13c2c2'; break; // cyan
+        case 'note': backgroundColor = '#52c41a'; break; // vert
+        case 'todo': backgroundColor = '#fa8c16'; break; // orange
+        default: backgroundColor = '#1890ff';
       }
       
-      if (event.end) {
-        event.end = moment.utc(event.end).format('YYYY-MM-DD[T]HH:mm:ss');
+      // Rendre les tâches complétées plus transparentes
+      if (task.status === 'completed') {
+        backgroundColor = backgroundColor + '80'; // Ajoute 50% d'opacité
       }
       
-      return event;
+      return {
+        ...task,
+        backgroundColor,
+        borderColor: backgroundColor,
+        start: moment.utc(task.start).format('YYYY-MM-DD[T]HH:mm:ss'),
+        end: task.end ? moment.utc(task.end).format('YYYY-MM-DD[T]HH:mm:ss') : null
+      };
     });
   };
 
+  const viewOptions = [
+    { key: 'dayGridMonth', label: 'Mois' },
+    { key: 'timeGridWeek', label: 'Semaine' },
+    { key: 'timeGridDay', label: 'Jour' },
+    { key: 'listWeek', label: 'Liste' }
+  ];
+
+  const statusOptions = [
+    { key: 'all', label: 'Tous les statuts' },
+    { key: 'not_started', label: 'Non commencés' },
+    { key: 'in_progress', label: 'En cours' },
+    { key: 'completed', label: 'Terminés' },
+    { key: 'waiting', label: 'En attente' },
+    { key: 'deferred', label: 'Reportés' }
+  ];
+
+  const typeOptions = [
+    { key: 'all', label: 'Tous les types' },
+    { key: 'call', label: 'Appels' },
+    { key: 'meeting', label: 'Réunions' },
+    { key: 'email_journal', label: 'Emails' },
+    { key: 'note', label: 'Notes' },
+    { key: 'todo', label: 'À faire' }
+  ];
+
+  const entityTypeOptions = [
+    { key: 'all', label: 'Toutes les entités' },
+    { key: 'invite', label: 'Invités' },
+    { key: 'prospect', label: 'Prospects' },
+    { key: 'investor', label: 'Investisseurs' },
+    { key: 'projet', label: 'Projets' }
+  ];
+
   if (error) {
     return (
-      <div className="calendar-container" style={{ padding: '20px' }}>
+      <div className="crm-container" style={{ padding: '20px' }}>
         <Alert
           message="Erreur"
           description={`Impossible de charger les tâches du calendrier: ${error}`}
@@ -244,80 +246,379 @@ const TaskCalendar = () => {
   }
 
   return (
-    <div className="calendar-container" style={{ padding: '20px' }}>
-      <div className="calendar-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-        <h2>Calendrier des tâches</h2>
-        <Space>
-          
-          
-          
-          
+    <div className="crm-container">
+      {/* En-tête avec le style CRM */}
+      <div className="crm-header">
+        <div className="crm-lead-info">
+          <div className="crm-avatar">
+            <Avatar icon={<CalendarOutlined />} size={42} style={{ backgroundColor: '#1890ff' }} />
+          </div>
+          <div className="crm-title">
+            <div className="crm-lead-label">
+              Calendrier des tâches
+            </div>
+            <div className="crm-lead-actions">
+              <span className="crm-count">
+                {calendarTasks?.length || 0} tâche(s) affichée(s)
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="crm-header-actions">
           <Button 
-            type="primary" 
-            icon={<PlusOutlined />}
-            onClick={() => navigate('/tasks/create')}
+            className="crm-btn" 
+            icon={<ArrowLeftOutlined />} 
+            onClick={() => navigate('/tasks')}
           >
-            Nouvelle tâche
+            Liste des tâches
           </Button>
-        </Space>
+          
+          
+        </div>
       </div>
 
-      <Card>
-        <Row gutter={16}>
-          <Col xs={24} style={{ marginBottom: 16 }}>
-            {(loading || operationLoading) && <Spin />}
-            
-          </Col>
-          
-          <Col xs={24}>
-            <FullCalendar
-              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin, momentTimezonePlugin]}
-              initialView={calendarView}
-              headerToolbar={{
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+      {/* Section des filtres */}
+      <div className="crm-meta-info">
+        <div className="crm-meta-item">
+          <div className="crm-meta-label">VUE:</div>
+          <div className="crm-meta-value">
+            <Select 
+              value={calendarView} 
+              onChange={handleViewChange} 
+              style={{ width: 120 }}
+              size="small"
+            >
+              {viewOptions.map(option => (
+                <Option key={option.key} value={option.key}>{option.label}</Option>
+              ))}
+            </Select>
+          </div>
+        </div>
+        
+        <div className="crm-meta-item">
+          <div className="crm-meta-label">STATUT:</div>
+          <div className="crm-meta-value">
+            <Select 
+              value={filters.status} 
+              onChange={value => setFilters({...filters, status: value})}
+              style={{ width: 140 }}
+              size="small"
+            >
+              {statusOptions.map(option => (
+                <Option key={option.key} value={option.key}>{option.label}</Option>
+              ))}
+            </Select>
+          </div>
+        </div>
+        
+        <div className="crm-meta-item">
+          <div className="crm-meta-label">TYPE:</div>
+          <div className="crm-meta-value">
+            <Select 
+              value={filters.type} 
+              onChange={value => setFilters({...filters, type: value})}
+              style={{ width: 130 }}
+              size="small"
+            >
+              {typeOptions.map(option => (
+                <Option key={option.key} value={option.key}>{option.label}</Option>
+              ))}
+            </Select>
+          </div>
+        </div>
+        
+        <div className="crm-meta-item">
+          <div className="crm-meta-label">ENTITÉ:</div>
+          <div className="crm-meta-value">
+            <Select 
+              value={filters.entity_type} 
+              onChange={value => setFilters({...filters, entity_type: value})}
+              style={{ width: 150 }}
+              size="small"
+            >
+              {entityTypeOptions.map(option => (
+                <Option key={option.key} value={option.key}>{option.label}</Option>
+              ))}
+            </Select>
+          </div>
+        </div>
+        
+        {/* <div className="crm-meta-item">
+          <div className="crm-meta-label">ACTIONS:</div>
+          <div className="crm-meta-value">
+            <Button 
+              icon={<ReloadOutlined />} 
+              size="small" 
+              onClick={() => {
+                setFilters({
+                  status: 'all',
+                  type: 'all',
+                  entity_type: 'all',
+                  assignee_id: undefined
+                });
               }}
-              validRange={{
-                start: moment().startOf('day').format('YYYY-MM-DD') // Aujourd'hui
-              }}
-              dayCellClassNames={(arg) => {
-                // Ajouter une classe pour les jours passés
-                return moment(arg.date).isBefore(moment().startOf('day')) ? 'past-day' : '';
-              }}
-              events={transformEvents(calendarTasks) || []}
-              editable={true}
-              droppable={true}
-              selectable={true}
-              selectMirror={true}
-              dayMaxEvents={true}
-              weekends={true}
-              timeZone="UTC"
-              eventContent={renderEventContent}
-              eventClick={handleEventClick}
-              dateClick={handleDateClick}
-              eventDrop={handleEventDrop}
-              locale="fr" // Pour la localisation en français
-              firstDay={1} // Commencer la semaine le lundi
-              buttonText={{
-                today: "Aujourd'hui",
-                month: 'Mois',
-                week: 'Semaine',
-                day: 'Jour',
-                list: 'Liste'
-              }}
-              height="auto"
-              ref={ref => {
-                if (ref) {
-                  setCalendarApi(ref.getApi());
-                }
-              }}
+            >
+              Réinitialiser
+            </Button>
+          </div>
+        </div>
+      </div> */}
+      </div>
 
-            />
-          </Col>
-        </Row>
-      </Card>
-      
+      {/* Contenu principal avec le calendrier */}
+      <div className="crm-content-tabs">
+        <Card bordered={false}>
+          <Row gutter={16}>
+            <Col xs={24}>
+              {(loading || operationLoading) && (
+                <div className="calendar-loading">
+                  <Spin tip="Chargement des tâches..." />
+                </div>
+              )}
+              
+              <div className="calendar-container">
+                <FullCalendar
+                  plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin, momentTimezonePlugin]}
+                  initialView={calendarView}
+                  headerToolbar={{
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+                  }}
+                  dayCellClassNames={(arg) => {
+                    // Ajouter une classe pour les jours passés
+                    return moment(arg.date).isBefore(moment().startOf('day')) ? 'past-day' : '';
+                  }}
+                  events={transformEvents(calendarTasks) || []}
+                  editable={true}
+                  droppable={true}
+                  selectable={true}
+                  selectMirror={true}
+                  dayMaxEvents={true}
+                  weekends={true}
+                  timeZone="UTC"
+                  eventContent={renderEventContent}
+                  eventClick={handleEventClick}
+                  dateClick={handleDateClick}
+                  eventDrop={handleEventDrop}
+                  locale="fr" // Pour la localisation en français
+                  firstDay={1} // Commencer la semaine le lundi
+                  buttonText={{
+                    today: "Aujourd'hui",
+                    month: 'Mois',
+                    week: 'Semaine',
+                    day: 'Jour',
+                    list: 'Liste'
+                  }}
+                  height="auto"
+                  ref={ref => {
+                    if (ref) {
+                      setCalendarApi(ref.getApi());
+                    }
+                  }}
+                />
+              </div>
+            </Col>
+          </Row>
+        </Card>
+        
+        {/* Légende du calendrier
+        <Card title="Légende" className="calendar-legend-card" size="small" style={{ marginTop: '20px' }}>
+          <Row gutter={16}>
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <div className="legend-item">
+                <Badge color="#1890ff" text="Appel" />
+              </div>
+            </Col>
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <div className="legend-item">
+                <Badge color="#722ed1" text="Réunion" />
+              </div>
+            </Col>
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <div className="legend-item">
+                <Badge color="#13c2c2" text="Email" />
+              </div>
+            </Col>
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <div className="legend-item">
+                <Badge color="#52c41a" text="Note" />
+              </div>
+            </Col>
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <div className="legend-item">
+                <Badge color="#fa8c16" text="À faire" />
+              </div>
+            </Col>
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <div className="legend-item">
+                <Badge color="#00000080" text="Terminé (transparence)" />
+              </div>
+            </Col>
+          </Row>
+        </Card> */}
+      </div>
+
+      {/* CSS intégré pour les styles CRM */}
+      <style jsx>{`
+        .crm-container {
+          background-color: #f0f2f5;
+          border-radius: 4px;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .crm-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 16px 20px;
+          background-color: white;
+          border-bottom: 1px solid #e8e8e8;
+        }
+        
+        .crm-lead-info {
+          display: flex;
+          align-items: center;
+        }
+        
+        .crm-avatar {
+          margin-right: 12px;
+        }
+        
+        .crm-title {
+          display: flex;
+          flex-direction: column;
+        }
+        
+        .crm-lead-label {
+          font-size: 18px;
+          font-weight: 600;
+          color: #333;
+        }
+        
+        .crm-lead-actions {
+          display: flex;
+          font-size: 13px;
+          color: #888;
+        }
+        
+        .crm-link {
+          color: #1890ff;
+          margin-right: 16px;
+        }
+        
+        .crm-header-actions {
+          display: flex;
+          gap: 8px;
+        }
+        
+        .crm-btn {
+          border-radius: 3px;
+          transition: all 0.2s ease;
+        }
+        
+        .crm-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        
+        .crm-meta-info {
+          display: flex;
+          background-color: white;
+          padding: 10px 20px;
+          border-bottom: 1px solid #e8e8e8;
+          flex-wrap: wrap;
+        }
+        
+        .crm-meta-item {
+          margin-right: 20px;
+          margin-bottom: 8px;
+          display: flex;
+          align-items: center;
+        }
+        
+        .crm-meta-label {
+          color: #999;
+          font-size: 12px;
+          margin-right: 8px;
+        }
+        
+        .crm-meta-value {
+          color: #333;
+          font-size: 12px;
+          display: flex;
+          align-items: center;
+        }
+        
+        .crm-content-tabs {
+          background-color: white;
+          padding: 20px;
+        }
+        
+        .calendar-container {
+          margin-top: 16px;
+          min-height: 650px;
+        }
+        
+        .calendar-loading {
+          display: flex;
+          justify-content: center;
+          padding: 16px 0;
+        }
+        
+        /* Style pour les événements du calendrier */
+        .fc-event {
+          border-radius: 4px;
+          font-size: 12px;
+          cursor: pointer;
+          transition: transform 0.15s ease;
+        }
+        
+        .fc-event:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+          z-index: 5 !important;
+        }
+        
+        /* Style pour les jours passés */
+        .past-day {
+          background-color: #f5f5f5 !important;
+          color: #bfbfbf !important;
+        }
+        
+        /* Style pour la légende */
+        .legend-item {
+          margin-bottom: 8px;
+        }
+        
+        /* Responsive styles */
+        @media (max-width: 768px) {
+          .crm-header {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          
+          .crm-header-actions {
+            margin-top: 16px;
+            width: 100%;
+          }
+          
+          .crm-meta-info {
+            flex-direction: column;
+          }
+          
+          .crm-meta-item {
+            margin-bottom: 8px;
+          }
+        }
+      `}</style>
     </div>
   );
 };

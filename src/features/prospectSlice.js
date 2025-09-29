@@ -98,30 +98,30 @@ export const deleteProspect = createAsyncThunk(
 );
 
 // Initialiser le pipeline pour un prospect
-export const initializePipeline = createAsyncThunk(
-  "prospects/initializePipeline",
-  async ({ id, pipeline_type_id = null }, { rejectWithValue }) => {
-    try {
-      const response = await axios.post(
-        `${API_BASE_URL}/prospects/${id}/initialize-pipeline`,
-        { pipeline_type_id },
-        getAuthHeader()
-      );
-      return response.data;
-    } catch (error) {
-      return rejectWithValue(formatErrorMessage(error));
-    }
-  }
-);
+// export const initializePipeline = createAsyncThunk(
+//   "prospects/initializePipeline",
+//   async ({ id, pipeline_type_id = 1 }, { rejectWithValue }) => {
+//     try {
+//       const response = await axios.post(
+//         `${API_BASE_URL}/prospects/${id}/pipeline/initialize`,
+//         { pipeline_type_id },
+//         getAuthHeader()
+//       );
+//       return response.data;
+//     } catch (error) {
+//       return rejectWithValue(formatErrorMessage(error));
+//     }
+//   }
+// );
 
 // Avancer un prospect dans le pipeline
 export const advancePipeline = createAsyncThunk(
   "prospects/advancePipeline",
-  async ({ id, notes = null }, { rejectWithValue }) => {
+  async ({ id, stage_id, notes = null, date = null }, { rejectWithValue }) => {
     try {
       const response = await axios.post(
-        `${API_BASE_URL}/prospects/${id}/advance-stage`,
-        { notes },
+        `${API_BASE_URL}/prospects/${id}/pipeline/advance`,
+        { stage_id, notes, date },
         getAuthHeader()
       );
       return response.data;
@@ -137,7 +137,7 @@ export const getPipelineStatus = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/prospects/${id}/pipeline`,
+        `${API_BASE_URL}/prospects/${id}/pipeline/status`, // Correction ici
         getAuthHeader()
       );
       return response.data;
@@ -148,18 +148,29 @@ export const getPipelineStatus = createAsyncThunk(
 );
 
 // Convertir un prospect en investisseur
+
 export const convertToInvestor = createAsyncThunk(
   "prospects/convertToInvestor",
-  async ({ id, data }, { rejectWithValue }) => {
+  async ({ id, ...conversionData }, { rejectWithValue }) => {
     try {
+      console.log('Conversion data being sent:', conversionData);
+      
       const response = await axios.post(
         `${API_BASE_URL}/prospects/${id}/convert-to-investor`,
-        data,
+        { ...conversionData,
+        initialize_pipeline: true,},
         getAuthHeader()
       );
+      
+      console.log('Conversion response:', response.data);
       return response.data;
     } catch (error) {
-      return rejectWithValue(formatErrorMessage(error));
+      console.error('Conversion error:', error);
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error || 
+                          error.message || 
+                          "Erreur lors de la conversion en investisseur";
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -176,6 +187,35 @@ export const getProspectStats = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(formatErrorMessage(error));
+    }
+  }
+);
+export const getProspectPipeline = createAsyncThunk(
+  'prospects/getProspectPipeline',
+  async (prospectId, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/prospects/${prospectId}/pipeline`,
+        getAuthHeader()
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
+  }
+);
+export const updateProspectStatus = createAsyncThunk(
+  'prospects/updateProspectStatus',
+  async ({ id, statut }, { rejectWithValue }) => {
+    try {
+      const response = await axios.patch(
+        `${API_BASE_URL}/prospects/${id}/status`,
+        { statut },
+        getAuthHeader()
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
     }
   }
 );
@@ -320,24 +360,50 @@ const prospectSlice = createSlice({
     });
 
     // Initialize Pipeline
-    builder.addCase(initializePipeline.pending, (state) => {
-      state.operation.loading = true;
-      state.operation.type = 'initialize_pipeline';
-      state.operation.error = null;
-      state.operation.success = false;
-    });
-    builder.addCase(initializePipeline.fulfilled, (state, action) => {
-      state.operation.loading = false;
-      state.operation.success = true;
-      if (action.payload.data && action.payload.data.prospect) {
-        state.selectedProspect.data = action.payload.data.prospect;
-        state.pipeline.currentStage = action.payload.data.current_stage;
-      }
-    });
-    builder.addCase(initializePipeline.rejected, (state, action) => {
-      state.operation.loading = false;
-      state.operation.error = action.payload;
-    });
+    //     builder.addCase(initializePipeline.pending, (state) => {
+    //       state.operation.loading = true;
+    //       state.operation.type = 'initialize_pipeline';
+    //       state.operation.error = null;
+    //       state.operation.success = false;
+    //     });
+
+    // // Initialize Pipeline - Corriger le reducer fulfilled
+    // builder.addCase(initializePipeline.fulfilled, (state, action) => {
+    //   state.operation.loading = false;
+    //   state.operation.success = true;
+
+    //   if (action.payload.data && action.payload.data.prospect) {
+    //     // Mettre à jour les données du prospect
+    //     state.selectedProspect.data = action.payload.data.prospect;
+
+    //     // Mettre à jour TOUTES les données du pipeline
+    //     state.pipeline.data = action.payload.data;
+    //     state.pipeline.currentStage = action.payload.data.current_stage;
+
+    //     // Mapper les étapes du pipeline depuis les progressions
+    //     if (action.payload.data.prospect.pipeline_progressions) {
+    //       state.pipeline.stages = action.payload.data.prospect.pipeline_progressions.map(progression => ({
+    //         ...progression.stage,
+    //         status: progression.completed ? 'completed' : 'process',
+    //         completed: progression.completed,
+    //         progression_id: progression.id,
+    //         notes: progression.notes,
+    //         assigned_to: progression.assigned_to,
+    //         completed_at: progression.completed_at
+    //       }));
+    //     }
+
+    //     console.log('Pipeline initialized in Redux:', {
+    //       data: state.pipeline.data,
+    //       stages: state.pipeline.stages,
+    //       currentStage: state.pipeline.currentStage
+    //     });
+    //   }
+    // });
+    //     builder.addCase(initializePipeline.rejected, (state, action) => {
+    //       state.operation.loading = false;
+    //       state.operation.error = action.payload;
+    //     });
 
     // Advance Pipeline
     builder.addCase(advancePipeline.pending, (state) => {
@@ -349,9 +415,27 @@ const prospectSlice = createSlice({
     builder.addCase(advancePipeline.fulfilled, (state, action) => {
       state.operation.loading = false;
       state.operation.success = true;
+
       if (action.payload.data && action.payload.data.prospect) {
+        // Mettre à jour les données du prospect
         state.selectedProspect.data = action.payload.data.prospect;
+
+        // Mettre à jour TOUTES les données du pipeline
+        state.pipeline.data = action.payload.data;
         state.pipeline.currentStage = action.payload.data.current_stage;
+
+        // Mapper les étapes du pipeline depuis les progressions
+        if (action.payload.data.prospect.pipeline_progressions) {
+          state.pipeline.stages = action.payload.data.prospect.pipeline_progressions.map(progression => ({
+            ...progression.stage,
+            status: progression.completed ? 'completed' : 'process',
+            completed: progression.completed,
+            progression_id: progression.id,
+            notes: progression.notes,
+            assigned_to: progression.assigned_to,
+            completed_at: progression.completed_at
+          }));
+        }
       }
     });
     builder.addCase(advancePipeline.rejected, (state, action) => {
@@ -360,19 +444,47 @@ const prospectSlice = createSlice({
     });
 
     // Get Pipeline Status
+    // Get Pipeline Status
     builder.addCase(getPipelineStatus.pending, (state) => {
       state.pipeline.loading = true;
       state.pipeline.error = null;
     });
     builder.addCase(getPipelineStatus.fulfilled, (state, action) => {
       state.pipeline.loading = false;
-      state.pipeline.data = action.payload.data;
-      state.pipeline.stages = action.payload.data.stages || [];
-      state.pipeline.currentStage = action.payload.data.current_stage;
+
+      if (action.payload.success && action.payload.data) {
+        state.pipeline.data = action.payload.data;
+        state.pipeline.currentStage = action.payload.data.current_stage;
+
+        // Mapper correctement les étapes avec leur statut depuis la base de données
+        if (action.payload.data.stages) {
+          state.pipeline.stages = action.payload.data.stages.map(stage => ({
+            ...stage,
+            status: stage.status || 'wait'
+          }));
+        } else {
+          state.pipeline.stages = [];
+        }
+
+        console.log('Pipeline status loaded:', state.pipeline.stages);
+      } else {
+        // Cas où il n'y a pas de pipeline initialisé
+        state.pipeline.data = null;
+        state.pipeline.stages = [];
+        state.pipeline.currentStage = null;
+        console.log('No pipeline found for this prospect');
+      }
     });
     builder.addCase(getPipelineStatus.rejected, (state, action) => {
       state.pipeline.loading = false;
       state.pipeline.error = action.payload;
+
+      // Si l'erreur indique qu'il n'y a pas de pipeline, nettoyer l'état
+      if (action.payload?.includes('Aucun pipeline')) {
+        state.pipeline.data = null;
+        state.pipeline.stages = [];
+        state.pipeline.currentStage = null;
+      }
     });
 
     // Convert to Investor
@@ -406,6 +518,62 @@ const prospectSlice = createSlice({
     builder.addCase(getProspectStats.rejected, (state, action) => {
       state.stats.loading = false;
       state.stats.error = action.payload;
+    });
+    builder.addCase(getProspectPipeline.pending, (state) => {
+      state.pipeline.loading = true;
+      state.pipeline.error = null;
+    });
+    builder.addCase(getProspectPipeline.fulfilled, (state, action) => {
+      state.pipeline.loading = false;
+
+      if (action.payload.success && action.payload.data) {
+        const data = action.payload.data;
+
+        // Extraire les étapes depuis all_stages (toutes les étapes disponibles)
+        state.pipeline.stages = data.all_stages || [];
+
+        // Définir l'étape actuelle
+        state.pipeline.currentStage = data.current_stage || null;
+
+        // Extraire les progressions
+        state.pipeline.progression = data.progressions || data.pipeline_progressions || [];
+
+        // Stocker les données complètes
+        state.pipeline.data = data;
+
+        console.log('Pipeline data mapped correctly:', {
+          stages: state.pipeline.stages,
+          currentStage: state.pipeline.currentStage,
+          progression: state.pipeline.progression
+        });
+      } else {
+        // Si pas de données
+        state.pipeline.stages = [];
+        state.pipeline.currentStage = null;
+        state.pipeline.progression = [];
+      }
+    });
+    builder.addCase(getProspectPipeline.rejected, (state, action) => {
+      state.pipeline.loading = false;
+      state.pipeline.error = action.payload;
+    });
+
+    builder.addCase(updateProspectStatus.pending, (state) => {
+      state.operation.loading = true;
+      state.operation.error = null;
+      state.operation.success = false;
+      state.operation.type = 'update_status';
+    });
+    builder.addCase(updateProspectStatus.fulfilled, (state, action) => {
+      state.operation.loading = false;
+      state.operation.success = true;
+      if (state.selectedProspect.data) {
+        state.selectedProspect.data.statut = action.payload.data.statut;
+      }
+    });
+    builder.addCase(updateProspectStatus.rejected, (state, action) => {
+      state.operation.loading = false;
+      state.operation.error = action.payload;
     });
   }
 });

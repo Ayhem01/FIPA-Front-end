@@ -5,7 +5,9 @@ import taskReducer from './taskSlice';
 import projectReducer from './projectSlice';
 import inviteReducer from './inviteSlice';
 import prospectReducer from './prospectSlice';
-
+import investisseurReducer from './investisseurSlice'; // Importer le reducer pour les investisseurs
+import blockagesReducer from './blockageSlice';
+import dashboardReducer from './dashboardSlice';
 
 
 export const store = configureStore({
@@ -16,6 +18,10 @@ export const store = configureStore({
         projects: projectReducer,
         invites: inviteReducer,
         prospects: prospectReducer,
+        investisseurs: investisseurReducer, 
+        blockages:blockagesReducer,
+        dashboard: dashboardReducer,
+
             },
 });
 

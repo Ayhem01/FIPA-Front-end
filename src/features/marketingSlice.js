@@ -1639,6 +1639,7 @@ const marketingSlice = createSlice({
       })
       .addCase(fetchPays.fulfilled, (state, action) => {
         state.pays.loading = false;
+        // CORRECTION : ajouter le reducer fetchPays.fulfilled qui manquait
         state.pays.items = action.payload.data || action.payload;
       })
       .addCase(fetchPays.rejected, (state, action) => {
@@ -1652,6 +1653,7 @@ const marketingSlice = createSlice({
       })
       .addCase(fetchSecteurs.fulfilled, (state, action) => {
         state.secteurs.loading = false;
+        // Correction : utiliser items au lieu de remplacer tout l'objet
         state.secteurs.items = action.payload.data || action.payload;
       })
       .addCase(fetchSecteurs.rejected, (state, action) => {
@@ -2063,7 +2065,7 @@ const marketingSlice = createSlice({
       })
       .addCase(fetchEntreprises.fulfilled, (state, action) => {
         state.entreprises.loading = false;
-        state.entreprises.items = action.payload.data || action.payload || [];
+        state.entreprises.items = action.payload.data?.data || [];
       })
       .addCase(fetchEntreprises.rejected, (state, action) => {
         state.entreprises.loading = false;

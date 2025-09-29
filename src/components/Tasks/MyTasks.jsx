@@ -1,179 +1,158 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Tag, Space, Button, Input, Select, Card, message, Alert, Spin, Tabs, Row, Col } from 'antd';
 import { 
-  CheckOutlined, ClockCircleOutlined, DeleteOutlined, 
-  EditOutlined, EyeOutlined, FilterOutlined, 
-  PlusOutlined, ExclamationCircleOutlined, SortAscendingOutlined, ReloadOutlined
+  Table, Button, Space, Tag, Badge, Input, Select, DatePicker, 
+  Tabs, Avatar, Typography, message, Tooltip, Dropdown, Menu 
+} from 'antd';
+import { 
+  PlusOutlined, FilterOutlined, ReloadOutlined, EllipsisOutlined,
+  ProjectOutlined, SearchOutlined, CalendarOutlined, UserOutlined,
+  EyeOutlined, EditOutlined, DeleteOutlined, CheckOutlined, ClockCircleOutlined
 } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { getMyTasks, deleteTask, updateTaskStatus, resetTaskOperation } from '../../features/taskSlice';
+import { getMyTasks, deleteTask } from '../../features/taskSlice';
+import { useNavigate } from 'react-router-dom';
 import moment from 'moment';
 
-const { Search } = Input;
-const { Option } = Select;
 const { TabPane } = Tabs;
+const { Title, Text } = Typography;
+const { Option } = Select;
 
 const MyTasks = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   
-  const { items: tasks, pagination, loading, error } = useSelector(state => state.tasks.myTasks);
-  const { type: operationType, loading: operationLoading, success: operationSuccess, error: operationError } = useSelector(state => state.tasks.taskOperation);
-  
   const [activeTab, setActiveTab] = useState('all');
+  const [filtersVisible, setFiltersVisible] = useState(false);
   const [filters, setFilters] = useState({
-    search: '',
     status: undefined,
     priority: undefined,
-    type: undefined,
-    sort_field: 'start',
-    sort_direction: 'asc',
-    per_page: 10,
-    page: 1
+    search: '',
+    start_date: null,
+    end_date: null,
+    assignee_id: undefined,
+    page: 1,
+    per_page: 10
   });
-
+  
+  // Redux state
+  const { items: tasks, pagination, loading, error } = useSelector(state => state.tasks.myTasks);
+  
   useEffect(() => {
     loadTasks();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, activeTab, filters.page, filters.per_page]);
-
-  useEffect(() => {
-    if (operationSuccess) {
-      if (operationType === 'delete') {
-        message.success('Tâche supprimée avec succès');
-        loadTasks();
-      } else if (operationType === 'status') {
-        message.success('Statut mis à jour avec succès');
-        loadTasks();
-      }
-      dispatch(resetTaskOperation());
-    } else if (operationError) {
-      message.error(`Erreur: ${operationError}`);
-      dispatch(resetTaskOperation());
-    }
-  }, [operationType, operationSuccess, operationError, dispatch]);
-
+  }, [filters, activeTab]);
+  
   const loadTasks = () => {
-    // Préparer les filtres pour l'API
+    // Préparer les filtres avec le statut de l'onglet actif
     const apiFilters = { ...filters };
-    
-    // Ajouter le statut basé sur l'onglet actif
-    if (activeTab === 'pending') {
-      apiFilters.status = 'not_started';
-    } else if (activeTab === 'in_progress') {
-      apiFilters.status = 'in_progress';
-    } else if (activeTab === 'completed') {
-      apiFilters.status = 'completed';
-    } else if (activeTab === 'waiting') {
-      apiFilters.status = 'waiting';
-    } else if (activeTab === 'deferred') {
-      apiFilters.status = 'deferred';
+    if (activeTab !== 'all') {
+      apiFilters.status = activeTab;
     }
     
-    // Supprimer les filtres vides
-    Object.keys(apiFilters).forEach(key => {
-      if (apiFilters[key] === undefined || apiFilters[key] === '') {
-        delete apiFilters[key];
-      }
-    });
-    
-    dispatch(getMyTasks(apiFilters));
+    dispatch(getMyTasks(apiFilters))
+      .unwrap()
+      .then(() => {
+        console.log('Tâches chargées avec succès');
+      })
+      .catch(error => {
+        message.error('Erreur lors du chargement des tâches');
+      });
   };
-
-  const handleSearch = () => {
-    setFilters({
-      ...filters,
-      page: 1
-    });
-    loadTasks();
-  };
-
-  const handleResetFilters = () => {
-    setFilters({
-      search: '',
-      status: undefined,
-      priority: undefined,
-      type: undefined,
-      sort_field: 'start',
-      sort_direction: 'asc',
-      per_page: 10,
-      page: 1
-    });
-    
-    setTimeout(() => {
-      loadTasks();
-    }, 0);
-  };
-
+  
   const handleTabChange = (key) => {
     setActiveTab(key);
-    setFilters({
-      ...filters,
-      page: 1,
-      status: undefined // Réinitialiser le statut car il sera défini par l'onglet
-    });
+    // Réinitialiser la page
+    setFilters(prev => ({
+      ...prev,
+      page: 1
+    }));
   };
-
+  
+  const handleSearch = (value) => {
+    setFilters(prev => ({
+      ...prev,
+      search: value,
+      page: 1
+    }));
+  };
+  
   const handleTableChange = (pagination, filters, sorter) => {
     setFilters(prev => ({
       ...prev,
       page: pagination.current,
-      per_page: pagination.pageSize,
-      sort_field: sorter.field || 'start',
-      sort_direction: sorter.order === 'ascend' ? 'asc' : 'desc'
+      per_page: pagination.pageSize
     }));
   };
-
+  
+  const handleFilterChange = (field, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [field]: value,
+      page: 1
+    }));
+  };
+  
+  const handleResetFilters = () => {
+    setFilters({
+      status: undefined,
+      priority: undefined,
+      search: '',
+      start_date: null,
+      end_date: null,
+      assignee_id: undefined,
+      page: 1,
+      per_page: 10
+    });
+  };
+  
   const handleAddTask = () => {
     navigate('/tasks/create');
   };
-
-  const handleViewTask = (taskId) => {
-    navigate(`/tasks/details/${taskId}`);
+  
+  const handleViewTask = (id) => {
+    navigate(`/tasks/${id}`);
   };
-
-  const handleEditTask = (taskId) => {
-    navigate(`/tasks/edit/${taskId}`);
+  
+  const handleEditTask = (id) => {
+    navigate(`/tasks/${id}/edit`);
   };
-
-  const handleDeleteTask = (taskId) => {
-    dispatch(deleteTask(taskId));
+  
+  const handleDeleteTask = (id) => {
+    dispatch(deleteTask(id))
+      .unwrap()
+      .then(() => {
+        message.success('Tâche supprimée avec succès');
+        loadTasks();
+      })
+      .catch(error => {
+        message.error('Erreur lors de la suppression de la tâche');
+      });
   };
-
-  const handleStatusChange = (taskId, newStatus) => {
-    dispatch(updateTaskStatus({ id: taskId, status: newStatus }));
-  };
-
-  const getStatusTag = (status) => {
+  
+  const renderTaskStatus = (status) => {
     switch (status) {
-      case 'not_started':
-        return <Tag color="warning">Non commencé</Tag>;
-      case 'in_progress':
-        return <Tag color="processing" icon={<ClockCircleOutlined />}>En cours</Tag>;
       case 'completed':
-        return <Tag color="success" icon={<CheckOutlined />}>Terminé</Tag>;
-      case 'deferred':
-        return <Tag color="purple">Reporté</Tag>;
+        return <Tag color="green"><CheckOutlined /> Terminé</Tag>;
+      case 'in_progress':
+        return <Tag color="blue"><ClockCircleOutlined /> En cours</Tag>;
       case 'waiting':
-        return <Tag color="cyan">En attente</Tag>;
+        return <Tag color="orange"><ClockCircleOutlined /> En attente</Tag>;
+      case 'deferred':
+        return <Tag color="purple"><ClockCircleOutlined /> Reporté</Tag>;
       default:
-        return <Tag color="default">Inconnu</Tag>;
+        return <Tag color="default"><ClockCircleOutlined /> À faire</Tag>;
     }
   };
 
-  const getPriorityTag = (priority) => {
+  const renderPriority = (priority) => {
     switch (priority) {
-      case 'low':
-        return <Tag color="green">Basse</Tag>;
-      case 'normal':
-        return <Tag color="blue">Normale</Tag>;
-      case 'high':
-        return <Tag color="orange">Haute</Tag>;
       case 'urgent':
-        return <Tag color="red" icon={<ExclamationCircleOutlined />}>Urgente</Tag>;
+        return <Badge status="error" text="Urgente" />;
+      case 'high':
+        return <Badge status="warning" text="Haute" />;
+      case 'normal':
+        return <Badge status="processing" text="Normale" />;
       default:
-        return <Tag color="default">Standard</Tag>;
+        return <Badge status="default" text="Basse" />;
     }
   };
   
@@ -182,253 +161,321 @@ const MyTasks = () => {
       title: 'Titre',
       dataIndex: 'title',
       key: 'title',
-      sorter: true,
-      render: (text, record) => <a onClick={() => handleViewTask(record.id)}>{text}</a>,
-    },
-    {
-      title: 'Type',
-      dataIndex: 'type',
-      key: 'type',
-      width: 120,
-      render: (type) => {
-        switch (type) {
-          case 'call':
-            return <span>📞 Appel</span>;
-          case 'meeting':
-            return <span>👥 Réunion</span>;
-          case 'email_journal':
-            return <span>📧 Email</span>;
-          case 'note':
-            return <span>📝 Note</span>;
-          case 'todo':
-            return <span>✓ À faire</span>;
-          default:
-            return type;
-        }
-      }
-    },
-    {
-      title: 'Priorité',
-      dataIndex: 'priority',
-      key: 'priority',
-      width: 120,
-      sorter: true,
-      render: (priority) => getPriorityTag(priority)
-    },
-    {
-      title: 'Échéance',
-      dataIndex: 'start',
-      key: 'start',
-      width: 170,
-      sorter: true,
-      render: (start, record) => {
-        // Calculer si la tâche est en retard
-        const isOverdue = !record.completed && moment(start).isBefore(moment(), 'day');
-        
-        return (
-          <div>
-            {start ? (
-              <span style={{ color: isOverdue ? '#ff4d4f' : 'inherit' }}>
-                {moment(start).format('DD/MM/YYYY')}
-                {record.all_day ? '' : ' ' + moment(start).format('HH:mm')}
-                {isOverdue && ' (En retard)'}
-              </span>
-            ) : 'N/A'}
-          </div>
-        );
-      }
+      render: (text, record) => (
+        <Space>
+          {text}
+          {record.priority && renderPriority(record.priority)}
+        </Space>
+      ),
     },
     {
       title: 'Statut',
       dataIndex: 'status',
       key: 'status',
-      width: 150,
-      sorter: true,
-      render: (status) => getStatusTag(status)
+      render: status => renderTaskStatus(status),
+    },
+    {
+      title: 'Dates',
+      dataIndex: 'dates',
+      key: 'dates',
+      render: (_, record) => (
+        <Space direction="vertical" size="small">
+          {record.start && (
+            <Text type="secondary">
+              <CalendarOutlined /> Début: {moment(record.start).format('DD/MM/YYYY')}
+            </Text>
+          )}
+          {record.end && (
+            <Text type="secondary">
+              <CalendarOutlined /> Fin: {moment(record.end).format('DD/MM/YYYY')}
+            </Text>
+          )}
+        </Space>
+      ),
+    },
+    {
+      title: 'Assigné à',
+      dataIndex: 'assignee',
+      key: 'assignee',
+      render: assignee => assignee ? (
+        <Space>
+          <Avatar size="small" icon={<UserOutlined />} src={assignee.avatar} />
+          {assignee.name}
+        </Space>
+      ) : 'Non assigné',
+    },
+    {
+      title: 'Entité',
+      dataIndex: 'entity_type',
+      key: 'entity_type',
+      render: (entity_type, record) => {
+        let entityName = '';
+        let entityType = '';
+        
+        switch (entity_type) {
+          case 'invite':
+            entityName = 'Lead';
+            entityType = 'Invité';
+            break;
+          case 'prospect':
+            entityName = 'Prospect';
+            entityType = 'Prospect';
+            break;
+          case 'project':
+            entityName = 'Projet';
+            entityType = 'Projet';
+            break;
+          default:
+            entityName = 'Autre';
+            entityType = entity_type || 'Non défini';
+        }
+        
+        return (
+          <Space direction="vertical" size="small">
+            <Tag>{entityType}</Tag>
+            {record.entity_name && <Text type="secondary">{record.entity_name}</Text>}
+          </Space>
+        );
+      },
     },
     {
       title: 'Actions',
       key: 'actions',
-      width: 250,
       render: (_, record) => (
-        <Space size="small">
-          <Button icon={<EyeOutlined />} onClick={() => handleViewTask(record.id)} />
-          <Button icon={<EditOutlined />} onClick={() => handleEditTask(record.id)} />
-          
-          <Select 
-            defaultValue={record.status} 
-            style={{ width: 130 }} 
-            onChange={(value) => handleStatusChange(record.id, value)}
-            loading={operationLoading && operationType === 'status'}
-          >
-            <Option value="not_started">Non commencé</Option>
-            <Option value="in_progress">En cours</Option>
-            <Option value="completed">Terminé</Option>
-            <Option value="waiting">En attente</Option>
-            <Option value="deferred">Reporté</Option>
-          </Select>
-          
+        <Space>
           <Button 
-            icon={<DeleteOutlined />} 
-            danger 
-            onClick={() => handleDeleteTask(record.id)}
-            loading={operationLoading && operationType === 'delete'}
+            icon={<EyeOutlined />} 
+            size="small"
+            onClick={() => handleViewTask(record.id)}
           />
+          <Button 
+            icon={<EditOutlined />} 
+            size="small"
+            onClick={() => handleEditTask(record.id)}
+          />
+          <Dropdown 
+            overlay={
+              <Menu>
+                <Menu.Item 
+                  key="delete" 
+                  icon={<DeleteOutlined />}
+                  onClick={() => handleDeleteTask(record.id)}
+                >
+                  Supprimer
+                </Menu.Item>
+              </Menu>
+            }
+          >
+            <Button size="small" icon={<EllipsisOutlined />} />
+          </Dropdown>
         </Space>
       ),
     },
   ];
 
-  if (error) {
-    return (
-      <div className="my-tasks-container" style={{ padding: '20px' }}>
-        <Alert
-          message="Erreur"
-          description={`Impossible de charger vos tâches: ${error}`}
-          type="error"
-          showIcon
-        />
-      </div>
-    );
-  }
-
   return (
-    <div className="my-tasks-container" style={{ padding: '20px' }}>
-      <div className="tasks-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-        <h2>Mes tâches</h2>
-        <div className="tasks-actions">
-          <Button 
-            type="primary" 
+    <div className="crm-container">
+      <div className="crm-header">
+        <div className="crm-lead-info">
+          <div className="crm-avatar">
+            <Avatar icon={<ProjectOutlined />} size={42} style={{ backgroundColor: '#1890ff' }} />
+          </div>
+          <div className="crm-title">
+            <div className="crm-lead-label">Mes tâches</div>
+            <div className="crm-lead-actions">
+              <span className="crm-count">{pagination?.total || 0} tâche(s) au total</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="crm-header-actions">
+          <Button
+            type="primary"
             icon={<PlusOutlined />}
             onClick={handleAddTask}
+            className="crm-btn"
           >
             Nouvelle tâche
           </Button>
+          <Button
+            icon={<FilterOutlined />}
+            onClick={() => setFiltersVisible(!filtersVisible)}
+            className={`crm-btn ${filtersVisible ? 'crm-btn-active' : ''}`}
+          >
+            Filtres
+          </Button>
+          <Button 
+            icon={<ReloadOutlined />} 
+            onClick={handleResetFilters}
+            className="crm-btn"
+          >
+            Réinitialiser
+          </Button>
         </div>
       </div>
-      
-      <Card style={{ marginBottom: '20px' }}>
-        <Row gutter={16} align="middle">
-          <Col xs={24} sm={8} md={6} lg={5} xl={4}>
-            <Search
-              placeholder="Rechercher des tâches"
+
+      {filtersVisible && (
+        <div className="crm-filters-container">
+          <Space wrap>
+            <Input
+              placeholder="Rechercher..."
+              prefix={<SearchOutlined />}
               value={filters.search}
-              onChange={e => setFilters({ ...filters, search: e.target.value })}
-              onSearch={handleSearch}
-              style={{ width: '100%', marginBottom: '10px' }}
+              onChange={e => handleFilterChange('search', e.target.value)}
+              style={{ width: 200 }}
+              allowClear
             />
-          </Col>
-          
-          <Col xs={24} sm={8} md={5} lg={4} xl={3}>
+            
             <Select
               placeholder="Priorité"
-              allowClear
-              style={{ width: '100%', marginBottom: '10px' }}
+              style={{ width: 120 }}
               value={filters.priority}
-              onChange={value => setFilters({ ...filters, priority: value })}
-            >
-              <Option value="low">Basse</Option>
-              <Option value="normal">Normale</Option>
-              <Option value="high">Haute</Option>
-              <Option value="urgent">Urgente</Option>
-            </Select>
-          </Col>
-          
-          <Col xs={24} sm={8} md={5} lg={4} xl={3}>
-            <Select
-              placeholder="Type"
+              onChange={value => handleFilterChange('priority', value)}
               allowClear
-              style={{ width: '100%', marginBottom: '10px' }}
-              value={filters.type}
-              onChange={value => setFilters({ ...filters, type: value })}
             >
-              <Option value="call">Appel</Option>
-              <Option value="meeting">Réunion</Option>
-              <Option value="email_journal">Email</Option>
-              <Option value="note">Note</Option>
-              <Option value="todo">À faire</Option>
+              <Option value="urgent">Urgente</Option>
+              <Option value="high">Haute</Option>
+              <Option value="normal">Normale</Option>
+              <Option value="low">Basse</Option>
             </Select>
-          </Col>
-          
-          <Col xs={24} sm={8} md={5} lg={4} xl={3}>
-            <Button
-              type="primary"
-              icon={<FilterOutlined />}
-              onClick={handleSearch}
-              style={{ marginBottom: '10px', marginRight: '10px' }}
-            >
-              Filtrer
-            </Button>
             
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={handleResetFilters}
-              style={{ marginBottom: '10px' }}
-            >
-              Réinitialiser
-            </Button>
-          </Col>
-          
-          <Col xs={24}>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <span style={{ marginRight: 8 }}>Trier par: </span>
-              <Select
-                defaultValue="start"
-                style={{ width: 150, marginRight: 8 }}
-                onChange={value => setFilters({ ...filters, sort_field: value })}
-              >
-                <Option value="start">Date d'échéance</Option>
-                <Option value="created_at">Date de création</Option>
-                <Option value="priority">Priorité</Option>
-              </Select>
-              
-              <Select
-                defaultValue="asc"
-                style={{ width: 120 }}
-                onChange={value => setFilters({ ...filters, sort_direction: value })}
-              >
-                <Option value="asc">Ascendant</Option>
-                <Option value="desc">Descendant</Option>
-              </Select>
-              
-              <Button 
-                icon={<SortAscendingOutlined />} 
-                style={{ marginLeft: 8 }}
-                onClick={handleSearch}
-              >
-                Appliquer
-              </Button>
-            </div>
-          </Col>
-        </Row>
-      </Card>
-      
-      <Card>
+            <DatePicker
+              placeholder="Date début"
+              value={filters.start_date ? moment(filters.start_date) : null}
+              onChange={date => handleFilterChange('start_date', date ? date.format('YYYY-MM-DD') : null)}
+            />
+            
+            <DatePicker
+              placeholder="Date fin"
+              value={filters.end_date ? moment(filters.end_date) : null}
+              onChange={date => handleFilterChange('end_date', date ? date.format('YYYY-MM-DD') : null)}
+            />
+          </Space>
+        </div>
+      )}
+
+      <div className="crm-tabs-container">
         <Tabs activeKey={activeTab} onChange={handleTabChange}>
           <TabPane tab="Toutes" key="all" />
-          <TabPane tab="Non commencées" key="pending" />
+          <TabPane tab="À faire" key="todo" />
           <TabPane tab="En cours" key="in_progress" />
-          <TabPane tab="En attente" key="waiting" />
           <TabPane tab="Terminées" key="completed" />
-          <TabPane tab="Reportées" key="deferred" />
+          <TabPane tab="En attente" key="waiting" />
         </Tabs>
-        
-        <Table 
-          columns={columns} 
-          dataSource={tasks} 
+      </div>
+
+      <div className="crm-content">
+        <Table
+          columns={columns}
+          dataSource={tasks}
           rowKey="id"
-          loading={loading || operationLoading}
+          loading={loading}
+          onChange={handleTableChange}
           pagination={{
             current: filters.page,
             pageSize: filters.per_page,
-            total: pagination ? pagination.total : 0,
+            total: pagination?.total || 0,
             showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) => `${range[0]}-${range[1]} sur ${total} tâches`,
+            showTotal: (total, range) => `${range[0]}-${range[1]} sur ${total} tâches`
           }}
-          onChange={handleTableChange}
+          className="crm-table"
         />
-      </Card>
+      </div>
+
+      <style jsx>{`
+        .crm-container {
+          background-color: #f0f2f5;
+          border-radius: 4px;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .crm-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 16px 20px;
+          background-color: white;
+          border-bottom: 1px solid #e8e8e8;
+        }
+        
+        .crm-lead-info {
+          display: flex;
+          align-items: center;
+        }
+        
+        .crm-avatar {
+          margin-right: 12px;
+        }
+        
+        .crm-title {
+          display: flex;
+          flex-direction: column;
+        }
+        
+        .crm-lead-label {
+          font-size: 18px;
+          font-weight: 600;
+          color: #333;
+        }
+        
+        .crm-lead-actions {
+          display: flex;
+          font-size: 13px;
+          color: #888;
+        }
+        
+        .crm-count {
+          color: #1890ff;
+          margin-right: 16px;
+        }
+        
+        .crm-header-actions {
+          display: flex;
+          gap: 8px;
+        }
+        
+        .crm-btn {
+          border-radius: 3px;
+        }
+        
+        .crm-btn-active {
+          background-color: #e6f7ff;
+          border-color: #1890ff;
+        }
+        
+        .crm-filters-container {
+          background-color: white;
+          padding: 16px 20px;
+          border-bottom: 1px solid #e8e8e8;
+        }
+        
+        .crm-tabs-container {
+          background-color: white;
+          padding: 0 20px;
+        }
+        
+        .crm-content {
+          background-color: white;
+          padding: 20px;
+        }
+        
+        .crm-table {
+          margin-top: 8px;
+        }
+        
+        @media (max-width: 768px) {
+          .crm-header {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          
+          .crm-header-actions {
+            margin-top: 16px;
+            width: 100%;
+            flex-wrap: wrap;
+          }
+        }
+      `}</style>
     </div>
   );
 };

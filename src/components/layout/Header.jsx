@@ -127,13 +127,13 @@ function Header() {
             title="Tâches"
             // className={isActive("/tasks") ? "ant-menu-item-selected" : ""}
             >
-              <Menu.Item key="taches" icon={<CalendarOutlined />}>
+              <Menu.Item key="dashboard" icon={<CalendarOutlined />}>
               <Link to="/tasks/dashboard">Tableau de bord</Link>
             </Menu.Item>
-            <Menu.Item key="taches" icon={<CalendarOutlined />}>
+            <Menu.Item key="tasks" icon={<CalendarOutlined />}>
               <Link to="/tasks">Liste des taches</Link>
             </Menu.Item>
-            <Menu.Item key="taches" icon={<CalendarOutlined />}>
+            <Menu.Item key="calendar" icon={<CalendarOutlined />}>
               <Link to="/tasks/calendar">Calendrier</Link>
             </Menu.Item>
             </SubMenu>
