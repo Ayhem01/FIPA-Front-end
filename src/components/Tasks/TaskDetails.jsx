@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Descriptions, Tag, Card, Space, Row, Col, Typography, Divider, message, Alert, Spin, Modal, Badge, Avatar, Form, Input, Select, DatePicker, Checkbox } from 'antd';
+import { 
+  Button, Descriptions, Tag, Card, Space, Row, Col, Typography, Divider, 
+  message, Alert, Spin, Modal, Badge, Avatar, Form, Input, Select, 
+  DatePicker, Checkbox, Timeline, Tooltip, Progress, Grid 
+} from 'antd';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -11,27 +15,170 @@ import {
   updatePipelineTask,
   deleteTask,
   deletePipelineTask,
-  resetTaskOperation
+  resetTaskOperation,
+  clearSelectedTask
 } from '../../features/taskSlice';
 import {
   EditOutlined, DeleteOutlined, ArrowLeftOutlined, ExclamationCircleOutlined,
   TagOutlined, UserOutlined, BranchesOutlined, LinkOutlined, CheckCircleOutlined,
   ClockCircleOutlined, FileTextOutlined, InfoCircleOutlined, CalendarOutlined,
-  CheckOutlined, CloseOutlined
+  CheckOutlined, CloseOutlined, PlayCircleOutlined, PauseCircleOutlined,
+  FireOutlined, TeamOutlined, PhoneOutlined, MailOutlined, FlagOutlined,
+  HistoryOutlined, SaveOutlined, ShareAltOutlined, SyncOutlined,
+  ThunderboltOutlined, SettingOutlined, ReloadOutlined
 } from '@ant-design/icons';
+import { motion, AnimatePresence } from 'framer-motion';
 import moment from 'moment';
 import { formatDateDisplay } from '../../utils/dateUtils';
-import '../../../src/assets/styles/action-form.css';
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
+const { useBreakpoint } = Grid;
+
+// Composant de carte animée réutilisable
+const AnimatedCard = ({ children, delay = 0, className = "", style = {} }) => {
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20, scale: 0.95 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      scale: 1,
+      transition: {
+        duration: 0.5,
+        delay: delay * 0.1,
+        ease: "easeOut"
+      }
+    },
+    hover: {
+      y: -4,
+      scale: 1.02,
+      transition: {
+        duration: 0.2,
+        ease: "easeInOut"
+      }
+    }
+  };
+
+  return (
+    <motion.div
+      variants={cardVariants}
+      initial="hidden"
+      animate="visible"
+      whileHover="hover"
+      className={className}
+      style={{ height: '100%', ...style }}
+    >
+      {children}
+    </motion.div>
+  );
+};
+
+// Composant de statistique moderne amélioré
+const TaskStatCard = ({ icon, title, value, color, loading, delay = 0, isNumeric = false }) => {
+  const [displayValue, setDisplayValue] = useState(isNumeric ? 0 : value);
+
+  useEffect(() => {
+    if (!loading && value !== undefined) {
+      if (isNumeric && typeof value === 'number') {
+        // Animation pour les valeurs numériques
+        const duration = 1000;
+        const steps = 30;
+        const increment = value / steps;
+        let current = 0;
+        
+        const timer = setInterval(() => {
+          current += increment;
+          if (current >= value) {
+            setDisplayValue(value);
+            clearInterval(timer);
+          } else {
+            setDisplayValue(Math.floor(current));
+          }
+        }, duration / steps);
+
+        return () => clearInterval(timer);
+      } else {
+        // Affichage direct pour les valeurs textuelles
+        setDisplayValue(value);
+      }
+    }
+  }, [value, loading, isNumeric]);
+
+  return (
+    <AnimatedCard delay={delay}>
+      <Card 
+        style={{
+          height: '100%',
+          background: `linear-gradient(135deg, ${color}15 0%, ${color}25 100%)`,
+          border: `1px solid ${color}30`,
+          borderRadius: '16px',
+          overflow: 'hidden',
+          position: 'relative'
+        }}
+        bodyStyle={{ padding: '20px' }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <motion.div
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ delay: delay * 0.1 + 0.2, duration: 0.6 }}
+            style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '12px',
+              background: `linear-gradient(135deg, ${color} 0%, ${color}80 100%)`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontSize: '20px',
+              boxShadow: `0 4px 16px ${color}40`
+            }}
+          >
+            {loading ? <SyncOutlined spin /> : icon}
+          </motion.div>
+          
+          <div style={{ flex: 1 }}>
+            <Text type="secondary" style={{ fontSize: '12px', fontWeight: 500, textTransform: 'uppercase' }}>
+              {title}
+            </Text>
+            <div style={{ marginTop: '2px' }}>
+              {loading ? (
+                <Spin size="small" />
+              ) : (
+                <Text style={{ 
+                  fontSize: '16px',
+                  fontWeight: 700,
+                  color: color,
+                  display: 'block',
+                  lineHeight: 1.2
+                }}>
+                  {isNumeric && typeof displayValue === 'number' 
+                    ? displayValue.toLocaleString() 
+                    : displayValue
+                  }
+                </Text>
+              )}
+            </div>
+          </div>
+        </div>
+      </Card>
+    </AnimatedCard>
+  );
+};
 
 const TaskDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const screens = useBreakpoint();
 
-  const { data: task, loading, error } = useSelector(state => state.tasks.selectedTask);
-  const { type: operationType, loading: operationLoading, success: operationSuccess, error: operationError } = useSelector(state => state.tasks.taskOperation);
+  // Sélecteurs Redux
+  const { data: task, loading, error } = useSelector(state => {
+    console.log('🔍 Redux selectedTask state:', state.tasks.selectedTask);
+    return state.tasks.selectedTask;
+  });
+  
+  const { loading: operationLoading, success: operationSuccess, error: operationError } = useSelector(state => state.tasks.taskOperation);
   const currentUser = useSelector(state => state.user.user);
 
   const [localTask, setLocalTask] = useState(null);
@@ -40,9 +187,10 @@ const TaskDetails = () => {
   const [pendingStatus, setPendingStatus] = useState(null);
   const [isPipelineTask, setIsPipelineTask] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [form] = Form.useForm();
 
-  // Déterminer si l'utilisateur a des droits spéciaux
+  // Permissions
   const isResponsableFipa = currentUser && (
     currentUser.role === 'responsable_fipa' ||
     currentUser.role === 'responsable fipa'
@@ -51,101 +199,94 @@ const TaskDetails = () => {
     currentUser.role === 'admin' ||
     currentUser.is_admin === true
   );
-
-  // Vérifier si l'utilisateur courant est le créateur de la tâche
   const isTaskCreator = localTask && currentUser && localTask.user_id === currentUser.id;
-
-  // Déterminer si l'utilisateur peut modifier/supprimer la tâche
   const canModifyTask = !isResponsableFipa || isTaskCreator;
 
-  // Dans le useEffect qui charge la tâche:
+  // Chargement des données
   useEffect(() => {
     if (id) {
-      // Vérifier si les données sont déjà dans le state Redux
-      if (task && task.id === parseInt(id)) {
-        setIsPipelineTask(true);
-        setLocalTask(task);
-        return;
-      }
-
-      // Sinon, charger les données
-      dispatch(getPipelineTaskById(id))
-        .unwrap()
-        .then(response => {
-          setIsPipelineTask(true);
-        })
-        .catch((error) => {
-          console.error('Erreur lors du chargement de la tâche de pipeline:', error);
-
-          // Si l'erreur concerne 'avatar', essayer de manipuler les données
-          if (error && error.toString().includes('avatar')) {
-            message.warning('Problème d\'affichage. Certaines informations peuvent être incomplètes.');
-          }
-
-          // Essayer de charger comme tâche normale
-          dispatch(getTaskById(id))
-            .unwrap()
-            .catch(() => {
-              message.error('Impossible de charger les détails de cette tâche');
-              navigate('/tasks');
-            });
-
-          setIsPipelineTask(false);
-        });
+      loadTaskData();
     }
-  }, [dispatch, id, task]);
+  }, [dispatch, id, navigate]);
 
-  // Synchroniser l'état local avec les données Redux
+  const loadTaskData = async () => {
+    setRefreshing(true);
+    console.log('🔍 Chargement de la tâche avec ID:', id);
+    
+    setLocalTask(null);
+    setIsPipelineTask(false);
+
+    try {
+      // Essayer pipeline task d'abord
+      const pipelineResponse = await dispatch(getPipelineTaskById(id)).unwrap();
+      console.log('✅ Réponse getPipelineTaskById:', pipelineResponse);
+      
+      setIsPipelineTask(true);
+      const taskData = pipelineResponse.data || pipelineResponse;
+      console.log('📦 Données pipeline task extraites:', taskData);
+      setLocalTask(taskData);
+    } catch (pipelineError) {
+      console.log('❌ Erreur tâche pipeline:', pipelineError);
+      
+      try {
+        // Essayer task normale
+        const normalResponse = await dispatch(getTaskById(id)).unwrap();
+        console.log('✅ Réponse getTaskById:', normalResponse);
+        
+        setIsPipelineTask(false);
+        const taskData = normalResponse.data || normalResponse;
+        console.log('📦 Données task normale extraites:', taskData);
+        setLocalTask(taskData);
+      } catch (normalError) {
+        console.error('❌ Erreur tâche normale:', normalError);
+        message.error('Impossible de charger les détails de cette tâche');
+        navigate('/tasks');
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  // Synchronisation Redux
   useEffect(() => {
+    console.log('🔄 Synchronisation Redux - task:', task);
     if (task) {
+      console.log('📥 Mise à jour localTask depuis Redux:', task);
       setLocalTask(task);
     }
   }, [task]);
 
-  // Gérer les résultats des opérations
+  // Gestion des opérations
   useEffect(() => {
     if (operationSuccess) {
-      if (operationType === 'status') {
-        message.success('Statut mis à jour avec succès');
-
-        // Mettre à jour l'état local immédiatement pour un affichage instantané
-        if (localTask && pendingStatus) {
-          setLocalTask({
-            ...localTask,
-            status: pendingStatus
-          });
-        }
-
-        dispatch(resetTaskOperation());
-        // Récupérer également les données mises à jour du serveur en arrière-plan
-        if (isPipelineTask) {
-          dispatch(getPipelineTaskById(id));
-        } else {
-          dispatch(getTaskById(id));
-        }
-      } else if (operationType === 'delete') {
-        message.success('Tâche supprimée avec succès');
-        dispatch(resetTaskOperation());
-        navigate('/tasks');
-      } else if (operationType === 'update') {
-        message.success('Tâche mise à jour avec succès');
-        setIsEditing(false);
-        dispatch(resetTaskOperation());
-
-        // Récupérer les données mises à jour
-        if (isPipelineTask) {
-          dispatch(getPipelineTaskById(id));
-        } else {
-          dispatch(getTaskById(id));
-        }
+      console.log('✅ Opération réussie');
+      message.success('Opération réussie !');
+      
+      if (pendingStatus && localTask) {
+        setLocalTask(prev => ({
+          ...prev,
+          status: pendingStatus
+        }));
       }
+
+      setTimeout(() => {
+        if (isPipelineTask) {
+          dispatch(getPipelineTaskById(id));
+        } else {
+          dispatch(getTaskById(id));
+        }
+      }, 500);
+
+      dispatch(resetTaskOperation());
+      
     } else if (operationError) {
+      console.error('❌ Erreur opération:', operationError);
       message.error(`Erreur: ${operationError}`);
       dispatch(resetTaskOperation());
     }
-  }, [operationType, operationSuccess, operationError, dispatch, id, navigate, localTask, pendingStatus, isPipelineTask]);
+  }, [operationSuccess, operationError, dispatch, id, pendingStatus, localTask, isPipelineTask]);
 
-  // Initialiser le formulaire en mode édition
+  // Initialiser formulaire
   useEffect(() => {
     if (isEditing && localTask) {
       form.setFieldsValue({
@@ -162,22 +303,17 @@ const TaskDetails = () => {
     }
   }, [isEditing, localTask, form]);
 
-  // Ouvrir le modal de confirmation de changement de statut
+  // Handlers
   const handleStatusChange = (newStatus) => {
+    console.log('🔄 Changement de statut vers:', newStatus);
     setPendingStatus(newStatus);
     setConfirmStatusVisible(true);
+    
   };
 
-  // Confirmer le changement de statut
   const confirmStatusChange = () => {
-    // Mettre à jour l'état local immédiatement pour un retour visuel instantané
-    if (localTask && pendingStatus) {
-      setLocalTask({
-        ...localTask,
-        status: pendingStatus
-      });
-    }
-
+    console.log('✅ Confirmation changement de statut:', pendingStatus);
+    
     if (isPipelineTask) {
       dispatch(updatePipelineTaskStatus({ taskId: id, status: pendingStatus }));
     } else {
@@ -185,19 +321,20 @@ const TaskDetails = () => {
     }
 
     setConfirmStatusVisible(false);
+    loadTaskData();
   };
 
   const handleEdit = () => {
     if (!isEditing) {
-      // Basculer en mode édition
       setIsEditing(true);
     } else {
-      // Soumettre le formulaire lorsqu'on est déjà en mode édition
       form.submit();
     }
   };
 
   const handleUpdate = async (values) => {
+    console.log('🔄 Mise à jour avec les valeurs:', values);
+    
     try {
       const taskData = {
         title: values.title,
@@ -211,23 +348,16 @@ const TaskDetails = () => {
         assignee_id: values.assignee_id
       };
 
-      // Utiliser la bonne fonction selon le type de tâche
       if (isPipelineTask) {
         await dispatch(updatePipelineTask({ taskId: id, taskData })).unwrap();
       } else {
         await dispatch(updateTask({ id, data: taskData })).unwrap();
       }
 
-      message.success('Tâche mise à jour avec succès');
       setIsEditing(false);
 
-      // Rafraîchir les données
-      if (isPipelineTask) {
-        dispatch(getPipelineTaskById(id));
-      } else {
-        dispatch(getTaskById(id));
-      }
     } catch (error) {
+      console.error('❌ Erreur mise à jour:', error);
       message.error(`Erreur lors de la mise à jour: ${error}`);
     }
   };
@@ -249,625 +379,1029 @@ const TaskDetails = () => {
     setConfirmDeleteVisible(false);
   };
 
-  // Fonctions helpers pour afficher les statuts et priorités
-  const getStatusTag = (status) => {
-    switch (status) {
-      case 'not_started':
-        return <Tag color="warning">Non commencé</Tag>;
-      case 'in_progress':
-        return <Tag color="processing">En cours</Tag>;
-      case 'completed':
-        return <Tag color="success">Terminé</Tag>;
-      case 'deferred':
-        return <Tag color="purple">Reporté</Tag>;
-      case 'waiting':
-        return <Tag color="cyan">En attente</Tag>;
-      default:
-        return <Tag color="default">Inconnu</Tag>;
+  const handleRefresh = () => {
+    loadTaskData();
+  };
+
+  // Fonctions helpers pour les configurations
+  const getStatusConfig = (status) => {
+    const configs = {
+      not_started: {
+        color: '#faad14',
+        bgColor: '#fff7e6',
+        borderColor: '#ffd666',
+        icon: <ClockCircleOutlined />,
+        text: 'Non commencé',
+        progress: 0
+      },
+      in_progress: {
+        color: '#1890ff',
+        bgColor: '#e6f7ff',
+        borderColor: '#69c0ff',
+        icon: <PlayCircleOutlined />,
+        text: 'En cours',
+        progress: 50
+      },
+      completed: {
+        color: '#52c41a',
+        bgColor: '#f6ffed',
+        borderColor: '#95de64',
+        icon: <CheckCircleOutlined />,
+        text: 'Terminé',
+        progress: 100
+      },
+      deferred: {
+        color: '#722ed1',
+        bgColor: '#f9f0ff',
+        borderColor: '#b37feb',
+        icon: <PauseCircleOutlined />,
+        text: 'Reporté',
+        progress: 25
+      },
+      waiting: {
+        color: '#13c2c2',
+        bgColor: '#e6fffb',
+        borderColor: '#5cdbd3',
+        icon: <ClockCircleOutlined />,
+        text: 'En attente',
+        progress: 25
+      }
+    };
+    return configs[status] || configs.not_started;
+  };
+
+  const getPriorityConfig = (priority) => {
+    const configs = {
+      low: { color: '#52c41a', icon: <FlagOutlined />, text: 'Basse' },
+      medium: { color: '#1890ff', icon: <FlagOutlined />, text: 'Normale' },
+      normal: { color: '#1890ff', icon: <FlagOutlined />, text: 'Normale' },
+      high: { color: '#fa8c16', icon: <FlagOutlined />, text: 'Haute' },
+      urgent: { color: '#ff4d4f', icon: <FireOutlined />, text: 'Urgente' }
+    };
+    return configs[priority] || configs.medium;
+  };
+
+  const getTypeConfig = (type) => {
+    const configs = {
+      call: { icon: <PhoneOutlined />, color: '#1890ff', text: 'Appel', emoji: '📞' },
+      meeting: { icon: <TeamOutlined />, color: '#52c41a', text: 'Réunion', emoji: '👥' },
+      email_journal: { icon: <MailOutlined />, color: '#eb2f96', text: 'Email', emoji: '📧' },
+      note: { icon: <FileTextOutlined />, color: '#722ed1', text: 'Note', emoji: '📝' },
+      todo: { icon: <CheckOutlined />, color: '#faad14', text: 'À faire', emoji: '✓' }
+    };
+    return configs[type] || configs.todo;
+  };
+
+  // Variables d'animation
+  const headerVariants = {
+    hidden: { opacity: 0, y: -20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.6, ease: "easeOut" }
     }
   };
 
-  const getStatusLabel = (status) => {
-    switch (status) {
-      case 'not_started': return 'Non commencé';
-      case 'in_progress': return 'En cours';
-      case 'completed': return 'Terminé';
-      case 'deferred': return 'Reporté';
-      case 'waiting': return 'En attente';
-      default: return 'Inconnu';
-    }
-  };
-
-  const getPriorityTag = (priority) => {
-    switch (priority) {
-      case 'low':
-      case 'l':
-        return <Tag color="green">Basse</Tag>;
-      case 'normal':
-      case 'medium':
-      case 'm':
-        return <Tag color="blue">Normale</Tag>;
-      case 'high':
-      case 'h':
-        return <Tag color="orange">Haute</Tag>;
-      case 'urgent':
-      case 'u':
-        return <Tag color="red">Urgente</Tag>;
-      default:
-        return <Tag color="default">Standard</Tag>;
-    }
-  };
-
-  const getTypeLabel = (type) => {
-    switch (type) {
-      case 'call': return '📞 Appel';
-      case 'meeting': return '👥 Réunion';
-      case 'email_journal': return '📧 Email';
-      case 'note': return '📝 Note';
-      case 'todo': return '✓ À faire';
-      default: return type;
-    }
-  };
-
-  // Afficher le message d'erreur s'il y en a un
+  // Gestion des états de chargement et d'erreur
   if (error) {
     return (
-      <div className="task-details-container" style={{ padding: '20px' }}>
-        <Alert
-          message="Erreur"
-          description={`Impossible de charger les détails de la tâche: ${error}`}
-          type="error"
-          showIcon
-        />
-        <Button style={{ marginTop: 16 }} onClick={() => navigate('/tasks')}>
-          Retour à la liste
-        </Button>
+      <div className="task-details-modern">
+        <AnimatedCard>
+          <Alert
+            message="Erreur de chargement"
+            description={`Impossible de charger les détails de la tâche: ${error}`}
+            type="error"
+            showIcon
+            style={{ margin: '20px' }}
+          />
+          <div style={{ padding: '20px' }}>
+            <Space>
+              <Button type="primary" onClick={() => navigate('/tasks')}>
+                Retour à la liste
+              </Button>
+              <Button onClick={handleRefresh} loading={refreshing}>
+                Réessayer
+              </Button>
+            </Space>
+          </div>
+        </AnimatedCard>
       </div>
     );
   }
 
-  // Afficher un spinner pendant le chargement
-  if (loading || !localTask) {
+  if (loading || refreshing || !localTask) {
     return (
-      <div className="task-details-container" style={{ padding: '20px', textAlign: 'center' }}>
-        <Spin size="large" tip="Chargement des détails..." />
+      <div className="task-details-modern">
+        <div style={{ textAlign: 'center', padding: '80px 20px' }}>
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            style={{ marginBottom: '24px' }}
+          >
+            <SyncOutlined style={{ fontSize: '48px', color: '#1890ff' }} />
+          </motion.div>
+          <Title level={3} style={{ color: '#666' }}>
+            Chargement des détails...
+          </Title>
+          <Text type="secondary">ID: {id}</Text>
+        </div>
       </div>
     );
   }
 
-  // Nouveau rendu avec le style CRM
-  return (
-    <div className="crm-container">
-      {/* En-tête avec le style CRM */}
-      <div className="crm-header">
-        <div className="crm-lead-info">
-          <div className="crm-avatar">
-            <Avatar icon={<FileTextOutlined />} size={42} style={{ backgroundColor: '#1890ff' }} />
-          </div>
-          <div className="crm-title">
-            <div className="crm-lead-label">
-              Tâche: <span className="lead-name">"{localTask.title}"</span>
-            </div>
-            <div className="crm-lead-actions">
-              {isPipelineTask && localTask.entity && (
-                <Link to={`/${localTask.entity.type}s/${localTask.entity.id}`} className="crm-link">
-                  {localTask.entity.type === 'invite' ? 'Invité' :
-                    localTask.entity.type === 'prospect' ? 'Prospect' :
-                      localTask.entity.type === 'investor' ? 'Investisseur' : 'Projet'}: {localTask.entity.name}
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="crm-header-actions">
-          {canModifyTask && (
-            <>
-              {isEditing ? (
-                <>
-                  <Button
-                    className="crm-btn"
-                    type="primary"
-                    icon={<CheckOutlined />}
-                    onClick={() => form.submit()}
-                  >
-                    Appliquer
-                  </Button>
-                  <Button
-                    className="crm-btn"
-                    icon={<CloseOutlined />}
-                    onClick={handleCancelEdit}
-                  >
-                    Annuler
-                  </Button>
-                </>
-              ) : (
-                <Button
-                  className="crm-btn"
-                  type="primary"
-                  icon={<EditOutlined />}
-                  onClick={handleEdit}
-                >
-                  Modifier
-                </Button>
-              )}
-            </>
-          )}
-
-          {(canModifyTask || isAdmin) && !isEditing && (
-            <Button
-              className="crm-btn"
-              danger
-              icon={<DeleteOutlined />}
-              onClick={handleDelete}
-              loading={operationLoading && operationType === 'delete'}
-            >
-              Supprimer
+  if (!localTask.id && !localTask.title) {
+    return (
+      <div className="task-details-modern">
+        <AnimatedCard>
+          <Alert
+            message="Données incomplètes"
+            description="Les données de la tâche semblent incomplètes."
+            type="warning"
+            showIcon
+            style={{ margin: '20px' }}
+          />
+          <div style={{ padding: '20px' }}>
+            <Button type="primary" onClick={() => navigate('/tasks')}>
+              Retour à la liste
             </Button>
-          )}
-
-          <Button
-            className="crm-btn"
-            icon={<ArrowLeftOutlined />}
-            onClick={() => navigate('/tasks')}
-          >
-            Retour à la liste
-          </Button>
-          <Button
-            className="crm-btn"
-            icon={<CalendarOutlined />}
-            onClick={() => navigate('/tasks/calendar')}
-          >
-            Calendrier
-          </Button>
-        </div>
+          </div>
+        </AnimatedCard>
       </div>
+    );
+  }
 
-      {/* Informations meta */}
-      <div className="crm-meta-info">
-        <div className="crm-meta-item">
-          <div className="crm-meta-label">STATUT:</div>
-          <div className="crm-meta-value">
-            {getStatusTag(localTask.status)}
-          </div>
-        </div>
+  const statusConfig = getStatusConfig(localTask.status);
+  const priorityConfig = getPriorityConfig(localTask.priority);
+  const typeConfig = getTypeConfig(localTask.type);
 
-        <div className="crm-meta-item">
-          <div className="crm-meta-label">TYPE:</div>
-          <div className="crm-meta-value">
-            {getTypeLabel(localTask.type)}
-          </div>
-        </div>
+  return (
+    <div className="task-details-modern">
+      {/* En-tête moderne avec gradient */}
+      <motion.div
+        variants={headerVariants}
+        initial="hidden"
+        animate="visible"
+        className="modern-header"
+        style={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderRadius: '20px',
+          padding: '32px',
+          marginBottom: '32px',
+          color: 'white',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+      >
+        <motion.div
+          className="header-background"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            opacity: 0.1,
+            backgroundImage: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.1"%3E%3Ccircle cx="30" cy="30" r="4"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")'
+          }}
+          animate={{
+            backgroundPosition: ['0px 0px', '60px 60px']
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "linear"
+          }}
+        />
 
-        <div className="crm-meta-item">
-          <div className="crm-meta-label">PRIORITÉ:</div>
-          <div className="crm-meta-value">
-            {getPriorityTag(localTask.priority)}
-          </div>
-        </div>
-
-        <div className="crm-meta-item">
-          <div className="crm-meta-label">CRÉÉE LE:</div>
-          <div className="crm-meta-value">
-            {formatDateDisplay(localTask.created_at)}
-          </div>
-        </div>
-
-        <div className="crm-meta-item">
-          <div className="crm-meta-label">ASSIGNÉ À:</div>
-          <div className="crm-meta-value">
-            <Avatar size="small" icon={<UserOutlined />} style={{ marginRight: 8 }} />
-            {localTask.assignee ? localTask.assignee.name : 'Non assignée'}
-          </div>
-        </div>
-      </div>
-
-      {/* Contenu principal */}
-      <div className="crm-content-tabs">
-        <Card>
-          <div className="crm-details-section">
-            <div className="crm-details-header">
-              <h3>Détails de la tâche</h3>
-            </div>
-
-            {isEditing ? (
-              <Form
-                form={form}
-                layout="vertical"
-                onFinish={handleUpdate}
+        <Row justify="space-between" align="middle" style={{ position: 'relative', zIndex: 1 }}>
+          <Col xs={24} lg={16}>
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              style={{ display: 'flex', alignItems: 'center', gap: '20px' }}
+            >
+              <motion.div
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                transition={{ duration: 0.3 }}
               >
-                <Form.Item
-                  name="title"
-                  label="Titre"
-                  rules={[{ required: true, message: 'Veuillez saisir un titre' }]}
-                >
-                  <Input />
-                </Form.Item>
-
-                <Form.Item
-                  name="description"
-                  label="Description"
-                >
-                  <Input.TextArea rows={4} />
-                </Form.Item>
-
-                <Row gutter={16}>
-                  <Col span={12}>
-                    <Form.Item
-                      name="type"
-                      label="Type"
-                      rules={[{ required: true, message: 'Veuillez sélectionner un type' }]}
+                <Avatar 
+                  size={64} 
+                  icon={typeConfig.icon} 
+                  style={{ 
+                    background: `linear-gradient(135deg, ${typeConfig.color} 0%, ${typeConfig.color}80 100%)`,
+                    fontSize: '28px',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.2)'
+                  }} 
+                />
+              </motion.div>
+              
+              <div>
+                <Title level={1} style={{ color: 'white', margin: 0, fontWeight: 700 }}>
+                  {localTask.title}
+                </Title>
+                <div style={{ marginTop: '8px' }}>
+                  <Space size={16}>
+                    <Tag 
+                      icon={typeConfig.icon}
+                      style={{
+                        background: 'rgba(255,255,255,0.2)',
+                        border: '1px solid rgba(255,255,255,0.3)',
+                        color: 'white',
+                        borderRadius: '20px',
+                        padding: '4px 12px',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        backdropFilter: 'blur(10px)'
+                      }}
                     >
-                      <Select>
-                        <Select.Option value="todo">À faire</Select.Option>
-                        <Select.Option value="call">Appel</Select.Option>
-                        <Select.Option value="meeting">Réunion</Select.Option>
-                        <Select.Option value="email_journal">Email</Select.Option>
-                        <Select.Option value="note">Note</Select.Option>
-                      </Select>
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item
-                      name="priority"
-                      label="Priorité"
-                      rules={[{ required: true, message: 'Veuillez sélectionner une priorité' }]}
-                    >
-                      <Select>
-                        <Select.Option value="low">Basse</Select.Option>
-                        <Select.Option value="medium">Normale</Select.Option>
-                        <Select.Option value="high">Haute</Select.Option>
-                        <Select.Option value="urgent">Urgente</Select.Option>
-                      </Select>
-                    </Form.Item>
-                  </Col>
-                </Row>
-
-                <Row gutter={16}>
-                  <Col span={12}>
-                    <Form.Item
-                      name="start"
-                      label="Date de début"
-                      rules={[{ required: true, message: 'Veuillez sélectionner une date de début' }]}
-                    >
-                      <DatePicker showTime format="YYYY-MM-DD HH:mm" style={{ width: '100%' }} />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item
-                      name="end"
-                      label="Date de fin"
-                      rules={[{ required: true, message: 'Veuillez sélectionner une date de fin' }]}
-                    >
-                      <DatePicker showTime format="YYYY-MM-DD HH:mm" style={{ width: '100%' }} />
-                    </Form.Item>
-                  </Col>
-                </Row>
-
-                <Form.Item
-                  name="all_day"
-                  valuePropName="checked"
-                >
-                  <Checkbox>Toute la journée</Checkbox>
-                </Form.Item>
-              </Form>
-            ) : (
-              <>
-                <Descriptions bordered column={{ xs: 1, sm: 2 }} className="crm-descriptions">
-                  <Descriptions.Item label={<><CalendarOutlined /> Date de début</>}>
-                    {formatDateDisplay(localTask.start)}
-                  </Descriptions.Item>
-                  <Descriptions.Item label={<><CalendarOutlined /> Date de fin</>}>
-                    {formatDateDisplay(localTask.end)}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Toute la journée">
-                    {localTask.all_day ? 'Oui' : 'Non'}
-                  </Descriptions.Item>
-                  <Descriptions.Item label={<><UserOutlined /> Créé par</>}>
-                    {localTask.creator?.name || localTask.user?.name || 'N/A'}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Dernière modification">
-                    {formatDateDisplay(localTask.updated_at)}
-                  </Descriptions.Item>
-                </Descriptions>
-
-                {/* Description de la tâche */}
-                {localTask.description && (
-                  <div className="crm-description-block">
-                    <Divider orientation="left">Description</Divider>
-                    <Card style={{ background: '#f9f9f9', marginBottom: 24 }}>
-                      <Text>{localTask.description}</Text>
-                    </Card>
-                  </div>
-                )}
-
-                {/* Informations de pipeline */}
-                {isPipelineTask && localTask.entity && (
-                  <div className="crm-pipeline-info">
-                    <Divider orientation="left">Informations de pipeline</Divider>
-                    <Card style={{ background: '#f9f9f9', marginBottom: 24 }}
-                      title={<><BranchesOutlined /> Contexte de la tâche</>}>
-                      <Descriptions column={{ xs: 1, sm: 2 }} size="small" bordered>
-                        <Descriptions.Item label="Type d'entité">
-                          <Tag icon={<LinkOutlined />}>
-                            {localTask.entity.type === 'invite' && 'Invité'}
-                            {localTask.entity.type === 'prospect' && 'Prospect'}
-                            {localTask.entity.type === 'investor' && 'Investisseur'}
-                            {localTask.entity.type === 'projet' && 'Projet'}
-                          </Tag>
-                        </Descriptions.Item>
-                        <Descriptions.Item label="Nom de l'entité">
-                          <Text strong>{localTask.entity.name || 'N/A'}</Text>
-                        </Descriptions.Item>
-                        {localTask.pipeline_stage && (
-                          <>
-                            <Descriptions.Item label="Étape du pipeline">
-                              <Badge status="processing" text={localTask.pipeline_stage.name || 'N/A'} />
-                            </Descriptions.Item>
-
-                          </>
-                        )}
-                      </Descriptions>
-                      {localTask.entity.description && (
-                        <div style={{ marginTop: 16 }}>
-                          <Text type="secondary">Description de l'entité: {localTask.entity.description}</Text>
-                        </div>
-                      )}
-                    </Card>
-                  </div>
-                )}
-              </>
-            )}
-
-            {!isEditing && (
-              <div className="crm-status-section">
-                <Divider orientation="left">Changer le statut</Divider>
-                <div className="crm-status-buttons">
-                  <Button
-                    type={localTask.status === 'not_started' ? 'primary' : 'default'}
-                    onClick={() => handleStatusChange('not_started')}
-                    loading={operationLoading && operationType === 'status' && pendingStatus === 'not_started'}
-                    className={localTask.status === 'not_started' ? 'active-status' : ''}
-                  >
-                    Non commencé
-                  </Button>
-                  <Button
-                    type={localTask.status === 'in_progress' ? 'primary' : 'default'}
-                    onClick={() => handleStatusChange('in_progress')}
-                    loading={operationLoading && operationType === 'status' && pendingStatus === 'in_progress'}
-                    className={localTask.status === 'in_progress' ? 'active-status' : ''}
-                  >
-                    En cours
-                  </Button>
-                  <Button
-                    type={localTask.status === 'waiting' ? 'primary' : 'default'}
-                    onClick={() => handleStatusChange('waiting')}
-                    loading={operationLoading && operationType === 'status' && pendingStatus === 'waiting'}
-                    className={localTask.status === 'waiting' ? 'active-status' : ''}
-                  >
-                    En attente
-                  </Button>
-                  <Button
-                    type={localTask.status === 'completed' ? 'primary' : 'default'}
-                    style={localTask.status === 'completed' ? { background: '#52c41a', borderColor: '#52c41a' } : {}}
-                    onClick={() => handleStatusChange('completed')}
-                    loading={operationLoading && operationType === 'status' && pendingStatus === 'completed'}
-                    className={localTask.status === 'completed' ? 'active-status' : ''}
-                  >
-                    Terminé
-                  </Button>
-                  <Button
-                    type={localTask.status === 'deferred' ? 'primary' : 'default'}
-                    danger={localTask.status === 'deferred'}
-                    onClick={() => handleStatusChange('deferred')}
-                    loading={operationLoading && operationType === 'status' && pendingStatus === 'deferred'}
-                    className={localTask.status === 'deferred' ? 'active-status' : ''}
-                  >
-                    Reporté
-                  </Button>
+                      {typeConfig.emoji} {typeConfig.text}
+                    </Tag>
+                    <Badge 
+                      status={statusConfig.progress === 100 ? "success" : statusConfig.progress > 0 ? "processing" : "default"}
+                      text={
+                        <span style={{ color: 'rgba(255,255,255,0.9)', fontWeight: 600 }}>
+                          {statusConfig.text}
+                        </span>
+                      }
+                    />
+                  </Space>
+                  
+                  {isPipelineTask && localTask.entity && (
+                    <div style={{ marginTop: '8px' }}>
+                      <Link 
+                        to={`/${localTask.entity.type}s/${localTask.entity.id}`} 
+                        style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px' }}
+                      >
+                        <LinkOutlined /> {localTask.entity.name}
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
-          </div>
-        </Card>
-      </div>
+            </motion.div>
+          </Col>
+          
+          <Col xs={24} lg={8}>
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 }}
+              style={{ 
+                display: 'flex', 
+                gap: '12px', 
+                justifyContent: screens.lg ? 'flex-end' : 'flex-start',
+                flexWrap: 'wrap',
+                marginTop: screens.lg ? 0 : '16px'
+              }}
+            >
+              <AnimatePresence>
+                {canModifyTask && (
+                  <>
+                    {isEditing ? (
+                      <motion.div
+                        key="edit-actions"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        style={{ display: 'flex', gap: '8px' }}
+                      >
+                        <Button
+                          type="primary"
+                          icon={<SaveOutlined />}
+                          onClick={() => form.submit()}
+                          loading={operationLoading}
+                          style={{
+                            background: 'rgba(255,255,255,0.2)',
+                            border: '1px solid rgba(255,255,255,0.3)',
+                            borderRadius: '8px',
+                            backdropFilter: 'blur(10px)'
+                          }}
+                        >
+                          Sauvegarder
+                        </Button>
+                        <Button
+                          icon={<CloseOutlined />}
+                          onClick={handleCancelEdit}
+                          style={{
+                            background: 'rgba(255,255,255,0.1)',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            color: 'white',
+                            borderRadius: '8px',
+                            backdropFilter: 'blur(10px)'
+                          }}
+                        >
+                          Annuler
+                        </Button>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="normal-actions"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        style={{ display: 'flex', gap: '8px' }}
+                      >
+                        <Button
+                          type="primary"
+                          icon={<EditOutlined />}
+                          onClick={handleEdit}
+                          style={{
+                            background: 'rgba(255,255,255,0.2)',
+                            border: '1px solid rgba(255,255,255,0.3)',
+                            borderRadius: '8px',
+                            backdropFilter: 'blur(10px)'
+                          }}
+                        >
+                          Modifier
+                        </Button>
+                      </motion.div>
+                    )}
+                  </>
+                )}
 
-      {/* Modal de confirmation pour le changement de statut */}
+                {(canModifyTask || isAdmin) && !isEditing && (
+                  <Button
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={handleDelete}
+                    loading={operationLoading}
+                    style={{
+                      background: 'rgba(255,77,79,0.2)',
+                      border: '1px solid rgba(255,77,79,0.3)',
+                      color: '#ff4d4f',
+                      borderRadius: '8px',
+                      backdropFilter: 'blur(10px)'
+                    }}
+                  >
+                    Supprimer
+                  </Button>
+                )}
+
+                
+
+                <Button
+                  icon={<ArrowLeftOutlined />}
+                  onClick={() => navigate('/tasks')}
+                  style={{
+                    background: 'rgba(255,255,255,0.1)',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    color: 'white',
+                    borderRadius: '8px',
+                    backdropFilter: 'blur(10px)'
+                  }}
+                >
+                  Retour
+                </Button>
+              </AnimatePresence>
+            </motion.div>
+          </Col>
+        </Row>
+      </motion.div>
+
+      {/* Statistiques principales */}
+      <Row gutter={[24, 24]} style={{ marginBottom: '32px' }}>
+        <Col xs={12} sm={6}>
+          <TaskStatCard
+            icon={statusConfig.icon}
+            title="Statut actuel"
+            value={statusConfig.text}
+            color={statusConfig.color}
+            loading={loading || refreshing}
+            delay={0}
+            isNumeric={false}
+          />
+        </Col>
+        <Col xs={12} sm={6}>
+          <TaskStatCard
+            icon={priorityConfig.icon}
+            title="Priorité"
+            value={priorityConfig.text}
+            color={priorityConfig.color}
+            loading={loading || refreshing}
+            delay={1}
+            isNumeric={false}
+          />
+        </Col>
+        
+        <Col xs={12} sm={6}>
+          <TaskStatCard
+            icon={<UserOutlined />}
+            title="Responsable"
+            value={
+              localTask?.assignee?.name ||
+              localTask?.user?.name ||
+              localTask?.creator?.name ||
+              'Non assignée'
+            }
+            color="#1890ff"
+            loading={loading || refreshing}
+            delay={3}
+            isNumeric={false}
+          />
+        </Col>
+        <Col xs={12} sm={6}>
+            <TaskStatCard
+              icon={typeConfig.icon}
+              title="Type de tâche"
+              value={`${typeConfig.emoji} ${typeConfig.text}`}
+              color={typeConfig.color}
+              loading={loading || refreshing}
+              delay={6}
+              isNumeric={false}
+            />
+          </Col>
+         
+      </Row>
+
+
+     
+
+      {/* Contenu principal */}
+      <Row gutter={[24, 24]}>
+        {/* Colonne principale */}
+        <Col xs={24} lg={16}>
+          <AnimatedCard delay={2}>
+            <Card 
+              title={
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{
+                    width: '8px',
+                    height: '24px',
+                    borderRadius: '4px',
+                    background: 'linear-gradient(135deg, #1890ff, #096dd9)'
+                  }} />
+                  <Title level={4} style={{ margin: 0, fontWeight: 600 }}>
+                    Détails de la tâche
+                  </Title>
+                </div>
+              }
+             
+              style={{ 
+                borderRadius: '16px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                marginBottom: '24px'
+              }}
+              bodyStyle={{ padding: '32px' }}
+            >
+              {isEditing ? (
+                <Form
+                  form={form}
+                  layout="vertical"
+                  onFinish={handleUpdate}
+                  className="modern-form"
+                >
+                  <Form.Item
+                    name="title"
+                    label="Titre"
+                    rules={[{ required: true, message: 'Veuillez saisir un titre' }]}
+                  >
+                    <Input size="large" placeholder="Titre de la tâche" />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="description"
+                    label="Description"
+                  >
+                    <Input.TextArea rows={6} placeholder="Description détaillée..." />
+                  </Form.Item>
+
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item
+                        name="type"
+                        label="Type"
+                        rules={[{ required: true, message: 'Veuillez sélectionner un type' }]}
+                      >
+                        <Select size="large" placeholder="Sélectionner un type">
+                          <Select.Option value="todo">✓ À faire</Select.Option>
+                          <Select.Option value="call">📞 Appel</Select.Option>
+                          <Select.Option value="meeting">👥 Réunion</Select.Option>
+                          <Select.Option value="email_journal">📧 Email</Select.Option>
+                          <Select.Option value="note">📝 Note</Select.Option>
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item
+                        name="priority"
+                        label="Priorité"
+                        rules={[{ required: true, message: 'Veuillez sélectionner une priorité' }]}
+                      >
+                        <Select size="large" placeholder="Sélectionner une priorité">
+                          <Select.Option value="low">🟢 Basse</Select.Option>
+                          <Select.Option value="medium">🔵 Normale</Select.Option>
+                          <Select.Option value="high">🟠 Haute</Select.Option>
+                          <Select.Option value="urgent">🔴 Urgente</Select.Option>
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item
+                        name="start"
+                        label="Date de début"
+                        rules={[{ required: true, message: 'Veuillez sélectionner une date de début' }]}
+                      >
+                        <DatePicker 
+                          showTime 
+                          format="DD/MM/YYYY HH:mm" 
+                          style={{ width: '100%' }} 
+                          size="large"
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item
+                        name="end"
+                        label="Date de fin"
+                        rules={[{ required: true, message: 'Veuillez sélectionner une date de fin' }]}
+                      >
+                        <DatePicker 
+                          showTime 
+                          format="DD/MM/YYYY HH:mm" 
+                          style={{ width: '100%' }} 
+                          size="large"
+                        />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+                  <Form.Item
+                    name="all_day"
+                    valuePropName="checked"
+                  >
+                    <Checkbox style={{ fontSize: '16px' }}>Toute la journée</Checkbox>
+                  </Form.Item>
+                </Form>
+              ) : (
+                <>
+                  <Descriptions 
+                    bordered 
+                    column={{ xs: 1, sm: 2 }} 
+                    className="modern-descriptions"
+                    style={{ marginBottom: '32px' }}
+                  >
+                    <Descriptions.Item 
+                      label={
+                        <Space>
+                          <CalendarOutlined style={{ color: '#1890ff' }} />
+                          <Text strong>Date de début</Text>
+                        </Space>
+                      }
+                    >
+                      <Text>{formatDateDisplay(localTask.start)}</Text>
+                    </Descriptions.Item>
+                    <Descriptions.Item 
+                      label={
+                        <Space>
+                          <CalendarOutlined style={{ color: '#ff4d4f' }} />
+                          <Text strong>Date de fin</Text>
+                        </Space>
+                      }
+                    >
+                      <Text>{formatDateDisplay(localTask.end)}</Text>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Toute la journée">
+                      <Badge 
+                        status={localTask.all_day ? "success" : "default"} 
+                        text={localTask.all_day ? 'Oui' : 'Non'} 
+                      />
+                    </Descriptions.Item>
+                    <Descriptions.Item 
+                      label={
+                        <Space>
+                          <UserOutlined style={{ color: '#52c41a' }} />
+                          <Text strong>Créé par</Text>
+                        </Space>
+                      }
+                    >
+                      <Space>
+                        <Avatar size="small" icon={<UserOutlined />} />
+                        <Text>{localTask.creator?.name || localTask.user?.name || 'N/A'}</Text>
+                      </Space>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Dernière modification">
+                      <Text type="secondary">{formatDateDisplay(localTask.updated_at)}</Text>
+                    </Descriptions.Item>
+                  </Descriptions>
+
+                  {/* Description */}
+                  {localTask.description && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="description-section"
+                    >
+                      <Divider orientation="left">
+                        <Space>
+                          <FileTextOutlined style={{ color: '#1890ff' }} />
+                          <Text strong>Description</Text>
+                        </Space>
+                      </Divider>
+                      <Card 
+                        style={{ 
+                          background: 'linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%)',
+                          border: '1px solid #e6f0ff',
+                          borderRadius: '12px',
+                          marginBottom: '24px'
+                        }}
+                        bodyStyle={{ padding: '24px' }}
+                      >
+                        <Paragraph style={{ margin: 0, fontSize: '16px', lineHeight: 1.6 }}>
+                          {localTask.description}
+                        </Paragraph>
+                      </Card>
+                    </motion.div>
+                  )}
+                </>
+              )}
+            </Card>
+
+            {/* Actions de statut */}
+            {!isEditing && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                <Card 
+                  title={
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{
+                        width: '8px',
+                        height: '24px',
+                        borderRadius: '4px',
+                        background: 'linear-gradient(135deg, #52c41a, #389e0d)'
+                      }} />
+                      <Title level={4} style={{ margin: 0, fontWeight: 600 }}>
+                        Changer le statut
+                      </Title>
+                    </div>
+                  }
+                  style={{ 
+                    borderRadius: '16px',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+                  }}
+                  bodyStyle={{ padding: '32px' }}
+                >
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                    gap: '12px'
+                  }}>
+                    {[
+                      { key: 'not_started', label: 'Non commencé', config: getStatusConfig('not_started') },
+                      { key: 'in_progress', label: 'En cours', config: getStatusConfig('in_progress') },
+                      { key: 'waiting', label: 'En attente', config: getStatusConfig('waiting') },
+                      { key: 'completed', label: 'Terminé', config: getStatusConfig('completed') },
+                      { key: 'deferred', label: 'Reporté', config: getStatusConfig('deferred') }
+                    ].map((status, index) => (
+                      <motion.div
+                        key={status.key}
+                        whileHover={{ scale: 1.05, y: -2 }}
+                        whileTap={{ scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <Button
+                          size="large"
+                          type={localTask.status === status.key ? 'primary' : 'default'}
+                          icon={status.config.icon}
+                          onClick={() => handleStatusChange(status.key)}
+                          loading={operationLoading && pendingStatus === status.key}
+                          style={{
+                            borderRadius: '12px',
+                            height: '48px',
+                            fontWeight: localTask.status === status.key ? 'bold' : 'normal',
+                            background: localTask.status === status.key ? status.config.color : undefined,
+                            borderColor: localTask.status === status.key ? 'transparent' : undefined,
+                            color: localTask.status === status.key ? 'white' : undefined,
+                            width: '100%'
+                          }}
+                        >
+                          {status.label}
+                        </Button>
+                      </motion.div>
+                    ))}
+                  </div>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatedCard>
+        </Col>
+
+        {/* Barre latérale */}
+        <Col xs={24} lg={8}>
+          {/* Informations de pipeline */}
+          {isPipelineTask && localTask.entity && (
+            <AnimatedCard delay={3} style={{ marginBottom: '24px' }}>
+              <Card 
+                title={
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{
+                      width: '8px',
+                      height: '24px',
+                      borderRadius: '4px',
+                      background: 'linear-gradient(135deg, #722ed1, #531dab)'
+                    }} />
+                    <Title level={4} style={{ margin: 0, fontWeight: 600 }}>
+                      Contexte Pipeline
+                    </Title>
+                  </div>
+                }
+                style={{ 
+                  borderRadius: '16px',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+                }}
+                bodyStyle={{ padding: '24px' }}
+              >
+                <Space direction="vertical" size="large" style={{ width: '100%' }}>
+                  <div>
+                    <Text type="secondary" style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Type d'entité
+                    </Text>
+                    <div style={{ marginTop: '4px' }}>
+                      <Tag 
+                        icon={<LinkOutlined />}
+                        style={{
+                          background: 'linear-gradient(135deg, #722ed1 0%, #9254de 100%)',
+                          border: 'none',
+                          color: 'white',
+                          borderRadius: '20px',
+                          padding: '4px 12px',
+                          fontWeight: 600
+                        }}
+                      >
+                        {localTask.entity.type === 'invite' && 'Invité'}
+                        {localTask.entity.type === 'prospect' && 'Prospect'}
+                        {localTask.entity.type === 'investor' && 'Investisseur'}
+                        {localTask.entity.type === 'projet' && 'Projet'}
+                      </Tag>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Text type="secondary" style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Nom de l'entité
+                    </Text>
+                    <div style={{ marginTop: '4px' }}>
+                      <Link 
+                        to={`/${localTask.entity.type}s/${localTask.entity.id}`}
+                        style={{ fontSize: '16px', fontWeight: 600, color: '#1890ff' }}
+                      >
+                        {localTask.entity.name || 'N/A'}
+                      </Link>
+                    </div>
+                  </div>
+
+                  {localTask.pipeline_stage && (
+                    <div>
+                      <Text type="secondary" style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Étape du pipeline
+                      </Text>
+                      <div style={{ marginTop: '4px' }}>
+                        <Badge 
+                          status="processing" 
+                          text={
+                            <Text style={{ fontSize: '14px', fontWeight: 500 }}>
+                              {localTask.pipeline_stage.name || 'N/A'}
+                            </Text>
+                          } 
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {localTask.entity.description && (
+                    <div>
+                      <Text type="secondary" style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Description
+                      </Text>
+                      <Card 
+                        style={{ 
+                          marginTop: '8px',
+                          background: '#f9f0ff',
+                          border: '1px solid #d3adf7',
+                          borderRadius: '8px'
+                        }}
+                        bodyStyle={{ padding: '12px' }}
+                      >
+                        <Text style={{ fontSize: '14px', lineHeight: 1.5 }}>
+                          {localTask.entity.description}
+                        </Text>
+                      </Card>
+                    </div>
+                  )}
+                </Space>
+              </Card>
+            </AnimatedCard>
+            
+          )}
+
+        
+        </Col>
+      </Row>
+
+      {/* Modals */}
       <Modal
-        title={<><ExclamationCircleOutlined style={{ color: '#1890ff' }} /> Confirmer le changement de statut</>}
+        title={
+          <Space>
+            <ExclamationCircleOutlined style={{ color: '#1890ff' }} />
+            <Text strong>Confirmer le changement de statut</Text>
+          </Space>
+        }
         open={confirmStatusVisible}
         onOk={confirmStatusChange}
         onCancel={() => setConfirmStatusVisible(false)}
-        okText="Oui, changer"
+        okText="Confirmer"
         cancelText="Annuler"
-        okButtonProps={{ loading: operationLoading && operationType === 'status' }}
+        okButtonProps={{ 
+          loading: operationLoading,
+          style: { borderRadius: '8px' }
+        }}
+        cancelButtonProps={{ style: { borderRadius: '8px' } }}
+        style={{ borderRadius: '16px' }}
       >
-        <p>Êtes-vous sûr de vouloir changer le statut de cette tâche en "{getStatusLabel(pendingStatus)}"?</p>
+        <div style={{ padding: '16px 0' }}>
+          <Text>
+            Êtes-vous sûr de vouloir changer le statut de cette tâche en "
+            <Text strong style={{ color: getStatusConfig(pendingStatus)?.color }}>
+              {getStatusConfig(pendingStatus)?.text}
+            </Text>"?
+          </Text>
+        </div>
       </Modal>
 
-      {/* Modal de confirmation pour la suppression */}
       <Modal
-        title={<><ExclamationCircleOutlined style={{ color: '#ff4d4f' }} /> Confirmer la suppression</>}
+        title={
+          <Space>
+            <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />
+            <Text strong>Confirmer la suppression</Text>
+          </Space>
+        }
         open={confirmDeleteVisible}
         onOk={confirmDelete}
         onCancel={() => setConfirmDeleteVisible(false)}
-        okText="Oui, supprimer"
+        okText="Supprimer"
         cancelText="Annuler"
-        okButtonProps={{ danger: true, loading: operationLoading && operationType === 'delete' }}
+        okButtonProps={{ 
+          danger: true, 
+          loading: operationLoading,
+          style: { borderRadius: '8px' }
+        }}
+        cancelButtonProps={{ style: { borderRadius: '8px' } }}
+        style={{ borderRadius: '16px' }}
       >
-        <p>Êtes-vous sûr de vouloir supprimer cette tâche?</p>
-        <p>Cette action est irréversible.</p>
+        <div style={{ padding: '16px 0' }}>
+          <Alert
+            message="Action irréversible"
+            description="Cette action supprimera définitivement la tâche et toutes les données associées."
+            type="warning"
+            showIcon
+            style={{ marginBottom: '16px', borderRadius: '8px' }}
+          />
+          <Text>Êtes-vous sûr de vouloir supprimer cette tâche?</Text>
+        </div>
       </Modal>
 
-      {/* Styles CSS intégrés */}
+      {/* Styles CSS */}
       <style jsx>{`
-        .crm-container {
-          background-color: #f0f2f5;
-          border-radius: 4px;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-          animation: fadeIn 0.3s ease-in-out;
+        .task-details-modern {
+          padding: 24px;
+          background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+          min-height: 100vh;
         }
-        
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
+
+        .modern-header {
+          position: relative;
         }
-        
-        .crm-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 16px 20px;
-          background-color: white;
-          border-bottom: 1px solid #e8e8e8;
-        }
-        
-        .crm-lead-info {
-          display: flex;
-          align-items: center;
-        }
-        
-        .crm-avatar {
-          margin-right: 12px;
-        }
-        
-        .crm-title {
-          display: flex;
-          flex-direction: column;
-        }
-        
-        .crm-lead-label {
-          font-size: 18px;
+
+        .modern-descriptions .ant-descriptions-item-label {
+          background-color: #fafafa;
           font-weight: 600;
-          color: #333;
+          border-radius: 6px 0 0 6px;
         }
-        
-        .lead-name {
-          color: #1890ff;
+
+        .modern-descriptions .ant-descriptions-item-content {
+          border-radius: 0 6px 6px 0;
         }
-        
-        .crm-lead-actions {
-          display: flex;
-          font-size: 13px;
-          color: #888;
-        }
-        
-        .crm-link {
-          color: #1890ff;
-          margin-right: 16px;
-        }
-        
-        .crm-header-actions {
-          display: flex;
-          gap: 8px;
-        }
-        
-        .crm-btn {
-          border-radius: 3px;
-          transition: all 0.2s ease;
-        }
-        
-        .crm-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
-        
-        .crm-meta-info {
-          display: flex;
-          background-color: white;
-          padding: 10px 20px;
-          border-bottom: 1px solid #e8e8e8;
-          flex-wrap: wrap;
-        }
-        
-        .crm-meta-item {
-          margin-right: 40px;
-          margin-bottom: 8px;
-          display: flex;
-        }
-        
-        .crm-meta-label {
-          color: #999;
-          font-size: 12px;
-          margin-right: 8px;
-        }
-        
-        .crm-meta-value {
-          color: #333;
-          font-size: 12px;
-          display: flex;
-          align-items: center;
-        }
-        
-        .crm-content-tabs {
-          background-color: white;
-          padding: 20px;
-        }
-        
-        .crm-details-section {
-          padding: 0 8px;
-        }
-        
-        .crm-details-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 16px;
-        }
-        
-        .crm-details-header h3 {
-          margin: 0;
-          color: #333;
-          font-size: 18px;
-          font-weight: 600;
-        }
-        
-        .crm-descriptions {
+
+        .modern-form .ant-form-item {
           margin-bottom: 24px;
         }
-        
-        .crm-descriptions .ant-descriptions-item-label {
-          background-color: #fafafa;
+
+        .modern-form .ant-input,
+        .modern-form .ant-input-number,
+        .modern-form .ant-select-selector,
+        .modern-form .ant-picker {
+          border-radius: 8px;
+          border: 1px solid #d9d9d9;
+          transition: all 0.3s ease;
         }
-        
-        .crm-status-buttons {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 10px;
+
+        .modern-form .ant-input:hover,
+        .modern-form .ant-select-selector:hover,
+        .modern-form .ant-picker:hover {
+          border-color: #40a9ff;
+          box-shadow: 0 2px 8px rgba(24, 144, 255, 0.2);
         }
-        
-        .active-status {
-          font-weight: bold;
+
+        .modern-form .ant-input:focus,
+        .modern-form .ant-select-focused .ant-select-selector,
+        .modern-form .ant-picker-focused {
+          border-color: #1890ff;
+          box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
         }
-        
-        /* Responsive styles */
+
+        /* Responsive */
         @media (max-width: 768px) {
-          .crm-header {
-            flex-direction: column;
-            align-items: flex-start;
+          .task-details-modern {
+            padding: 16px;
           }
           
-          .crm-header-actions {
-            margin-top: 16px;
-            width: 100%;
+          .modern-header {
+            padding: 24px !important;
+            border-radius: 16px !important;
           }
-          
-          .crm-meta-info {
-            flex-direction: column;
+        }
+
+        @media (max-width: 576px) {
+          .modern-header {
+            padding: 20px !important;
+            border-radius: 12px !important;
           }
-          
-          .crm-meta-item {
-            margin-bottom: 8px;
+        }
+
+        /* Animations personnalisées */
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
           }
-          
-          .crm-status-buttons {
-            flex-direction: column;
-            gap: 8px;
+          to {
+            opacity: 1;
+            transform: translateY(0);
           }
-          
-          .crm-status-buttons button {
-            width: 100%;
-          }
+        }
+
+        .ant-card {
+          animation: fadeInUp 0.5s ease-out;
+        }
+
+        /* Timeline personnalisée */
+        .ant-timeline-item {
+          padding-bottom: 20px;
+        }
+
+        .ant-timeline-item-tail {
+          border-left: 2px solid #f0f0f0;
+        }
+
+        .ant-timeline-item-head {
+          border: 2px solid #fff;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        /* Cards hover effect */
+        .ant-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important;
+          transition: all 0.3s ease;
+        }
+
+        /* Progress personnalisé */
+        .ant-progress-text {
+          font-weight: 600 !important;
+        }
+
+        /* Badges et tags */
+        .ant-tag {
+          transition: all 0.3s ease;
+        }
+
+        .ant-tag:hover {
+          transform: scale(1.05);
+        }
+
+        /* Scrollbar personnalisée */
+        ::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+          background: #c1c1c1;
+          border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+          background: #a8a8a8;
         }
       `}</style>
     </div>

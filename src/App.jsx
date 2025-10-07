@@ -63,7 +63,15 @@ import BlockagesPage from './components/Blockages/BlockagesPage';
 import BlockageCard from './components/Blockages/BlockageCard';
 import ProspectsList from "./components/Portefeuille/ProspectsList";
 import ProspectForm from "./components/Portefeuille/ProspectForm";
-import Dashboard from "./components/chart/dashboard";
+import DashboardProjet from "./components/chart/DashboardProjet";
+import BlockageList from "./components/Blockages/BlockageList";
+import BlockageDetails from "./components/Blockages/BlockageDetails";
+import CompaniesList from "./components/Companies/CompaniesList";
+import CompaniesForm from "./components/Companies/CompaniesForm";
+import CompaniesDetails from "./components/Companies/CompaniesDetails";
+import DashboardInvite from "./components/chart/DashboardInvite";
+
+
 
 
 
@@ -118,13 +126,22 @@ function App() {
               <Route path="/projets" element={<ProjetsList />} />
 
 
-              <Route path="/blocages" element={<BlockagesPage />} />
+              {/* <Route path="/blocages" element={<BlockagesPage />} /> */}
+              <Route path="/blockages" element={<BlockageList />} />
               <Route path="/blocageCard" element={<BlockageCard />} />
+              <Route path="/blockage/:id" element={<BlockageDetails />} />
+              <Route path="/companies" element={<CompaniesList />}/>
+              <Route path="/companies/create" element={<CompaniesForm />} />
+              <Route path="/companies/:id" element={<CompaniesDetails />} />  
+              <Route path="/companies/edit/:id" element={<CompaniesForm />} />
+
+
               <Route path="/projets/:id" element={<ProjetDetails />} />
               <Route path="/prospects" element={<ProspectsList />} />
               <Route path="/prospects/create" element={<ProspectForm />} />
               <Route path="/prospects/:id" element={<ProspectDetails />} />
               <Route path="/prospects/:id/edit" element={<ProspectForm />} />
+              
 
 
               
@@ -136,10 +153,11 @@ function App() {
               <Route path="/invites/create" element={<InviteForm />} />
               <Route path="/invites/:id" element={<InviteDetails />} />
               <Route path="/invites/:id/edit" element={<InviteForm />} />
+              <Route path="/dashboard/invites" element={<DashboardInvite />} />
 
 
 
-              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard/projets" element={<DashboardProjet />} />
 
 
 

@@ -2003,10 +2003,19 @@ const marketingSlice = createSlice({
       })
       .addCase(updateAction.fulfilled, (state, action) => {
         state.actions.loading = false;
+        
+        // S'assurer que items est un tableau
+        if (!Array.isArray(state.actions.items)) {
+          state.actions.items = [];
+        }
+        
         const updatedItem = action.payload.data || action.payload;
         const index = state.actions.items.findIndex(item => item.id === updatedItem.id);
         if (index !== -1) {
           state.actions.items[index] = updatedItem;
+        }
+        if (state.actions.selectedItem && state.actions.selectedItem.id === updatedItem.id) {
+          state.actions.selectedItem = updatedItem;
         }
       })
       .addCase(updateAction.rejected, (state, action) => {

@@ -6,7 +6,7 @@ import {
   Card, Descriptions, Button, Space, Spin, Tag, Tabs, Typography, Modal,
   message, Divider, Row, Col, Breadcrumb, Statistic, Tooltip, Badge, Checkbox, List,
   Dropdown, Menu, Steps, Alert, Timeline, Form, DatePicker, Select, Input, Progress, InputNumber,
-  Avatar, Empty
+  Avatar, Empty, Grid
 } from 'antd';
 import {
   EditOutlined, DeleteOutlined, ArrowLeftOutlined, ExclamationCircleOutlined,
@@ -15,8 +15,9 @@ import {
   QuestionCircleOutlined, DownOutlined, EllipsisOutlined, HistoryOutlined, LoadingOutlined, PlusOutlined,
   MessageOutlined, InfoCircleOutlined, SendOutlined, AuditOutlined, BellOutlined, GlobalOutlined, RightOutlined,
   SearchOutlined, SettingOutlined, ClockCircleOutlined, ArrowUpOutlined, WarningOutlined, LinkOutlined,
-  ProjectOutlined
+  ProjectOutlined, HomeOutlined
 } from '@ant-design/icons';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   getInvestisseurById,
   deleteInvestisseur,
@@ -45,13 +46,15 @@ const { confirm } = Modal;
 const { Step } = Steps;
 const { Option } = Select;
 const { TextArea } = Input;
+const { useBreakpoint } = Grid;
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 const InvestisseurDetails = () => {
-  // États du formulaire et du composant
   const [taskForm] = Form.useForm();
   const [pipelineForm] = Form.useForm();
   const [conversionForm] = Form.useForm();
+  const screens = useBreakpoint();
 
   const { id } = useParams();
   const dispatch = useDispatch();
@@ -108,17 +111,14 @@ const InvestisseurDetails = () => {
 
   // Fonction pour vérifier si on peut convertir en projet
   const canConvertToProject = () => {
-    // Vérifier si déjà converti
     if (investisseur?.statut === 'converti' || investisseur?.projects?.length > 0) {
       return false;
     }
     
-    // Vérifier si on est dans l'étape finale
     if (!effectiveCurrentStage) {
       return false;
     }
     
-    // Nouvelle logique : permettre la conversion si on est à la dernière étape OU si l'étape est finale
     const isLastStage = pipelineStages.length > 0 && 
                        effectiveCurrentStage.order === Math.max(...pipelineStages.map(s => s.order));
     
@@ -178,7 +178,7 @@ const InvestisseurDetails = () => {
         responsable_id: investisseur?.responsable_id || currentUser?.id,
         investment_amount: investisseur?.valeur_potentielle || investisseur?.montant_investissement,
         start_date: moment(),
-        status: 'planned', // Changé de 'active' à 'planned' selon l'enum de la DB
+        status: 'planned',
         contact_source: '',
         initial_contact_person: investisseur?.nom
       });
@@ -198,7 +198,6 @@ const InvestisseurDetails = () => {
           break;
         case 'initialize_pipeline':
           message.success('Pipeline initialisé avec succès');
-          // Recharger les données du pipeline ET de l'investisseur
           setTimeout(() => {
             dispatch(getInvestisseurById(id));
             dispatch(getPipelineStatus(id));
@@ -209,14 +208,12 @@ const InvestisseurDetails = () => {
           setPipelineModalVisible(false);
           pipelineForm.resetFields();
           setSelectedPipelineStage(null);
-          // Recharger les données
           dispatch(getPipelineStatus(id));
           break;
         case 'create_from_investisseur':
           message.success('Projet créé avec succès à partir de l\'investisseur');
           setConversionModalVisible(false);
           conversionForm.resetFields();
-          // Recharger les données de l'investisseur
           dispatch(getInvestisseurById(id));
           break;
         case 'convert_to_project':
@@ -249,12 +246,9 @@ const InvestisseurDetails = () => {
         .unwrap()
         .then(response => {
           const tasks = response.data || [];
-
-          // Diviser les tâches en "planifiées" (futures) et "récentes" (passées)
           const now = moment();
           const planned = tasks.filter(task => moment(task.end || task.start).isAfter(now));
           const recent = tasks.filter(task => moment(task.end || task.start).isSameOrBefore(now));
-
           setPipelineTasks({ planned, recent });
         })
         .catch(error => {
@@ -277,33 +271,6 @@ const InvestisseurDetails = () => {
       loadPipelineTasks();
     }
   }, [activeTab, effectiveCurrentStage, loadPipelineTasks, refreshTrigger]);
-
-  // Chargement des blocages
-  // const loadBlockages = useCallback(async () => {
-  //   try {
-  //     const response = await axios.get(`${API_URL}/blockages`);
-  //     const allBlockages = response.data.data || [];
-
-  //     const stageBlockages = allBlockages.filter(
-  //       blockage =>
-  //         blockage.blockable_type === 'investisseur' &&
-  //         blockage.blockable_id === parseInt(id) &&
-  //         blockage.pipeline_stageable_type === 'pipeline_stage' &&
-  //         blockage.pipeline_stageable_id === effectiveCurrentStage?.id
-  //     );
-
-  //     setBlockages(stageBlockages);
-  //   } catch (error) {
-  //     console.error('Erreur lors du chargement des blocages:', error);
-  //   }
-  // }, [id, effectiveCurrentStage]);
-
-  // Charger les blocages quand l'onglet est actif
-  // useEffect(() => {
-  //   if (activeTab === 'blockages' && id && effectiveCurrentStage?.id) {
-  //     loadBlockages();
-  //   }
-  // }, [activeTab, id, effectiveCurrentStage, loadBlockages]);
 
   // HANDLERS POUR LES ACTIONS
 
@@ -397,7 +364,6 @@ const InvestisseurDetails = () => {
   const handleAdvancePipeline = async () => {
     try {
       const values = await pipelineForm.validateFields();
-
       const stageId = selectedPipelineStage || nextStage?.id;
 
       if (!stageId) {
@@ -434,53 +400,36 @@ const InvestisseurDetails = () => {
         return;
       }
 
-      // Vérifier si on peut convertir
       if (!canConvertToProject()) {
         message.warning('Cet investisseur n\'est pas dans l\'étape finale du pipeline');
         return;
       }
 
-      // Préparer les données selon les colonnes exactes de la base de données
       const projectData = {
-        // Informations de base (colonnes obligatoires)
         title: values.title,
         description: values.description,
         company_name: values.company_name,
-
-        // Status et flags booléens
         idea: values.idea || false,
         in_progress: values.in_progress || false,
         in_production: values.in_production || false,
         is_blocked: values.is_blocked || false,
-
-        // Relations (IDs)
         secteur_id: values.secteur_id,
         responsable_id: values.responsable_id,
         investisseur_id: parseInt(id),
-
-        // Détails du projet
         market_target: values.market_target || null,
         nationality: values.nationality || null,
         foreign_percentage: values.foreign_percentage || 0,
         investment_amount: values.investment_amount,
         jobs_expected: values.jobs_expected || 0,
         industrial_zone: values.industrial_zone || null,
-
-        // Pipeline
         pipeline_stage_id: values.pipeline_stage_id || null,
-        pipeline_completed_at: null, // Sera défini par le backend si nécessaire
-        pipeline_completed_by: null, // Sera défini par le backend si nécessaire
-
-        // Dates
+        pipeline_completed_at: null,
+        pipeline_completed_by: null,
         start_date: values.start_date?.format('YYYY-MM-DD') || null,
         end_date: values.end_date?.format('YYYY-MM-DD') || null,
         first_contact_date: values.first_contact_date?.format('YYYY-MM-DD') || null,
-
-        // Contact et source
         contact_source: values.contact_source,
         initial_contact_person: values.initial_contact_person || investisseur?.nom,
-
-        // Métadonnées
         status: values.status || 'planned',
         created_by: currentUser?.id || null,
         notes: values.notes || null,
@@ -616,8 +565,17 @@ const InvestisseurDetails = () => {
   // Affichage pendant le chargement
   if (loading) {
     return (
-      <div className="loading-container">
-        <Spin size="large" tip="Chargement des détails de l'investisseur..." />
+      <div className="modern-loading-container">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="loading-content"
+        >
+          <Spin size="large" />
+          <Title level={4} style={{ marginTop: 16, color: '#666' }}>
+            Chargement des détails de l'investisseur...
+          </Title>
+        </motion.div>
       </div>
     );
   }
@@ -625,502 +583,684 @@ const InvestisseurDetails = () => {
   // Affichage en cas d'erreur
   if (error) {
     return (
-      <Card className="error-card">
-        <div className="error-message">
-          <ExclamationCircleOutlined style={{ fontSize: 24, color: '#ff4d4f', marginBottom: 16 }} />
-          <Title level={4}>Erreur lors du chargement</Title>
-          <Text type="danger">{error}</Text>
-          <Button type="primary" onClick={() => navigate('/investisseurs')} style={{ marginTop: 16 }}>
-            Retour à la liste
-          </Button>
-        </div>
-      </Card>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="modern-container"
+      >
+        <Card className="modern-error-card">
+          <div className="error-content">
+            <ExclamationCircleOutlined className="error-icon" />
+            <Title level={4}>Erreur lors du chargement</Title>
+            <Text type="danger">{error}</Text>
+            <Button type="primary" onClick={() => navigate('/investisseurs')} style={{ marginTop: 16 }}>
+              Retour à la liste
+            </Button>
+          </div>
+        </Card>
+      </motion.div>
     );
   }
 
   // Affichage si l'investisseur n'est pas trouvé
   if (!investisseur) {
     return (
-      <Card className="not-found-card">
-        <div style={{ textAlign: 'center', padding: '20px 0' }}>
-          <InfoCircleOutlined style={{ fontSize: 48, color: '#1890ff', marginBottom: 16 }} />
-          <Title level={4}>Investisseur non trouvé</Title>
-          <Text>L'investisseur que vous recherchez n'existe pas ou a été supprimé.</Text>
-          <div style={{ marginTop: 24 }}>
-            <Button type="primary" onClick={() => navigate('/investisseurs')}>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="modern-container"
+      >
+        <Card className="modern-not-found-card">
+          <div className="not-found-content">
+            <InfoCircleOutlined className="not-found-icon" />
+            <Title level={4}>Investisseur non trouvé</Title>
+            <Text>L'investisseur que vous recherchez n'existe pas ou a été supprimé.</Text>
+            <Button type="primary" onClick={() => navigate('/investisseurs')} style={{ marginTop: 24 }}>
               Retour à la liste
             </Button>
           </div>
-        </div>
-      </Card>
+        </Card>
+      </motion.div>
     );
   }
 
-  // RENDU PRINCIPAL AVEC DESIGN CRM
+  const headerVariants = {
+    hidden: { opacity: 0, y: -20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.6, ease: "easeOut" }
+    }
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.5, ease: "easeOut" }
+    }
+  };
+
   return (
-    <div className="crm-container">
-      {/* En-tête avec le style CRM */}
-      <div className="crm-header">
-        <div className="crm-lead-info">
-          <div className="crm-avatar">
-            <Avatar icon={<BankOutlined />} size={42} style={{ backgroundColor: '#1890ff' }} />
-          </div>
-          <div className="crm-title">
-            <div className="crm-lead-label">
-              Investisseur: <span className="lead-name">"{investisseur.nom}"</span>
-              {investisseur.entreprise && <span className="lead-company"> - ({investisseur.entreprise.nom})</span>}
-            </div>
-            <div className="crm-lead-actions">
-              <Link to="#" className="crm-link">{investisseur.entreprise?.nom || 'Entreprise non définie'}</Link>
-            </div>
-          </div>
-        </div>
+    <div className="modern-container">
+      {/* Breadcrumb */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <Breadcrumb style={{ marginBottom: 24 }}>
+          <Breadcrumb.Item>
+            <Link to="/dashboard">
+              <HomeOutlined /> Dashboard
+            </Link>
+          </Breadcrumb.Item>
+          <Breadcrumb.Item>
+            <Link to="/investisseurs">
+              <BankOutlined /> Investisseurs
+            </Link>
+          </Breadcrumb.Item>
+          <Breadcrumb.Item>
+            <UserOutlined /> {investisseur.nom}
+          </Breadcrumb.Item>
+        </Breadcrumb>
+      </motion.div>
 
-        <div className="crm-header-actions">
-
-          <Dropdown overlay={statusMenu} placement="bottomRight">
-            <Button className="crm-btn crm-options-btn">
-              Status <DownOutlined />
-            </Button>
-          </Dropdown>
-
-          {/* Bouton conditionnel pour la conversion */}
-          {investisseur.projets && investisseur.projets.length > 0 ? (
-            <Button
-              className="crm-btn crm-view-project-btn"
-              type="primary"
-              icon={<LinkOutlined />}
-              onClick={() => navigate(`/projets/${investisseur.projets[0].id}`)}
-            >
-              Voir le projet
-            </Button>
-          ) : investisseur.statut === 'converti' ? (
-            <Button
-              className="crm-btn crm-converted-btn"
-              disabled
-              icon={<CheckOutlined />}
-            >
-              Déjà converti
-            </Button>
-          ) : (
-            <Button
-              className="crm-btn crm-convert-btn"
-              type="primary"
-              icon={<ProjectOutlined />}
-              onClick={() => setConversionModalVisible(true)}
-              disabled={!canConvertToProject()}
-            >
-              Convertir en projet
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Informations du pipeline */}
-      <div className="crm-meta-info">
-        <div className="crm-meta-item">
-          <div className="crm-meta-label">STATUS:</div>
-          <div className="crm-meta-value">
-            {renderStatus(investisseur.statut)}
-          </div>
-        </div>
-        <div className="crm-meta-item">
-          <div className="crm-meta-label">CONVERSION STATUS:</div>
-          <div className="crm-meta-value">
-            {(() => {
-              // Vérifier si déjà converti
-              if (investisseur.statut === 'converti' || investisseur.projets?.length > 0) {
-                return (
-                  <Tag color="success" icon={<CheckOutlined />}>
-                    Converti en projet
-                  </Tag>
-                );
-              }
-
-              // Vérifier si on est dans l'étape finale
-              if (!effectiveCurrentStage) {
-                return (
-                  <Tag color="red">
-                    Aucune étape définie
-                  </Tag>
-                );
-              }
-
-              // Logique simplifiée: juste vérifier is_final
-              if (effectiveCurrentStage.is_final) {
-                return (
-                  <Tag color="green">
-                    Prêt à convertir
-                  </Tag>
-                );
-              }
-
-              return (
-                <Tag color="blue">
-                  En progression
-                </Tag>
-              );
-            })()}
-          </div>
-        </div>
-        <div className="crm-meta-item">
-          <div className="crm-meta-label">SECTEUR:</div>
-          <div className="crm-meta-value">
-            <Link to="#" className="crm-link">{investisseur.secteur?.name || 'Non défini'}</Link>
-          </div>
-        </div>
-        <div className="crm-meta-item">
-          <div className="crm-meta-label">PIPELINE ADDED:</div>
-          <div className="crm-meta-value">{moment(investisseur.created_at).format('MMM D, YYYY')}</div>
-        </div>
-        <div className="crm-meta-item">
-          <div className="crm-meta-label">TIME IN CURRENT STAGE:</div>
-          <div className="crm-meta-value">
-            {progression && progression.length > 0
-              ? moment().diff(moment(progression[0].created_at), 'days') + ' DAYS'
-              : 'N/A'}
-          </div>
-        </div>
-        <div className="crm-meta-item">
-          <div className="crm-meta-label">OWNER(S):</div>
-          <div className="crm-meta-value">
-            <Avatar size="small" icon={<UserOutlined />} style={{ marginRight: 8 }} />
-            <Link to="#" className="crm-link">{investisseur.responsable?.name || 'Non assigné'}</Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Visualisation du pipeline avec étapes */}
-      <div className="crm-pipeline-visualization">
-        {pipelineStages.length > 0 ? (
-          <PipelineStageManager
-            entityType="investisseur"
-            entityId={id}
-            stages={pipelineStages}
-            currentStage={currentStage}
-            progression={progression || []}
-            pipelineCompletedAt={investisseur?.converted_to_project_at || (investisseur?.projets?.length > 0 ? new Date().toISOString() : null)}
-            onStagesChange={() => dispatch(getPipelineStatus(id))}
-            showAddButton={true}
-            buttonText="Add stage"
-            buttonClassName="crm-btn add-stage"
-            showVisualizer={true}
-          />
-        ) : (
-          <Alert
-            message="Pipeline non initialisé"
-            description={
-              <div>
-                <p>Cet investisseur n'a pas encore de pipeline défini.</p>
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={handleInitializePipeline}
-                  disabled={investisseur.statut === 'converti' || investisseur.projets?.length > 0}
-                  style={{ marginTop: 10 }}
-                >
-                  Initialiser le pipeline
-                </Button>
-              </div>
-            }
-            type="info"
-            showIcon
-          />
-        )}
-      </div>
-
-      {/* Onglets d'information détaillée */}
-      <div className="crm-content-tabs">
-        <Tabs activeKey={activeTab} onChange={setActiveTab} type="card">
-          <TabPane tab={<span><InfoCircleOutlined /> Details</span>} key="details">
-            <div className="crm-details-section">
-              <div className="crm-details-header">
-                <h3>Informations de l'investisseur</h3>
-                <Button icon={<EditOutlined />} size="small" onClick={() => navigate(`/investisseurs/${id}/edit`)}>
-                  Edit details
-                </Button>
-              </div>
-
-              <Descriptions bordered column={2}>
-                <Descriptions.Item label="Nom">{investisseur.nom}</Descriptions.Item>
-                <Descriptions.Item label="Email">{investisseur.email}</Descriptions.Item>
-                <Descriptions.Item label="Téléphone">{investisseur.telephone || 'Non renseigné'}</Descriptions.Item>
-                <Descriptions.Item label="Entreprise">{investisseur.entreprise?.nom || 'Non assignée'}</Descriptions.Item>
-                <Descriptions.Item label="Pays">{investisseur.pays?.name || 'Non renseigné'}</Descriptions.Item>
-                <Descriptions.Item label="Secteur d'activité">{investisseur.secteur?.name || 'Non renseigné'}</Descriptions.Item>
-                <Descriptions.Item label="Montant d'investissement">
-                  {investisseur.montant_investissement ? formatMoney(investisseur.montant_investissement, investisseur.devise) : 'Non défini'}
-                </Descriptions.Item>
-                <Descriptions.Item label="Responsable">{investisseur.responsable?.name || 'Non assigné'}</Descriptions.Item>
-                <Descriptions.Item label="Date d'engagement">
-                  {investisseur.date_engagement ? moment(investisseur.date_engagement).format('DD/MM/YYYY') : 'Non définie'}
-                </Descriptions.Item>
-                <Descriptions.Item label="Date de signature">
-                  {investisseur.date_signature ? moment(investisseur.date_signature).format('DD/MM/YYYY') : 'Non définie'}
-                </Descriptions.Item>
-              </Descriptions>
-
-              <div className="crm-info-blocks">
-                <Card title="Critères d'investissement:" bordered={false}>
-                  <Text>{investisseur.criteres_investissement || 'Aucun critère spécifié.'}</Text>
-                </Card>
-
-                <Card title="Intérêts spécifiques:" bordered={false}>
-                  <Text>{investisseur.interets_specifiques || 'Aucun intérêt spécifié.'}</Text>
-                </Card>
-
-                <Card title="Notes internes:" bordered={false}>
-                  <Text>{investisseur.notes || 'Aucune note interne.'}</Text>
-                </Card>
-
-                {investisseur.projets && investisseur.projets.length > 0 && (
-                  <Card title="Converti en projet:" bordered={false}>
-                    <Tag color="green">
-                      Converti le {moment(investisseur.projets[0].created_at).format('DD/MM/YYYY')}
+      {/* En-tête principal */}
+      <motion.div
+        variants={headerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        <Card className="modern-header-card">
+          <div className="header-content">
+            <div className="header-info">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Avatar 
+                  size={64} 
+                  icon={<BankOutlined />} 
+                  style={{ 
+                    backgroundColor: investisseur.statut === 'actif' ? '#52c41a' : 
+                                    investisseur.statut === 'negocie' ? '#faad14' : '#1890ff',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                  }} 
+                />
+              </motion.div>
+              <div className="header-details">
+                <Title level={2} style={{ margin: 0, color: '#1890ff' }}>
+                  {investisseur.nom}
+                  {investisseur.statut === 'converti' && (
+                    <Tag color="success" style={{ marginLeft: 12 }}>
+                      <CheckOutlined /> Converti
                     </Tag>
-                    <div style={{ marginTop: 8 }}>
-                      <Button
-                        type="primary"
-                        size="small"
-                        onClick={() => navigate(`/projets/${investisseur.projets[0].id}`)}
-                      >
-                        Voir le projet
-                      </Button>
-                    </div>
-                  </Card>
-                )}
+                  )}
+                </Title>
+                <Space size="large" style={{ marginTop: 8 }}>
+                  <Text type="secondary">
+                    <BankOutlined style={{ marginRight: 6 }} />
+                    {investisseur.entreprise?.nom || 'Entreprise non définie'}
+                  </Text>
+                  <Text type="secondary">
+                    <CalendarOutlined style={{ marginRight: 6 }} />
+                    Créé le {moment(investisseur.created_at).format('DD/MM/YYYY')}
+                  </Text>
+                  <div>{renderStatus(investisseur.statut)}</div>
+                </Space>
               </div>
             </div>
-          </TabPane>
 
-          <TabPane tab={<span><AuditOutlined /> Stages</span>} key="stages">
-            <div className="crm-stages-section">
-              {pipelineStages.length > 0 ? (
-                <>
-                  <Card title="Progression dans le pipeline" className="crm-stages-card">
-                    <PipelineVisualizer
-                      stages={pipelineStages}
-                      currentStage={effectiveCurrentStage}
-                      progression={progression || []}
-                    />
-                  </Card>
+            <div className="header-actions">
+              <Space size="middle">
+                {nextStage && !investisseur.statut === 'converti' && (
+                  <Button
+                    type="default"
+                    icon={<RightOutlined />}
+                    onClick={() => setPipelineModalVisible(true)}
+                    className="modern-btn"
+                  >
+                    {screens.xs ? 'Avancer' : `Avancer vers: ${nextStage.name}`}
+                  </Button>
+                )}
 
-                  {/* Section pour les actions de progression */}
-                  {!(investisseur.statut === 'converti' || investisseur.projets?.length > 0) && (
-                    <Card title="Actions de progression" style={{ marginTop: 16 }}>
-                      <div style={{ marginBottom: 16 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div>
-                            <Text strong>Étape actuelle : </Text>
-                            <Tag color={effectiveCurrentStage?.is_final ? 'green' : 'blue'}>
-                              {effectiveCurrentStage?.name || 'Non définie'}
-                            </Tag>
-                            {effectiveCurrentStage?.is_final && (
-                              <Tag color="gold" style={{ marginLeft: 8 }}>
-                                Étape finale
-                              </Tag>
-                            )}
-                          </div>
-                          <div>
-                            {(() => {
-                              // Calculer la progression basée sur l'ordre des étapes
-                              const currentOrder = effectiveCurrentStage?.order || 0;
-                              const maxOrder = Math.max(...(pipelineStages.map(s => s.order) || [0]));
-                              const progress = maxOrder > 0 ? Math.round((currentOrder / maxOrder) * 100) : 0;
+                <Dropdown overlay={statusMenu} placement="bottomRight">
+                  <Button className="modern-btn">
+                    Statut <DownOutlined />
+                  </Button>
+                </Dropdown>
 
-                              return (
-                                <div style={{ textAlign: 'right' }}>
-                                  <Text type="secondary">Progression: {progress}%</Text>
-                                  <Progress
-                                    percent={progress}
-                                    size="small"
-                                    style={{ width: 120, marginTop: 4 }}
-                                  />
-                                </div>
-                              );
-                            })()}
-                          </div>
+                {investisseur.projets && investisseur.projets.length > 0 ? (
+                  <Button
+                    type="primary"
+                    icon={<LinkOutlined />}
+                    onClick={() => navigate(`/projets/${investisseur.projets[0].id}`)}
+                    className="modern-btn-primary"
+                  >
+                    {screens.xs ? 'Voir' : 'Voir le projet'}
+                  </Button>
+                ) : investisseur.statut === 'converti' ? (
+                  <Button
+                    disabled
+                    icon={<CheckOutlined />}
+                    className="modern-btn-disabled"
+                  >
+                    {screens.xs ? 'Converti' : 'Déjà converti'}
+                  </Button>
+                ) : (
+                  <Button
+                    type="primary"
+                    onClick={() => setConversionModalVisible(true)}
+                    disabled={!canConvertToProject()}
+                    className="modern-btn-primary"
+                  >
+                    {screens.xs ? 'Convertir' : 'Convertir en projet'}
+                  </Button>
+                )}
+
+                <Dropdown
+                  overlay={
+                    <Menu>
+                      <Menu.Item key="edit" icon={<EditOutlined />} onClick={() => navigate(`/investisseurs/${id}/edit`)}>
+                        Modifier
+                      </Menu.Item>
+                      <Menu.Divider />
+                      <Menu.Item key="delete" danger icon={<DeleteOutlined />} onClick={showDeleteConfirm}>
+                        Supprimer
+                      </Menu.Item>
+                    </Menu>
+                  }
+                >
+                  <Button icon={<EllipsisOutlined />} className="modern-btn" />
+                </Dropdown>
+              </Space>
+            </div>
+          </div>
+        </Card>
+      </motion.div>
+
+
+{/* Métriques de pipeline */}
+<motion.div
+  variants={cardVariants}
+  initial="hidden"
+  animate="visible"
+  transition={{ delay: 0.2 }}
+>
+  <Card className="modern-metrics-card">
+    <Row gutter={[24, 24]}>
+      <Col xs={24} sm={12} md={6}>
+        <div className="metric-item">
+          <div className="metric-icon">
+            {investisseur.statut === 'converti' ? 
+              <CheckCircleOutlined style={{ color: '#52c41a', fontSize: '24px' }} /> : 
+              <ClockCircleOutlined style={{ color: '#faad14', fontSize: '24px' }} />
+            }
+          </div>
+          <div className="metric-content">
+            <div className="metric-label">Statut de conversion</div>
+            <div className="metric-value" style={{ 
+              color: investisseur.statut === 'converti' ? '#52c41a' : '#faad14' 
+            }}>
+              {investisseur.statut === 'converti' ? "Converti" : "En cours"}
+            </div>
+          </div>
+        </div>
+      </Col>
+      <Col xs={24} sm={12} md={6}>
+        <div className="metric-item">
+          <div className="metric-icon">
+            <AuditOutlined style={{ color: '#1890ff', fontSize: '24px' }} />
+          </div>
+          <div className="metric-content">
+            <div className="metric-label">Étape actuelle</div>
+            <div className="metric-value" style={{ color: '#1890ff' }}>
+              {effectiveCurrentStage?.name || 'Aucune'}
+            </div>
+          </div>
+        </div>
+      </Col>
+      <Col xs={24} sm={12} md={6}>
+        <div className="metric-item">
+          <div className="metric-icon">
+            <CalendarOutlined style={{ color: '#722ed1', fontSize: '24px' }} />
+          </div>
+          <div className="metric-content">
+            <div className="metric-label">Temps dans l'étape</div>
+            <div className="metric-value" style={{ color: '#722ed1' }}>
+              {progression && progression.length > 0
+                ? moment().diff(moment(progression[0].created_at), 'days')
+                : 0} jours
+            </div>
+          </div>
+        </div>
+      </Col>
+      <Col xs={24} sm={12} md={6}>
+        <div className="metric-item">
+          <div className="metric-icon">
+            <GlobalOutlined style={{ color: '#13c2c2', fontSize: '24px' }} />
+          </div>
+          <div className="metric-content">
+            <div className="metric-label">Montant d'investissement</div>
+            <div className="metric-value" style={{ color: '#13c2c2' }}>
+              {investisseur.montant_investissement ? 
+                formatMoney(investisseur.montant_investissement, investisseur.devise) : 
+                'Non défini'
+              }
+            </div>
+          </div>
+        </div>
+      </Col>
+    </Row>
+  </Card>
+</motion.div>
+
+
+
+      {/* Visualisation du pipeline */}
+      {pipelineStages.length > 0 ? (
+        <motion.div
+          variants={cardVariants}
+          initial="hidden"
+          animate="visible"
+          transition={{ delay: 0.3 }}
+        >
+          <Card className="modern-pipeline-card" title={
+            <Space>
+              <AuditOutlined />
+              Pipeline de suivi
+            </Space>
+          }>
+            <PipelineStageManager
+              entityType="investisseur"
+              entityId={id}
+              stages={pipelineStages}
+              currentStage={currentStage}
+              progression={progression || []}
+              pipelineCompletedAt={investisseur?.converted_to_project_at || (investisseur?.projets?.length > 0 ? new Date().toISOString() : null)}
+              onStagesChange={() => dispatch(getPipelineStatus(id))}
+              showAddButton={true}
+              buttonText="Ajouter une étape"
+              buttonClassName="modern-btn"
+              showVisualizer={true}
+            />
+          </Card>
+        </motion.div>
+      ) : (
+        <motion.div
+          variants={cardVariants}
+          initial="hidden"
+          animate="visible"
+          transition={{ delay: 0.3 }}
+        >
+          <Card className="modern-pipeline-card">
+            <Alert
+              message="Pipeline non initialisé"
+              description={
+                <div>
+                  <p>Cet investisseur n'a pas encore de pipeline défini.</p>
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={handleInitializePipeline}
+                    disabled={investisseur.statut === 'converti' || investisseur.projets?.length > 0}
+                    style={{ marginTop: 10 }}
+                    className="modern-btn-primary"
+                  >
+                    Initialiser le pipeline
+                  </Button>
+                </div>
+              }
+              type="info"
+              showIcon
+              className="no-pipeline-alert"
+            />
+          </Card>
+        </motion.div>
+      )}
+
+      {/* Contenu principal avec onglets */}
+      <motion.div
+        variants={cardVariants}
+        initial="hidden"
+        animate="visible"
+        transition={{ delay: 0.4 }}
+      >
+        <Card className="modern-content-card">
+          <Tabs 
+            activeKey={activeTab} 
+            onChange={setActiveTab} 
+            type="card"
+            className="modern-tabs"
+          >
+            <TabPane tab={
+              <Space>
+                <InfoCircleOutlined />
+                Détails
+              </Space>
+            } key="details">
+              <div className="tab-content">
+                <div className="details-header">
+                  <Title level={4}>Informations de l'investisseur</Title>
+                  <Button 
+                    icon={<EditOutlined />} 
+                    onClick={() => navigate(`/investisseurs/${id}/edit`)}
+                    className="modern-btn"
+                  >
+                    Modifier
+                  </Button>
+                </div>
+
+                <Descriptions bordered column={{ xs: 1, sm: 2 }} className="modern-descriptions">
+                  <Descriptions.Item label="Nom">{investisseur.nom}</Descriptions.Item>
+                  <Descriptions.Item label="Email">
+                    <Text copyable>{investisseur.email}</Text>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Téléphone">
+                    <Text copyable>{investisseur.telephone || 'Non renseigné'}</Text>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Entreprise">
+                    {investisseur.entreprise?.nom || 'Non assignée'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Pays">
+                    {investisseur.pays?.name || 'Non renseigné'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Secteur d'activité">
+                    {investisseur.secteur?.name || 'Non renseigné'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Montant d'investissement">
+                    {investisseur.montant_investissement ? formatMoney(investisseur.montant_investissement, investisseur.devise) : 'Non défini'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Responsable">
+                    {investisseur.responsable?.name || 'Non assigné'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Date d'engagement">
+                    {investisseur.date_engagement ? moment(investisseur.date_engagement).format('DD/MM/YYYY') : 'Non définie'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Date de signature">
+                    {investisseur.date_signature ? moment(investisseur.date_signature).format('DD/MM/YYYY') : 'Non définie'}
+                  </Descriptions.Item>
+                </Descriptions>
+
+                <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+                  <Col xs={24}>
+                    <Card size="small" className="info-card" title="Critères d'investissement">
+                      <Text>{investisseur.criteres_investissement || 'Aucun critère spécifié.'}</Text>
+                    </Card>
+                  </Col>
+                  <Col xs={24}>
+                    <Card size="small" className="info-card" title="Intérêts spécifiques">
+                      <Text>{investisseur.interets_specifiques || 'Aucun intérêt spécifié.'}</Text>
+                    </Card>
+                  </Col>
+                  <Col xs={24}>
+                    <Card size="small" className="info-card" title="Notes internes">
+                      <Text>{investisseur.notes || 'Aucune note interne.'}</Text>
+                    </Card>
+                  </Col>
+                  {investisseur.projets && investisseur.projets.length > 0 && (
+                    <Col xs={24}>
+                      <Card size="small" className="info-card" title="Converti en projet">
+                        <Tag color="green">
+                          Converti le {moment(investisseur.projets[0].created_at).format('DD/MM/YYYY')}
+                        </Tag>
+                        <div style={{ marginTop: 8 }}>
+                          <Button
+                            type="primary"
+                            size="small"
+                            onClick={() => navigate(`/projets/${investisseur.projets[0].id}`)}
+                          >
+                            Voir le projet
+                          </Button>
                         </div>
-                      </div>
+                      </Card>
+                    </Col>
+                  )}
+                </Row>
+              </div>
+            </TabPane>
 
-                      <div style={{ marginBottom: 16 }}>
-                        {(() => {
-                          // Vérifier si déjà converti
-                          if (investisseur.statut === 'converti' || investisseur.projets?.length > 0) {
-                            return (
-                              <Alert
-                                message="Investisseur déjà converti"
-                                description="Cet investisseur a déjà été converti en projet."
-                                type="success"
-                                showIcon
-                              />
-                            );
-                          }
+            <TabPane tab={
+              <Space>
+                <AuditOutlined />
+                Étapes
+              </Space>
+            } key="stages">
+              <div className="tab-content">
+                {pipelineStages.length > 0 ? (
+                  <>
+                    <Card title="Progression dans le pipeline" className="stages-card">
+                      <PipelineVisualizer
+                        stages={pipelineStages}
+                        currentStage={effectiveCurrentStage}
+                        progression={progression || []}
+                      />
+                    </Card>
 
-                          // Vérifier si aucune étape définie
-                          if (!effectiveCurrentStage) {
-                            return (
-                              <Alert
-                                message="Aucune étape définie"
-                                description="Cet investisseur n'a pas d'étape de pipeline définie."
-                                type="warning"
-                                showIcon
-                              />
-                            );
-                          }
-
-                          // Vérifier si étape finale
-                          if (effectiveCurrentStage.is_final) {
-                            return (
-                              <Alert
-                                message="Prêt pour la conversion"
-                                description="Cet investisseur est dans l'étape finale et peut maintenant être converti en projet."
-                                type="success"
-                                showIcon
-                                action={
-                                  <Button
-                                    type="primary"
-                                    size="small"
-                                    onClick={() => setConversionModalVisible(true)}
-                                  >
-                                    Convertir maintenant
-                                  </Button>
-                                }
-                              />
-                            );
-                          }
-
-                          // Si pas encore dans l'étape finale
-                          return (
-                            <Alert
-                              message="Progression requise"
-                              description="L'investisseur doit atteindre l'étape finale du pipeline avant d'être converti."
-                              type="info"
-                              showIcon
-                            />
-                          );
-                        })()}
-                      </div>
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          {nextStage ? (
+                    {!(investisseur.statut === 'converti' || investisseur.projets?.length > 0) && (
+                      <Card title="Actions de progression" style={{ marginTop: 16 }}>
+                        <div style={{ marginBottom: 16 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div>
-                              <Text strong>Prochaine étape : </Text>
-                              <Tag color="orange">{nextStage.name}</Tag>
-                              {nextStage.is_final && (
+                              <Text strong>Étape actuelle : </Text>
+                              <Tag color={effectiveCurrentStage?.is_final ? 'green' : 'blue'}>
+                                {effectiveCurrentStage?.name || 'Non définie'}
+                              </Tag>
+                              {effectiveCurrentStage?.is_final && (
                                 <Tag color="gold" style={{ marginLeft: 8 }}>
-                                  Finale
+                                  Étape finale
                                 </Tag>
                               )}
                             </div>
-                          ) : (
-                            <Text type="success" strong>✓ Dernière étape atteinte</Text>
-                          )}
-                        </div>
-                        <div>
-                          {nextStage ? (
-                            <Button
-                              type="primary"
-                              icon={<RightOutlined />}
-                              onClick={() => setPipelineModalVisible(true)}
-                            >
-                              Avancer vers : {nextStage.name}
-                            </Button>
-                          ) : effectiveCurrentStage?.is_final ? (
-                            <Button
-                              type="primary"
-                              icon={<CheckOutlined />}
-                              onClick={() => setConversionModalVisible(true)}
-                            >
-                              Convertir en projet
-                            </Button>
-                          ) : (
-                            <Button
-                              type="default"
-                              disabled
-                            >
-                              Étape finale requise
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  )}
+                            <div>
+                              {(() => {
+                                const currentOrder = effectiveCurrentStage?.order || 0;
+                                const maxOrder = Math.max(...(pipelineStages.map(s => s.order) || [0]));
+                                const progress = maxOrder > 0 ? Math.round((currentOrder / maxOrder) * 100) : 0;
 
-                  {/* Information sur la conversion */}
-                  {investisseur.projets && investisseur.projets.length > 0 && (
-                    <Card title="Conversion réussie" style={{ marginTop: 16 }}>
-                      <Alert
-                        message="Investisseur converti avec succès"
-                        description={
-                          <div>
-                            <p>Cet investisseur a été converti en projet le {moment(investisseur.projets[0].created_at).format('DD/MM/YYYY')}.</p>
-                            <Button
-                              type="primary"
-                              icon={<LinkOutlined />}
-                              onClick={() => navigate(`/projets/${investisseur.projets[0].id}`)}
-                            >
-                              Voir le projet
-                            </Button>
+                                return (
+                                  <div style={{ textAlign: 'right' }}>
+                                    <Text type="secondary">Progression: {progress}%</Text>
+                                    <Progress
+                                      percent={progress}
+                                      size="small"
+                                      style={{ width: 120, marginTop: 4 }}
+                                    />
+                                  </div>
+                                );
+                              })()}
+                            </div>
                           </div>
-                        }
-                        type="success"
-                        showIcon
-                      />
-                    </Card>
-                  )}
-                </>
-              ) : (
-                <Alert
-                  message="Aucun pipeline défini"
-                  description="Cet investisseur n'a pas encore de pipeline de suivi défini."
-                  type="info"
-                  showIcon
-                  action={
-                    <Button
-                      type="primary"
-                      onClick={handleInitializePipeline}
-                      disabled={investisseur.statut === 'converti' || investisseur.projets?.length > 0}
-                    >
-                      Initialiser le pipeline
-                    </Button>
-                  }
-                />
-              )}
-            </div>
-          </TabPane>
+                        </div>
 
-          <TabPane tab={<span><WarningOutlined /> Blockages ({blockages.length})</span>} key="blockages">
-            <PipelineBlockages
-              entityType="investisseur"
-              entityId={id}
-              pipelineStages={pipelineStages || []}
-              title="Blocages par étape du pipeline"
-            />
-          </TabPane>
+                        <div style={{ marginBottom: 16 }}>
+                          {(() => {
+                            if (investisseur.statut === 'converti' || investisseur.projets?.length > 0) {
+                              return (
+                                <Alert
+                                  message="Investisseur déjà converti"
+                                  description="Cet investisseur a déjà été converti en projet."
+                                  type="success"
+                                  showIcon
+                                />
+                              );
+                            }
 
-          <TabPane tab={<span><ClockCircleOutlined /> Tasks</span>} key="tasks">
-            <div className="crm-tasks-container">
-              <div className="crm-tasks-header">
-                <h3>Liste des tâches</h3>
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!effectiveCurrentStage) {
-                      message.error("Aucune étape active pour ajouter une tâche.");
-                      return;
+                            if (!effectiveCurrentStage) {
+                              return (
+                                <Alert
+                                  message="Aucune étape définie"
+                                  description="Cet investisseur n'a pas d'étape de pipeline définie."
+                                  type="warning"
+                                  showIcon
+                                />
+                              );
+                            }
+
+                            if (effectiveCurrentStage.is_final) {
+                              return (
+                                <Alert
+                                  message="Prêt pour la conversion"
+                                  description="Cet investisseur est dans l'étape finale et peut maintenant être converti en projet."
+                                  type="success"
+                                  showIcon
+                                  action={
+                                    <Button
+                                      type="primary"
+                                      size="small"
+                                      onClick={() => setConversionModalVisible(true)}
+                                    >
+                                      Convertir maintenant
+                                    </Button>
+                                  }
+                                />
+                              );
+                            }
+
+                            return (
+                              <Alert
+                                message="Progression requise"
+                                description="L'investisseur doit atteindre l'étape finale du pipeline avant d'être converti."
+                                type="info"
+                                showIcon
+                              />
+                            );
+                          })()}
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            {nextStage ? (
+                              <div>
+                                <Text strong>Prochaine étape : </Text>
+                                <Tag color="orange">{nextStage.name}</Tag>
+                                {nextStage.is_final && (
+                                  <Tag color="gold" style={{ marginLeft: 8 }}>
+                                    Finale
+                                  </Tag>
+                                )}
+                              </div>
+                            ) : (
+                              <Text type="success" strong>✓ Dernière étape atteinte</Text>
+                            )}
+                          </div>
+                          <div>
+                            {nextStage ? (
+                              <Button
+                                type="primary"
+                                icon={<RightOutlined />}
+                                onClick={() => setPipelineModalVisible(true)}
+                              >
+                                Avancer vers : {nextStage.name}
+                              </Button>
+                            ) : effectiveCurrentStage?.is_final ? (
+                              <Button
+                                type="primary"
+                                icon={<CheckOutlined />}
+                                onClick={() => setConversionModalVisible(true)}
+                              >
+                                Convertir en projet
+                              </Button>
+                            ) : (
+                              <Button
+                                type="default"
+                                disabled
+                              >
+                                Étape finale requise
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </Card>
+                    )}
+
+                    {investisseur.projets && investisseur.projets.length > 0 && (
+                      <Card title="Conversion réussie" style={{ marginTop: 16 }}>
+                        <Alert
+                          message="Investisseur converti avec succès"
+                          description={
+                            <div>
+                              <p>Cet investisseur a été converti en projet le {moment(investisseur.projets[0].created_at).format('DD/MM/YYYY')}.</p>
+                              <Button
+                                type="primary"
+                                icon={<LinkOutlined />}
+                                onClick={() => navigate(`/projets/${investisseur.projets[0].id}`)}
+                              >
+                                Voir le projet
+                              </Button>
+                            </div>
+                          }
+                          type="success"
+                          showIcon
+                        />
+                      </Card>
+                    )}
+                  </>
+                ) : (
+                  <Alert
+                    message="Aucun pipeline défini"
+                    description="Cet investisseur n'a pas encore de pipeline de suivi défini."
+                    type="info"
+                    showIcon
+                    action={
+                      <Button
+                        type="primary"
+                        onClick={handleInitializePipeline}
+                        disabled={investisseur.statut === 'converti' || investisseur.projets?.length > 0}
+                      >
+                        Initialiser le pipeline
+                      </Button>
                     }
-                    openTaskModal(effectiveCurrentStage.id, effectiveCurrentStage.name);
-                  }}
-                >
-                  Add Task
-                </Button>
+                    className="no-pipeline-alert"
+                  />
+                )}
               </div>
+            </TabPane>
 
-              <div className="crm-tasks-content">
+            <TabPane tab={
+              <Space>
+                <WarningOutlined />
+                Blocages
+              </Space>
+            } key="blockages">
+              <div className="tab-content">
+                <PipelineBlockages
+                  entityType="investisseur"
+                  entityId={id}
+                  pipelineStages={pipelineStages || []}
+                  title="Blocages par étape du pipeline"
+                />
+              </div>
+            </TabPane>
+
+            <TabPane tab={
+              <Space>
+                <ClockCircleOutlined />
+                Tâches
+              </Space>
+            } key="tasks">
+              <div className="tab-content">
+                <div className="tasks-header">
+                  <Title level={4}>Liste des tâches</Title>
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!effectiveCurrentStage) {
+                        message.error("Aucune étape active pour ajouter une tâche.");
+                        return;
+                      }
+                      openTaskModal(effectiveCurrentStage.id, effectiveCurrentStage.name);
+                    }}
+                    className="modern-btn-primary"
+                  >
+                    Ajouter une tâche
+                  </Button>
+                </div>
+
                 <PipelineTasks
                   entityType="investisseur"
                   entityId={id}
@@ -1130,71 +1270,85 @@ const InvestisseurDetails = () => {
                   }}
                 />
               </div>
-            </div>
-          </TabPane>
+            </TabPane>
 
-          <TabPane tab={<span><FileTextOutlined /> Notes</span>} key="notes">
-            <div className="crm-notes-container">
-              <Button type="primary" icon={<PlusOutlined />} style={{ marginBottom: 16 }}>
-                Add Note
-              </Button>
-              <Empty description="No notes" />
-            </div>
-          </TabPane>
-
-          <TabPane tab={<span><ProjectOutlined /> Projets</span>} key="projets">
-            <div className="crm-projects-container">
-              {investisseur.projets && investisseur.projets.length > 0 ? (
-                <List
-                  itemLayout="horizontal"
-                  dataSource={investisseur.projets}
-                  renderItem={projet => (
-                    <List.Item
-                      actions={[
-                        <Button
-                          type="primary"
-                          icon={<LinkOutlined />}
-                          onClick={() => navigate(`/projets/${projet.id}`)}
-                        >
-                          Voir
-                        </Button>
-                      ]}
-                    >
-                      <List.Item.Meta
-                        avatar={<Avatar icon={<ProjectOutlined />} />}
-                        title={<Link to={`/projets/${projet.id}`}>{projet.title || projet.nom}</Link>}
-                        description={
-                          <div>
-                            <div>{projet.description}</div>
-                            <div>Créé le {moment(projet.created_at).format('DD/MM/YYYY')}</div>
-                          </div>
-                        }
-                      />
-                    </List.Item>
-                  )}
-                />
-              ) : (
-                <div className="empty-projects">
-                  <Empty
-                    description="Aucun projet associé à cet investisseur"
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  />
-                  <div style={{ marginTop: 16, textAlign: 'center' }}>
-                    <Button
-                      type="primary"
-                      icon={<ProjectOutlined />}
-                      onClick={() => setConversionModalVisible(true)}
-                      disabled={!canConvertToProject()}
-                    >
-                      Créer un projet
-                    </Button>
-                  </div>
+            <TabPane tab={
+              <Space>
+                <FileTextOutlined />
+                Notes
+              </Space>
+            } key="notes">
+              <div className="tab-content">
+                <div className="notes-header">
+                  <Title level={4}>Notes</Title>
+                  <Button type="primary" icon={<PlusOutlined />} className="modern-btn-primary">
+                    Ajouter une note
+                  </Button>
                 </div>
-              )}
-            </div>
-          </TabPane>
-        </Tabs>
-      </div>
+                <Empty description="Aucune note" className="empty-state" />
+              </div>
+            </TabPane>
+
+            <TabPane tab={
+              <Space>
+                <ProjectOutlined />
+                Projets
+              </Space>
+            } key="projets">
+              <div className="tab-content">
+                {investisseur.projets && investisseur.projets.length > 0 ? (
+                  <List
+                    itemLayout="horizontal"
+                    dataSource={investisseur.projets}
+                    renderItem={projet => (
+                      <List.Item
+                        actions={[
+                          <Button
+                            type="primary"
+                            icon={<LinkOutlined />}
+                            onClick={() => navigate(`/projets/${projet.id}`)}
+                          >
+                            Voir
+                          </Button>
+                        ]}
+                      >
+                        <List.Item.Meta
+                          avatar={<Avatar icon={<ProjectOutlined />} />}
+                          title={<Link to={`/projets/${projet.id}`}>{projet.title || projet.nom}</Link>}
+                          description={
+                            <div>
+                              <div>{projet.description}</div>
+                              <div>Créé le {moment(projet.created_at).format('DD/MM/YYYY')}</div>
+                            </div>
+                          }
+                        />
+                      </List.Item>
+                    )}
+                  />
+                ) : (
+                  <div className="empty-projects">
+                    <Empty
+                      description="Aucun projet associé à cet investisseur"
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    />
+                    <div style={{ marginTop: 16, textAlign: 'center' }}>
+                      <Button
+                        type="primary"
+                        icon={<ProjectOutlined />}
+                        onClick={() => setConversionModalVisible(true)}
+                        disabled={!canConvertToProject()}
+                        className="modern-btn-primary"
+                      >
+                        Créer un projet
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </TabPane>
+          </Tabs>
+        </Card>
+      </motion.div>
 
       {/* Modal pour avancer dans le pipeline */}
       <Modal
@@ -1286,85 +1440,28 @@ const InvestisseurDetails = () => {
           form={conversionForm}
           layout="vertical"
           initialValues={{
-            // Informations de base
             title: `Projet - ${investisseur?.nom}`,
             company_name: investisseur?.entreprise?.nom || '',
             secteur_id: investisseur?.secteur_id,
             responsable_id: investisseur?.responsable_id || currentUser?.id,
             investment_amount: investisseur?.valeur_potentielle || investisseur?.montant_investissement,
-
-            // Contact et source
             contact_source: 'Conversion depuis Investisseur',
             initial_contact_person: investisseur?.nom,
             first_contact_date: moment(),
-
-            // Dates par défaut
             start_date: moment(),
-
-            // Status et flags
-            status: 'planned', // Changé de 'active' à 'planned' selon l'enum de la DB
+            status: 'planned',
             in_progress: false,
             in_production: false,
             is_blocked: false,
-
-            // Nouveaux champs avec valeurs par défaut
-            market_target: 'local', // Valeur par défaut selon le schéma (local, export, both)
+            market_target: 'local',
             nationality: investisseur?.pays?.name || null,
             foreign_percentage: 0,
-            jobs_expected: 0, // Changé à 0 selon le schéma
+            jobs_expected: 0,
             industrial_zone: null,
-            
-            // Ajout des nouveaux champs selon le schéma
-            idea: true, // Par défaut true selon le schéma
-            contact_source: null, // Sera défini selon l'enum
+            idea: true,
+            contact_source: null,
           }}
         >
-          {/* <Alert
-            message="Conditions de conversion"
-            description={
-              <div>
-                <p>Pour convertir un investisseur en projet, les conditions suivantes doivent être remplies :</p>
-                <ul>
-                  <li>
-                    Pas déjà converti {
-                      (investisseur.statut === 'converti' || investisseur.projets?.length > 0) ? '✗' : '✓'
-                    }
-                  </li>
-                  <li>
-                    Être dans l'étape finale du pipeline {
-                      effectiveCurrentStage?.is_final ? '✓' : '✗'
-                    }
-                  </li>
-                </ul>
-                <div style={{ marginTop: 12, padding: 8, backgroundColor: '#f0f0f0', borderRadius: 4 }}>
-                  <Text strong>État actuel :</Text>
-                  <br />
-                  <Text>Étape actuelle : {effectiveCurrentStage?.name || 'Non définie'}</Text>
-                  <br />
-                  <Text>Type d'étape : {
-                    effectiveCurrentStage?.is_final ? (
-                      <Tag color="green">Finale</Tag>
-                    ) : (
-                      <Tag color="orange">Intermédiaire</Tag>
-                    )
-                  }</Text>
-                  <br />
-                  <Text>Statut : {investisseur.statut}</Text>
-                </div>
-                {!effectiveCurrentStage?.is_final && (
-                  <div style={{ marginTop: 12, padding: 8, backgroundColor: '#fff7e6', borderRadius: 4, border: '1px solid #ffd591' }}>
-                    <Text type="warning">
-                      💡 <strong>Conseil :</strong> Faites progresser l'investisseur jusqu'à l'étape finale du pipeline avant de le convertir.
-                    </Text>
-                  </div>
-                )}
-              </div>
-            }
-            type="info"
-            showIcon
-            style={{ marginBottom: 24 }}
-          /> */}
-
           {/* Informations de base */}
           <Card type="inner" title="Informations de base" style={{ marginBottom: 16 }}>
             <Row gutter={16}>
@@ -1488,8 +1585,6 @@ const InvestisseurDetails = () => {
                     <Option value="local">Marché local</Option>
                     <Option value="export">Marché export</Option>
                     <Option value="both">Marché local et export</Option>
-                    {/* <Option value="international">Marché international</Option>
-                    <Option value="global">Marché global</Option> */}
                   </Select>
                 </Form.Item>
               </Col>
@@ -1515,407 +1610,549 @@ const InvestisseurDetails = () => {
               </Col>
             </Row>
 
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item
-                  name="foreign_percentage"
-                  label="Pourcentage étranger (%)"
-                >
-                  <InputNumber
-                    style={{ width: '100%' }}
-                    placeholder="Pourcentage"
-                    min={0}
-                    max={100}
-                    formatter={value => `${value}%`}
-                    parser={value => value.replace('%', '')}
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  name="industrial_zone"
-                  label="Zone industrielle"
-                >
-                  <Input placeholder="Zone industrielle (optionnel)" />
-                </Form.Item>
-              </Col>
-            </Row>
+            
+            // ...existing code...
 
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item
-                  name="start_date"
-                  label="Date de début"
-                  rules={[{ required: true, message: 'Veuillez sélectionner une date de début' }]}
-                >
-                  <DatePicker
-                    style={{ width: '100%' }}
-                    placeholder="Date de début"
-                    format="DD/MM/YYYY"
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  name="end_date"
-                  label="Date de fin estimée"
-                >
-                  <DatePicker
-                    style={{ width: '100%' }}
-                    placeholder="Date de fin (optionnel)"
-                    format="DD/MM/YYYY"
-                  />
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item
-                  name="status"
-                  label="Statut du projet"
-                  rules={[{ required: true, message: 'Veuillez sélectionner un statut' }]}
-                >
-                  <Select placeholder="Sélectionner un statut">
-                    <Option value="planned">Planifié</Option>
-                    <Option value="in_progress">En cours</Option>
-                    <Option value="completed">Terminé</Option>
-                    <Option value="abandoned">Abandonné</Option>
-                    <Option value="suspended">Suspendu</Option>
-                    <Option value="on_hold">En attente</Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  name="contact_source"
-                  label="Source de contact"
-                >
-                  <Select placeholder="Sélectionner une source">
-                    <Option value="action_promo">Action promotionnelle</Option>
-                    <Option value="visite">Visite</Option>
-                    <Option value="reference">Référence</Option>
-                    <Option value="salon">Salon</Option>
-                    <Option value="direct">Contact direct</Option>
-                    <Option value="autre">Autre</Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item
-                  name="first_contact_date"
-                  label="Date du premier contact"
-                >
-                  <DatePicker
-                    style={{ width: '100%' }}
-                    placeholder="Date du premier contact"
-                    format="DD/MM/YYYY"
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  name="initial_contact_person"
-                  label="Personne de contact initial"
-                >
-                  <Input placeholder="Nom de la personne de contact" />
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Form.Item name="idea" valuePropName="checked" style={{ marginBottom: 16 }}>
-              <Checkbox>Ce projet est encore au stade d'idée</Checkbox>
-            </Form.Item>
-
-            <Row gutter={16}>
-              <Col span={8}>
-                <Form.Item name="in_progress" valuePropName="checked">
-                  <Checkbox>Projet en cours de développement</Checkbox>
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item name="in_production" valuePropName="checked">
-                  <Checkbox>Projet en production</Checkbox>
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item name="is_blocked" valuePropName="checked">
-                  <Checkbox>Projet bloqué</Checkbox>
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Form.Item
-              name="notes"
-              label="Notes sur le projet"
-            >
-              <TextArea
-                rows={3}
-                placeholder="Notes supplémentaires sur le projet"
-              />
-            </Form.Item>
-          </Card>
-        </Form>
-      </Modal>
-
-      {/* Modal pour créer une tâche */}
-      <TaskCreateModal
-        visible={taskModalVisible}
-        onCancel={() => setTaskModalVisible(false)}
-        onSuccess={() => {
-          setRefreshTrigger(prev => prev + 1);
-          loadPipelineTasks();
-        }}
-        entityType="investisseur"
-        entityId={id}
-        stageId={selectedStageForTask}
-        stageName={selectedStageName}
-        entityName={investisseur?.nom}
+<Row gutter={16}>
+  <Col span={12}>
+    <Form.Item
+      name="foreign_percentage"
+      label="Pourcentage d'investissement étranger"
+    >
+      <InputNumber
+        style={{ width: '100%' }}
+        placeholder="Pourcentage"
+        min={0}
+        max={100}
+        formatter={value => `${value}%`}
+        parser={value => value.replace('%', '')}
       />
+    </Form.Item>
+  </Col>
+  <Col span={12}>
+    <Form.Item
+      name="industrial_zone"
+      label="Zone industrielle"
+    >
+      <Input placeholder="Zone industrielle ou région" />
+    </Form.Item>
+  </Col>
+</Row>
+</Card>
 
-      {/* Styles CSS pour la cohérence avec ProspectDetails */}
-      <style jsx>{`
-  .crm-container {
-    background-color: #f0f2f5;
-    border-radius: 4px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  }
-  
-  .crm-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 20px;
-    background-color: white;
-    border-bottom: 1px solid #e8e8e8;
-  }
-  
-  .crm-lead-info {
-    display: flex;
-    align-items: center;
-  }
-  
-  .crm-avatar {
-    margin-right: 12px;
-  }
-  
-  .crm-title {
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .crm-lead-label {
-    font-size: 18px;
-    font-weight: 600;
-    color: #333;
-  }
-  
-  .lead-name {
-    color: #1890ff;
-  }
-  
-  .lead-company {
-    color: #666;
-  }
-  
-  .crm-lead-actions {
-    display: flex;
-    font-size: 13px;
-    color: #888;
-  }
-  
-  .crm-link {
-    color: #1890ff;
-    margin-right: 16px;
-  }
-  
-  .crm-header-actions {
-    display: flex;
-    gap: 8px;
-  }
-  
-  .crm-btn {
-    border-radius: 3px;
-  }
-  
-  .crm-options-btn {
-    background-color: #f5f5f5;
-  }
-  
-  .crm-stage-btn {
-    background-color: #1890ff;
-    color: white;
-  }
-  
-  .crm-convert-btn {
-    background-color: #722ed1;
-    border-color: #722ed1;
-  }
-  
-  .crm-view-project-btn {
-    background-color: #52c41a;
-    border-color: #52c41a;
-  }
-  
-  .crm-view-project-btn:hover {
-    background-color: #73d13d;
-    border-color: #73d13d;
-  }
-  
-  .crm-converted-btn {
-    background-color: #f0f0f0;
-    border-color: #d9d9d9;
-    color: #8c8c8c;
-  }
-  
-  .crm-advance-btn {
-    background-color: #1890ff;
-    color: white;
-    border-color: #1890ff;
-  }
-  
-  .crm-advance-btn:hover {
-    background-color: #40a9ff;
-    border-color: #40a9ff;
-    color: white;
-  }
-  
-  .crm-meta-info {
-    display: flex;
-    background-color: white;
-    padding: 10px 20px;
-    border-bottom: 1px solid #e8e8e8;
-  }
-  
-  .crm-meta-item {
-    margin-right: 40px;
-    display: flex;
-  }
-  
-  .crm-meta-label {
-    color: #999;
-    font-size: 12px;
-    margin-right: 8px;
-  }
-  
-  .crm-meta-value {
-    color: #333;
-    font-size: 12px;
-    display: flex;
-    align-items: center;
-  }
-  
-  .crm-pipeline-visualization {
-    background-color: white;
-    padding: 20px;
-    border-bottom: 1px solid #e8e8e8;
-  }
-  
-  .crm-content-tabs {
-    background-color: white;
-    padding: 20px;
-  }
-  
-  .crm-details-section {
-    padding: 16px;
-  }
-  
-  .crm-details-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-  }
-  
-  .crm-details-header h3 {
-    margin: 0;
-    color: #333;
-  }
-  
-  .crm-info-blocks {
-    margin-top: 24px;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 16px;
-  }
-  
-  .crm-stages-section {
-    padding: 16px;
-  }
-  
-  .crm-stages-card {
-    margin-bottom: 20px;
-  }
-  
-  .crm-tasks-container {
-    padding: 16px;
-  }
-  
-  .crm-tasks-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-  }
-  
-  .crm-tasks-header h3 {
-    margin: 0;
-    color: #333;
-  }
-  
-  .crm-tasks-content {
-    min-height: 120px;
-  }
-  
-  .crm-notes-container {
-    padding: 16px;
-  }
-  
-  .crm-projects-container {
-    padding: 16px;
-  }
-  
-  .empty-projects {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 32px;
-  }
-  
-  .crm-conversion-indicator {
-    text-align: center;
-    padding: 8px 0;
-    font-size: 14px;
-    background-color: white;
-    border-bottom: 1px solid #e8e8e8;
-  }
-  
-  @media (max-width: 768px) {
-    .crm-header {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-    
-    .crm-header-actions {
-      margin-top: 16px;
-      width: 100%;
-      flex-wrap: wrap;
-    }
-    
-    .crm-meta-info {
-      flex-direction: column;
-    }
-    
-    .crm-meta-item {
-      margin-bottom: 8px;
-    }
-  }
+{/* Dates et statut */}
+<Card type="inner" title="Planification" style={{ marginBottom: 16 }}>
+<Row gutter={16}>
+  <Col span={12}>
+    <Form.Item
+      name="start_date"
+      label="Date de début prévue"
+    >
+      <DatePicker 
+        style={{ width: '100%' }}
+        placeholder="Date de début"
+        format="DD/MM/YYYY"
+      />
+    </Form.Item>
+  </Col>
+  <Col span={12}>
+    <Form.Item
+      name="end_date"
+      label="Date de fin prévue"
+    >
+      <DatePicker 
+        style={{ width: '100%' }}
+        placeholder="Date de fin"
+        format="DD/MM/YYYY"
+      />
+    </Form.Item>
+  </Col>
+</Row>
+
+<Row gutter={16}>
+  <Col span={12}>
+    <Form.Item
+      name="first_contact_date"
+      label="Date du premier contact"
+    >
+      <DatePicker 
+        style={{ width: '100%' }}
+        placeholder="Premier contact"
+        format="DD/MM/YYYY"
+      />
+    </Form.Item>
+  </Col>
+  <Col span={12}>
+    <Form.Item
+      name="status"
+      label="Statut du projet"
+      rules={[{ required: true, message: 'Veuillez sélectionner un statut' }]}
+    >
+      <Select placeholder="Statut du projet">
+        <Option value="planned">Planifié</Option>
+        <Option value="in_progress">En cours</Option>
+        <Option value="completed">Terminé</Option>
+        <Option value="cancelled">Annulé</Option>
+        <Option value="on_hold">En attente</Option>
+      </Select>
+    </Form.Item>
+  </Col>
+</Row>
+</Card>
+
+{/* Informations de contact */}
+<Card type="inner" title="Informations de contact" style={{ marginBottom: 16 }}>
+<Row gutter={16}>
+  <Col span={12}>
+    <Form.Item
+      name="contact_source"
+      label="Source du contact"
+    >
+      <Input placeholder="Comment le contact a été établi" />
+    </Form.Item>
+  </Col>
+  <Col span={12}>
+    <Form.Item
+      name="initial_contact_person"
+      label="Personne de contact initial"
+    >
+      <Input placeholder="Nom de la personne contactée" />
+    </Form.Item>
+  </Col>
+</Row>
+</Card>
+
+{/* Options et caractéristiques */}
+<Card type="inner" title="Caractéristiques du projet">
+<Row gutter={16}>
+  <Col span={8}>
+    <Form.Item name="idea" valuePropName="checked">
+      <Checkbox>Projet d'idée</Checkbox>
+    </Form.Item>
+  </Col>
+  <Col span={8}>
+    <Form.Item name="in_progress" valuePropName="checked">
+      <Checkbox>En cours de réalisation</Checkbox>
+    </Form.Item>
+  </Col>
+  <Col span={8}>
+    <Form.Item name="in_production" valuePropName="checked">
+      <Checkbox>En production</Checkbox>
+    </Form.Item>
+  </Col>
+</Row>
+
+<Form.Item name="is_blocked" valuePropName="checked">
+  <Checkbox>Projet bloqué</Checkbox>
+</Form.Item>
+
+<Form.Item
+  name="notes"
+  label="Notes supplémentaires"
+>
+  <TextArea 
+    rows={3} 
+    placeholder="Informations supplémentaires sur le projet..." 
+  />
+</Form.Item>
+</Card>
+
+<Alert
+message="Information importante"
+description="Cette action va créer un nouveau projet et marquer automatiquement l'investisseur comme 'converti'. L'investisseur sera lié au projet créé."
+type="warning"
+showIcon
+style={{ marginTop: 16 }}
+/>
+</Form>
+</Modal>
+
+{/* Modal de création de tâche */}
+<TaskCreateModal
+visible={taskModalVisible}
+onCancel={() => setTaskModalVisible(false)}
+onSuccess={() => {
+setTaskModalVisible(false);
+setRefreshTrigger(prev => prev + 1);
+message.success('Tâche créée avec succès');
+}}
+entityType="investisseur"
+entityId={id}
+stageId={selectedStageForTask}
+stageName={selectedStageName}
+entityName={investisseur?.nom}
+/>
+
+{/* Styles CSS modernes */}
+<style jsx>{`
+.modern-container {
+padding: 24px;
+background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+min-height: 100vh;
+}
+
+.modern-loading-container {
+display: flex;
+justify-content: center;
+align-items: center;
+min-height: 60vh;
+background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.loading-content {
+text-align: center;
+padding: 40px;
+background: white;
+border-radius: 16px;
+box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+.modern-header-card {
+border-radius: 16px;
+border: 1px solid #f0f0f0;
+box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+margin-bottom: 24px;
+overflow: hidden;
+}
+
+.header-content {
+display: flex;
+justify-content: space-between;
+align-items: center;
+padding: 8px;
+}
+
+.header-info {
+display: flex;
+align-items: center;
+gap: 16px;
+}
+
+.header-details {
+flex: 1;
+}
+
+.header-actions {
+display: flex;
+align-items: center;
+}
+
+.modern-metrics-card {
+border-radius: 16px;
+border: 1px solid #f0f0f0;
+box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+margin-bottom: 24px;
+}
+
+.modern-pipeline-card {
+border-radius: 16px;
+border: 1px solid #f0f0f0;
+box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+margin-bottom: 24px;
+}
+
+.modern-content-card {
+border-radius: 16px;
+border: 1px solid #f0f0f0;
+box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+overflow: hidden;
+}
+
+.modern-tabs .ant-tabs-tab {
+padding: 12px 24px;
+font-weight: 500;
+}
+
+.modern-tabs .ant-tabs-tab-active {
+background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+color: white !important;
+border-radius: 8px 8px 0 0;
+}
+
+.tab-content {
+padding: 24px;
+}
+
+.details-header,
+.tasks-header,
+.notes-header {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 24px;
+}
+
+.details-header h4,
+.tasks-header h4,
+.notes-header h4 {
+margin: 0;
+color: #333;
+}
+
+.modern-descriptions {
+border-radius: 8px;
+overflow: hidden;
+}
+
+.modern-descriptions .ant-descriptions-item-label {
+background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+font-weight: 600;
+}
+
+.info-card {
+border-radius: 8px;
+border: 1px solid #f0f0f0;
+transition: all 0.3s ease;
+}
+
+.info-card:hover {
+box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+transform: translateY(-2px);
+}
+
+.stages-card {
+border-radius: 12px;
+border: 1px solid #f0f0f0;
+}
+
+.no-pipeline-alert {
+border-radius: 8px;
+}
+
+.empty-state {
+padding: 40px 0;
+}
+
+.empty-projects {
+text-align: center;
+padding: 40px 0;
+}
+
+.modern-btn {
+border-radius: 8px;
+font-weight: 500;
+transition: all 0.3s ease;
+}
+
+.modern-btn:hover {
+transform: translateY(-1px);
+box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.modern-btn-primary {
+background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+border: none;
+border-radius: 8px;
+font-weight: 500;
+transition: all 0.3s ease;
+}
+
+.modern-btn-primary:hover {
+background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+transform: translateY(-1px);
+box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.modern-btn-disabled {
+border-radius: 8px;
+opacity: 0.6;
+}
+
+.modern-error-card,
+.modern-not-found-card {
+border-radius: 16px;
+border: 1px solid #f0f0f0;
+box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+margin: 40px auto;
+max-width: 500px;
+}
+
+.error-content,
+.not-found-content {
+text-align: center;
+padding: 40px 20px;
+}
+
+.error-icon {
+font-size: 48px;
+color: #ff4d4f;
+margin-bottom: 16px;
+}
+
+.not-found-icon {
+font-size: 48px;
+color: #1890ff;
+margin-bottom: 16px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+.modern-container {
+padding: 16px;
+}
+
+.header-content {
+flex-direction: column;
+align-items: flex-start;
+gap: 16px;
+}
+
+.header-actions {
+width: 100%;
+justify-content: space-between;
+}
+
+.tab-content {
+padding: 16px;
+}
+
+.details-header,
+.tasks-header,
+.notes-header {
+flex-direction: column;
+align-items: flex-start;
+gap: 16px;
+}
+}
+
+@media (max-width: 576px) {
+.header-info {
+flex-direction: column;
+align-items: center;
+text-align: center;
+}
+
+.modern-metrics-card .ant-col {
+margin-bottom: 16px;
+}
+}
+
+/* Améliorations visuelles */
+.ant-card-head {
+background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+border-bottom: 1px solid #e8e8e8;
+}
+
+.ant-card-head-title {
+font-weight: 600;
+color: #333;
+}
+
+.ant-statistic-title {
+font-size: 14px;
+font-weight: 500;
+color: #666;
+}
+
+.ant-statistic-content {
+font-size: 20px;
+font-weight: 600;
+}
+
+.ant-progress-inner {
+background-color: #f5f5f5;
+}
+
+.ant-progress-bg {
+background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.ant-alert {
+border-radius: 8px;
+}
+
+.ant-form-item-label > label {
+font-weight: 500;
+color: #333;
+}
+
+.ant-input,
+.ant-select-selector,
+.ant-picker {
+border-radius: 6px;
+border: 1px solid #d9d9d9;
+transition: all 0.3s ease;
+}
+
+.ant-input:focus,
+.ant-select-focused .ant-select-selector,
+.ant-picker:focus {
+border-color: #667eea;
+box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+}
+
+.ant-btn {
+border-radius: 6px;
+font-weight: 500;
+transition: all 0.3s ease;
+}
+
+.ant-modal-header {
+background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+border-bottom: 1px solid #e8e8e8;
+}
+
+.ant-modal-title {
+font-weight: 600;
+color: #333;
+}
+
+.ant-tag {
+border-radius: 4px;
+font-weight: 500;
+}
+
+.ant-breadcrumb {
+font-weight: 500;
+}
+
+.ant-breadcrumb a {
+color: #666;
+transition: color 0.3s ease;
+}
+
+.ant-breadcrumb a:hover {
+color: #667eea;
+}
+
+.ant-list-item {
+padding: 16px;
+border-radius: 8px;
+margin-bottom: 8px;
+background: #fafafa;
+border: 1px solid #f0f0f0;
+transition: all 0.3s ease;
+}
+
+.ant-list-item:hover {
+box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+transform: translateY(-1px);
+}
+
+/* Animations supplémentaires */
+.ant-card {
+transition: all 0.3s ease;
+}
+
+.ant-card:hover {
+box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+}
+
+.ant-statistic {
+text-align: center;
+padding: 16px;
+border-radius: 8px;
+background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+transition: all 0.3s ease;
+}
+
+.ant-statistic:hover {
+transform: translateY(-2px);
+box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
 `}</style>
-    </div>
-  );
+</div>
+);
 };
 
 export default InvestisseurDetails;

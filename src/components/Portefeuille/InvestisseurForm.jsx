@@ -11,7 +11,7 @@ import {
   PhoneOutlined, BankOutlined, EditOutlined, PlusOutlined,
   InfoCircleOutlined, FormOutlined, HomeOutlined, DashboardOutlined,
   GlobalOutlined, TeamOutlined, FundOutlined, DollarOutlined,
-  TrophyOutlined, CalendarOutlined
+  TrophyOutlined, CalendarOutlined, QuestionCircleOutlined, BookOutlined
 } from '@ant-design/icons';
 import {
   createInvestisseur,
@@ -21,6 +21,7 @@ import {
 } from '../../features/investisseurSlice';
 import { getCurrentUser } from '../../features/userSlice';
 import { fetchSecteurs, fetchPays } from '../../features/marketingSlice';
+import { motion, AnimatePresence } from 'framer-motion';
 import moment from 'moment';
 
 const { Option } = Select;
@@ -177,9 +178,13 @@ const InvestisseurForm = () => {
   // Affichage du chargement
   if (loadingUser || (id && loadingData)) {
     return (
-      <div className="loading-container">
-        <Spin size="large" />
-        <p>Chargement des données...</p>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '400px' 
+      }}>
+        <Spin size="large" tip="Chargement des données..." />
       </div>
     );
   }
@@ -217,115 +222,138 @@ const InvestisseurForm = () => {
   }
 
   return (
-    <div className="crm-container">
-      {/* En-tête avec le style CRM */}
-      <div className="crm-header">
-        <div className="crm-lead-info">
-          <div className="crm-avatar">
-            <Avatar icon={<FundOutlined />} size={42} style={{ backgroundColor: '#722ed1' }} />
-          </div>
-          <div className="crm-title">
-            <div className="crm-lead-label">
-              {isEditMode ? (
-                <>Modifier l'investisseur: <span className="lead-name">"{investisseur?.nom}"</span></>
-              ) : (
-                <>Nouvel investisseur</>
-              )}
-            </div>
-            <div className="crm-lead-actions">
-              <Breadcrumb separator=">" className="crm-breadcrumb">
-                <Breadcrumb.Item><Link to="/dashboard"><HomeOutlined /> Accueil</Link></Breadcrumb.Item>
-                <Breadcrumb.Item><Link to="/investisseurs"><FundOutlined /> Investisseurs</Link></Breadcrumb.Item>
-                <Breadcrumb.Item>{isEditMode ? 'Modifier' : 'Nouveau'}</Breadcrumb.Item>
-              </Breadcrumb>
-            </div>
-          </div>
-        </div>
+    <div className="modern-container">
+      {/* Breadcrumb */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <Breadcrumb style={{ marginBottom: 24 }}>
+          <Breadcrumb.Item>
+            <Link to="/dashboard">
+              <HomeOutlined /> Dashboard
+            </Link>
+          </Breadcrumb.Item>
+          <Breadcrumb.Item>
+            <Link to="/investisseurs">
+              <FundOutlined /> Investisseurs
+            </Link>
+          </Breadcrumb.Item>
+          <Breadcrumb.Item>
+            {isEditMode ? 'Modifier' : 'Nouvel investisseur'}
+          </Breadcrumb.Item>
+        </Breadcrumb>
+      </motion.div>
 
-        <div className="crm-header-actions">
-          <Button 
-            className="crm-btn" 
-            icon={<ArrowLeftOutlined />}
-            onClick={() => navigate('/investisseurs')}
-          >
-            Retour à la liste
-          </Button>
-          
-          <Button 
-            type="primary"
-            className="crm-btn"
-            icon={isEditMode ? <EditOutlined /> : <PlusOutlined />}
-            loading={isSubmitting}
-            onClick={handleSubmit}
-          >
-            {isEditMode ? 'Mettre à jour' : 'Créer'}
-          </Button>
-        </div>
-      </div>
-
-      {/* Informations du formulaire */}
-      <div className="crm-meta-info">
-        <div className="crm-meta-item">
-          <div className="crm-meta-label">TYPE:</div>
-          <div className="crm-meta-value">
-            <Badge status="processing" text={isEditMode ? "Modification" : "Création"} />
-          </div>
-        </div>
-        <div className="crm-meta-item">
-          <div className="crm-meta-label">STATUT:</div>
-          <div className="crm-meta-value">
-            {investisseur?.statut || 'Nouveau'}
-          </div>
-        </div>
-        <div className="crm-meta-item">
-          <div className="crm-meta-label">DATE:</div>
-          <div className="crm-meta-value">{moment().format('DD/MM/YYYY')}</div>
-        </div>
-        <div className="crm-meta-item">
-          <div className="crm-meta-label">CRÉATEUR:</div>
-          <div className="crm-meta-value">
-            <Avatar size="small" icon={<UserOutlined />} style={{ marginRight: 8 }} />
-            {user?.name || 'Utilisateur'}
-          </div>
-        </div>
-      </div>
-
-      {/* Contenu principal */}
-      <div className="crm-content-tabs">
-        <Tabs activeKey={activeTab} onChange={setActiveTab} type="card">
-          <TabPane tab={<span><FormOutlined /> Formulaire investisseur</span>} key="form">
-            <div className="crm-form-container">
-              <Form
-                form={form}
-                layout="vertical"
-                initialValues={{
-                  statut: 'nouveau',
-                  type_investisseur: 'individuel',
-                  devise: 'EUR'
-                }}
-                className="enhanced-form"
+      {/* En-tête */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        <Card className="modern-header-card">
+          <div className="header-content">
+            <div className="header-info">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                transition={{ duration: 0.2 }}
               >
-                <Row gutter={[24, 16]}>
+                <Avatar 
+                  size={64} 
+                  icon={<FundOutlined />} 
+                  style={{ 
+                    backgroundColor: isEditMode ? '#1890ff' : '#52c41a',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                  }} 
+                />
+              </motion.div>
+              <div className="header-details">
+                <Title level={2} style={{ margin: 0, color: '#1890ff' }}>
+                  {isEditMode ? `Modifier "${investisseur?.nom}"` : 'Nouvel investisseur'}
+                </Title>
+                <Text type="secondary" style={{ fontSize: '16px' }}>
+                  {isEditMode ? 'Modifiez les informations de l\'investisseur' : 'Créez un nouveau profil d\'investisseur'}
+                </Text>
+              </div>
+            </div>
+            <div className="header-actions">
+              <Button 
+                icon={<ArrowLeftOutlined />} 
+                onClick={() => navigate('/investisseurs')}
+                className="modern-btn"
+                size="large"
+              >
+                Retour
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </motion.div>
+
+      {/* Formulaire principal */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Card className="modern-content-card">
+          <Tabs 
+            activeKey={activeTab} 
+            onChange={setActiveTab}
+            className="modern-tabs"
+            type="card"
+          >
+            <TabPane 
+              tab={
+                <Space>
+                  <UserOutlined />
+                  Informations de l'investisseur
+                </Space>
+              } 
+              key="form"
+            >
+              <div className="tab-content">
+                <Form
+                  form={form}
+                  layout="vertical"
+                  onFinish={handleSubmit}
+                  disabled={isSubmitting}
+                  className="modern-form"
+                  initialValues={{
+                    statut: 'nouveau',
+                    type_investisseur: 'individuel',
+                    devise: 'EUR'
+                  }}
+                >
                   {/* Informations de base */}
-                  <Col span={24}>
-                    <Card title="Informations de base" className="form-section-card">
-                      <Row gutter={[16, 16]}>
-                        <Col xs={24} sm={12}>
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 }}
+                  >
+                    <Card className="form-section-card" title={
+                      <Space>
+                        <UserOutlined style={{ color: '#1890ff' }} />
+                        <span>Informations personnelles</span>
+                      </Space>
+                    }>
+                      <Row gutter={[24, 16]}>
+                        <Col xs={24} lg={12}>
                           <Form.Item
                             name="nom"
                             label="Nom complet"
                             rules={[{ required: true, message: 'Le nom est obligatoire' }]}
-                            className="enhanced-form-item"
                           >
                             <Input 
-                              prefix={<UserOutlined />} 
+                              prefix={<UserOutlined style={{ color: '#1890ff' }} />} 
                               placeholder="Nom de l'investisseur"
-                              className="enhanced-input"
+                              className="modern-input"
                             />
                           </Form.Item>
                         </Col>
 
-                        <Col xs={24} sm={12}>
+                        <Col xs={24} lg={12}>
                           <Form.Item
                             name="email"
                             label="Email"
@@ -333,56 +361,75 @@ const InvestisseurForm = () => {
                               { required: true, message: 'L\'email est obligatoire' },
                               { type: 'email', message: 'Format d\'email invalide' }
                             ]}
-                            className="enhanced-form-item"
                           >
                             <Input 
-                              prefix={<MailOutlined />} 
+                              prefix={<MailOutlined style={{ color: '#52c41a' }} />} 
                               placeholder="Email de l'investisseur"
-                              className="enhanced-input"
+                              className="modern-input"
                             />
                           </Form.Item>
                         </Col>
 
-                        <Col xs={24} sm={12}>
+                        <Col xs={24} lg={12}>
                           <Form.Item
                             name="telephone"
                             label="Téléphone"
-                            className="enhanced-form-item"
                           >
                             <Input 
-                              prefix={<PhoneOutlined />} 
+                              prefix={<PhoneOutlined style={{ color: '#faad14' }} />} 
                               placeholder="Numéro de téléphone"
-                              className="enhanced-input"
+                              className="modern-input"
                             />
                           </Form.Item>
                         </Col>
 
-                        <Col xs={24} sm={12}>
+                        <Col xs={24} lg={12}>
                           <Form.Item
                             name="type_investisseur"
                             label="Type d'investisseur"
                             rules={[{ required: true, message: 'Le type est obligatoire' }]}
-                            className="enhanced-form-item"
                           >
-                            <Select placeholder="Sélectionnez le type" className="enhanced-select">
-                              <Option value="individuel">Individuel</Option>
-                              <Option value="institutionnel">Institutionnel</Option>
-                              <Option value="fonds_investissement">Fonds d'investissement</Option>
-                              <Option value="business_angel">Business Angel</Option>
+                            <Select 
+                              placeholder="Sélectionnez le type"
+                              className="modern-select"
+                            >
+                              <Option value="individuel">
+                                <Space>
+                                  <UserOutlined style={{ color: '#1890ff' }} />
+                                  Individuel
+                                </Space>
+                              </Option>
+                              <Option value="institutionnel">
+                                <Space>
+                                  <BankOutlined style={{ color: '#52c41a' }} />
+                                  Institutionnel
+                                </Space>
+                              </Option>
+                              <Option value="fonds_investissement">
+                                <Space>
+                                  <FundOutlined style={{ color: '#722ed1' }} />
+                                  Fonds d'investissement
+                                </Space>
+                              </Option>
+                              <Option value="business_angel">
+                                <Space>
+                                  <TrophyOutlined style={{ color: '#faad14' }} />
+                                  Business Angel
+                                </Space>
+                              </Option>
                               <Option value="autre">Autre</Option>
                             </Select>
                           </Form.Item>
                         </Col>
 
-                        <Col xs={24} sm={12}>
+                        <Col xs={24} lg={12}>
                           <Form.Item
                             name="secteur_interet_id"
                             label="Secteur d'intérêt"
-                            className="enhanced-form-item"
                           >
                             <Select 
                               placeholder="Sélectionnez le secteur d'intérêt" 
-                              className="enhanced-select"
+                              className="modern-select"
                               showSearch
                               filterOption={(input, option) =>
                                 option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
@@ -397,15 +444,14 @@ const InvestisseurForm = () => {
                           </Form.Item>
                         </Col>
 
-                        <Col xs={24} sm={12}>
+                        <Col xs={24} lg={12}>
                           <Form.Item
                             name="pays_id"
                             label="Pays"
-                            className="enhanced-form-item"
                           >
                             <Select 
                               placeholder="Sélectionnez le pays" 
-                              className="enhanced-select"
+                              className="modern-select"
                               showSearch
                               filterOption={(input, option) =>
                                 option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
@@ -421,18 +467,26 @@ const InvestisseurForm = () => {
                         </Col>
                       </Row>
                     </Card>
-                  </Col>
+                  </motion.div>
 
                   {/* Informations financières */}
-                  <Col span={24}>
-                    <Card title="Informations financières" className="form-section-card">
-                      <Row gutter={[16, 16]}>
-                        <Col xs={24} sm={8}>
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    <Card className="form-section-card" title={
+                      <Space>
+                        <DollarOutlined style={{ color: '#13c2c2' }} />
+                        <span>Informations financières</span>
+                      </Space>
+                    }>
+                      <Row gutter={[24, 16]}>
+                        <Col xs={24} md={8}>
                           <Form.Item
                             name="capacite_investissement"
                             label="Capacité d'investissement"
                             rules={[{ required: true, message: 'La capacité est obligatoire' }]}
-                            className="enhanced-form-item"
                           >
                             <InputNumber
                               min={0}
@@ -440,38 +494,39 @@ const InvestisseurForm = () => {
                               placeholder="Capacité en devise"
                               formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                               parser={value => value.replace(/\$\s?|(,*)/g, '')}
-                              prefix={<DollarOutlined />}
+                              className="modern-input"
                             />
                           </Form.Item>
                         </Col>
 
-                        <Col xs={24} sm={8}>
+                        <Col xs={24} md={8}>
                           <Form.Item
                             name="devise"
                             label="Devise"
                             rules={[{ required: true, message: 'La devise est obligatoire' }]}
-                            className="enhanced-form-item"
                           >
-                            <Select placeholder="Sélectionnez la devise" className="enhanced-select">
-                              <Option value="EUR">EUR - Euro</Option>
-                              <Option value="USD">USD - Dollar américain</Option>
-                              <Option value="GBP">GBP - Livre sterling</Option>
-                              <Option value="CHF">CHF - Franc suisse</Option>
-                              <Option value="CAD">CAD - Dollar canadien</Option>
-                              <Option value="JPY">JPY - Yen japonais</Option>
-                              <Option value="AUD">AUD - Dollar australien</Option>
-                              <Option value="MAD">MAD - Dirham marocain</Option>
-                              <Option value="TND">TND - Dinar tunisien</Option>
-                              <Option value="DZD">DZD - Dinar algérien</Option>
+                            <Select 
+                              placeholder="Sélectionnez la devise"
+                              className="modern-select"
+                            >
+                              <Option value="EUR">EUR (€)</Option>
+                              <Option value="USD">USD ($)</Option>
+                              <Option value="GBP">GBP (£)</Option>
+                              <Option value="CHF">CHF</Option>
+                              <Option value="CAD">CAD</Option>
+                              <Option value="JPY">JPY (¥)</Option>
+                              <Option value="AUD">AUD</Option>
+                              <Option value="MAD">MAD (DH)</Option>
+                              <Option value="TND">TND</Option>
+                              <Option value="DZD">DZD</Option>
                             </Select>
                           </Form.Item>
                         </Col>
 
-                        <Col xs={24} sm={8}>
+                        <Col xs={24} md={8}>
                           <Form.Item
                             name="ticket_moyen"
                             label="Ticket moyen"
-                            className="enhanced-form-item"
                           >
                             <InputNumber
                               min={0}
@@ -479,17 +534,20 @@ const InvestisseurForm = () => {
                               placeholder="Ticket moyen par investissement"
                               formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                               parser={value => value.replace(/\$\s?|(,*)/g, '')}
+                              className="modern-input"
                             />
                           </Form.Item>
                         </Col>
 
-                        <Col xs={24} sm={12}>
+                        <Col xs={24} lg={12}>
                           <Form.Item
                             name="horizon_investissement"
                             label="Horizon d'investissement"
-                            className="enhanced-form-item"
                           >
-                            <Select placeholder="Durée d'investissement préférée" className="enhanced-select">
+                            <Select 
+                              placeholder="Durée d'investissement préférée"
+                              className="modern-select"
+                            >
                               <Option value="court_terme">Court terme (1-3 ans)</Option>
                               <Option value="moyen_terme">Moyen terme (3-7 ans)</Option>
                               <Option value="long_terme">Long terme (7+ ans)</Option>
@@ -498,13 +556,15 @@ const InvestisseurForm = () => {
                           </Form.Item>
                         </Col>
 
-                        <Col xs={24} sm={12}>
+                        <Col xs={24} lg={12}>
                           <Form.Item
                             name="experience_investissement"
                             label="Expérience d'investissement"
-                            className="enhanced-form-item"
                           >
-                            <Select placeholder="Niveau d'expérience" className="enhanced-select">
+                            <Select 
+                              placeholder="Niveau d'expérience"
+                              className="modern-select"
+                            >
                               <Option value="debutant">Débutant</Option>
                               <Option value="intermediaire">Intermédiaire</Option>
                               <Option value="experimente">Expérimenté</Option>
@@ -514,66 +574,93 @@ const InvestisseurForm = () => {
                         </Col>
                       </Row>
                     </Card>
-                  </Col>
+                  </motion.div>
 
-                  {/* Statut et dates */}
-                  <Col span={24}>
-                    <Card title="Statut et suivi" className="form-section-card">
-                      <Row gutter={[16, 16]}>
-                        <Col xs={24} sm={8}>
+                  {/* Statut et suivi */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 }}
+                  >
+                    <Card className="form-section-card" title={
+                      <Space>
+                        <CalendarOutlined style={{ color: '#722ed1' }} />
+                        <span>Statut et suivi</span>
+                      </Space>
+                    }>
+                      <Row gutter={[24, 16]}>
+                        <Col xs={24} md={8}>
                           <Form.Item
                             name="statut"
                             label="Statut"
                             rules={[{ required: true, message: 'Le statut est obligatoire' }]}
-                            className="enhanced-form-item"
                           >
-                            <Select placeholder="Sélectionnez le statut" className="enhanced-select">
-                              <Option value="nouveau">Nouveau</Option>
-                              <Option value="en_cours">En cours</Option>
-                              <Option value="actif">Actif</Option>
-                              <Option value="negocie">En négociation</Option>
-                              <Option value="converti">Converti</Option>
-                              <Option value="perdu">Perdu</Option>
-                              <Option value="inactif">Inactif</Option>
+                            <Select 
+                              placeholder="Sélectionnez le statut"
+                              className="modern-select"
+                            >
+                              <Option value="nouveau">
+                                <Badge status="default" text="Nouveau" />
+                              </Option>
+                              <Option value="en_cours">
+                                <Badge status="processing" text="En cours" />
+                              </Option>
+                              <Option value="actif">
+                                <Badge status="success" text="Actif" />
+                              </Option>
+                              <Option value="negocie">
+                                <Badge status="warning" text="En négociation" />
+                              </Option>
+                              <Option value="converti">
+                                <Badge status="success" text="Converti" />
+                              </Option>
+                              <Option value="perdu">
+                                <Badge status="error" text="Perdu" />
+                              </Option>
+                              <Option value="inactif">
+                                <Badge status="default" text="Inactif" />
+                              </Option>
                             </Select>
                           </Form.Item>
                         </Col>
 
-                        <Col xs={24} sm={8}>
+                        <Col xs={24} md={8}>
                           <Form.Item
                             name="date_engagement"
                             label="Date d'engagement"
-                            className="enhanced-form-item"
                           >
                             <DatePicker
                               style={{ width: '100%' }}
                               placeholder="Date d'engagement"
                               format="DD/MM/YYYY"
+                              className="modern-input"
                             />
                           </Form.Item>
                         </Col>
 
-                        <Col xs={24} sm={8}>
+                        <Col xs={24} md={8}>
                           <Form.Item
                             name="date_signature"
                             label="Date de signature"
-                            className="enhanced-form-item"
                           >
                             <DatePicker
                               style={{ width: '100%' }}
                               placeholder="Date de signature"
                               format="DD/MM/YYYY"
+                              className="modern-input"
                             />
                           </Form.Item>
                         </Col>
 
-                        <Col xs={24} sm={12}>
+                        <Col xs={24} lg={12}>
                           <Form.Item
                             name="source"
                             label="Source"
-                            className="enhanced-form-item"
                           >
-                            <Select placeholder="Comment avez-vous trouvé cet investisseur?" className="enhanced-select">
+                            <Select 
+                              placeholder="Comment avez-vous trouvé cet investisseur?"
+                              className="modern-select"
+                            >
                               <Option value="site_web">Site web</Option>
                               <Option value="referral">Recommandation</Option>
                               <Option value="salon">Salon/Événement</Option>
@@ -587,62 +674,67 @@ const InvestisseurForm = () => {
                         </Col>
                       </Row>
                     </Card>
-                  </Col>
+                  </motion.div>
 
                   {/* Informations détaillées */}
-                  <Col span={24}>
-                    <Card title="Informations détaillées" className="form-section-card">
-                      <Row gutter={[16, 16]}>
-                        <Col xs={24} sm={12}>
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4 }}
+                  >
+                    <Card className="form-section-card" title={
+                      <Space>
+                        <InfoCircleOutlined style={{ color: '#fa8c16' }} />
+                        <span>Informations détaillées</span>
+                      </Space>
+                    }>
+                      <Row gutter={[24, 16]}>
+                        <Col xs={24} lg={12}>
                           <Form.Item
                             name="interets_specifiques"
                             label="Intérêts spécifiques"
-                            className="enhanced-form-item"
                           >
                             <TextArea
                               rows={3}
                               placeholder="Domaines d'investissement préférés, secteurs d'intérêt..."
-                              className="enhanced-textarea"
+                              className="modern-textarea"
                             />
                           </Form.Item>
                         </Col>
 
-                        <Col xs={24} sm={12}>
+                        <Col xs={24} lg={12}>
                           <Form.Item
                             name="criteres_investissement"
                             label="Critères d'investissement"
-                            className="enhanced-form-item"
                           >
                             <TextArea
                               rows={3}
                               placeholder="Critères de sélection, montants préférés, durée d'investissement..."
-                              className="enhanced-textarea"
+                              className="modern-textarea"
                             />
                           </Form.Item>
                         </Col>
 
-                        <Col xs={24} sm={12}>
+                        <Col xs={24} lg={12}>
                           <Form.Item
                             name="linkedin"
                             label="Profil LinkedIn"
-                            className="enhanced-form-item"
                           >
                             <Input 
                               placeholder="https://linkedin.com/in/..."
-                              className="enhanced-input"
+                              className="modern-input"
                             />
                           </Form.Item>
                         </Col>
 
-                        <Col xs={24} sm={12}>
+                        <Col xs={24} lg={12}>
                           <Form.Item
                             name="site_web"
                             label="Site web"
-                            className="enhanced-form-item"
                           >
                             <Input 
                               placeholder="https://..."
-                              className="enhanced-input"
+                              className="modern-input"
                             />
                           </Form.Item>
                         </Col>
@@ -651,12 +743,11 @@ const InvestisseurForm = () => {
                           <Form.Item
                             name="adresse"
                             label="Adresse"
-                            className="enhanced-form-item"
                           >
                             <TextArea
                               rows={2}
                               placeholder="Adresse complète"
-                              className="enhanced-textarea"
+                              className="modern-textarea"
                             />
                           </Form.Item>
                         </Col>
@@ -665,262 +756,409 @@ const InvestisseurForm = () => {
                           <Form.Item
                             name="notes_internes"
                             label="Notes internes"
-                            className="enhanced-form-item"
                           >
                             <TextArea
                               rows={4}
                               placeholder="Informations internes, observations, historique..."
-                              className="enhanced-textarea"
+                              className="modern-textarea"
                             />
                           </Form.Item>
                         </Col>
                       </Row>
                     </Card>
-                  </Col>
-                </Row>
+                  </motion.div>
 
-                <div className="form-actions">
-                  <Space size="middle">
-                    <Button 
-                      icon={<ArrowLeftOutlined />}
-                      onClick={() => navigate('/investisseurs')}
-                    >
-                      Annuler
-                    </Button>
-                    <Button 
-                      type="primary"
-                      icon={isEditMode ? <EditOutlined /> : <PlusOutlined />}
-                      loading={isSubmitting}
-                      onClick={handleSubmit}
-                    >
-                      {isEditMode ? 'Mettre à jour' : 'Créer l\'investisseur'}
-                    </Button>
+                  {/* Boutons d'action */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                  >
+                    <Card className="form-actions-card">
+                      <Row justify="end">
+                        <Space size="large">
+                          <Button 
+                            onClick={() => navigate('/investisseurs')}
+                            size="large"
+                            className="modern-btn"
+                          >
+                            Annuler
+                          </Button>
+                          <Button 
+                            type="primary" 
+                            htmlType="submit" 
+                            loading={isSubmitting}
+                            icon={<SaveOutlined />}
+                            size="large"
+                            className="modern-btn-primary"
+                          >
+                            {isEditMode ? 'Mettre à jour' : 'Créer l\'investisseur'}
+                          </Button>
+                        </Space>
+                      </Row>
+                    </Card>
+                  </motion.div>
+                </Form>
+              </div>
+            </TabPane>
+
+            {/* Onglet d'aide */}
+            <TabPane 
+              tab={
+                <Space>
+                  <QuestionCircleOutlined />
+                  Guide d'aide
+                </Space>
+              } 
+              key="help"
+            >
+              <div className="tab-content">
+                <Card className="help-card" title={
+                  <Space>
+                    <BookOutlined style={{ color: '#1890ff' }} />
+                    <span>Guide de création d'investisseur</span>
                   </Space>
-                </div>
-              </Form>
-            </div>
-          </TabPane>
+                }>
+                  <Row gutter={[24, 24]}>
+                    <Col xs={24} lg={12}>
+                      <Card className="help-section-card" title="Types d'investisseurs">
+                        <ul className="help-list">
+                          <li><strong>Individuel :</strong> Personne physique investissant ses propres fonds</li>
+                          <li><strong>Institutionnel :</strong> Banques, compagnies d'assurance, fonds de pension</li>
+                          <li><strong>Fonds d'investissement :</strong> Sociétés de gestion d'actifs</li>
+                          <li><strong>Business Angel :</strong> Entrepreneur expérimenté investissant dans des startups</li>
+                        </ul>
+                      </Card>
+                    </Col>
 
-          <TabPane tab={<span><InfoCircleOutlined /> Guide d'évaluation</span>} key="help">
-            <div className="crm-help-container">
-              <Row gutter={[24, 24]}>
-                <Col xs={24} md={12}>
-                  <Card title="Types d'investisseurs" className="help-card">
-                    <ul>
-                      <li><strong>Individuel :</strong> Personne physique investissant ses propres fonds</li>
-                      <li><strong>Institutionnel :</strong> Banques, compagnies d'assurance, fonds de pension</li>
-                      <li><strong>Fonds d'investissement :</strong> Sociétés de gestion d'actifs</li>
-                      <li><strong>Business Angel :</strong> Entrepreneur expérimenté investissant dans des startups</li>
-                    </ul>
-                  </Card>
-                </Col>
-                <Col xs={24} md={12}>
-                  <Card title="Critères d'évaluation" className="help-card">
-                    <ul>
-                      <li><strong>Capacité :</strong> Montant disponible pour investir</li>
-                      <li><strong>Appétit :</strong> Niveau de risque accepté</li>
-                      <li><strong>Horizon :</strong> Durée d'investissement souhaitée</li>
-                      <li><strong>Secteur :</strong> Domaines d'intérêt privilégiés</li>
-                    </ul>
-                  </Card>
-                </Col>
-              </Row>
-              
-              <Alert
-                message="Bonnes pratiques"
-                description="Documentez précisément les critères et préférences de chaque investisseur pour optimiser le matching avec vos projets d'investissement."
-                type="info"
-                showIcon
-                style={{ marginTop: 24 }}
-              />
-            </div>
-          </TabPane>
-        </Tabs>
-      </div>
+                    <Col xs={24} lg={12}>
+                      <Card className="help-section-card" title="Critères d'évaluation">
+                        <ul className="help-list">
+                          <li><strong>Capacité :</strong> Montant disponible pour investir</li>
+                          <li><strong>Appétit :</strong> Niveau de risque accepté</li>
+                          <li><strong>Horizon :</strong> Durée d'investissement souhaitée</li>
+                          <li><strong>Secteur :</strong> Domaines d'intérêt privilégiés</li>
+                        </ul>
+                      </Card>
+                    </Col>
 
-      {/* CSS intégré pour les styles CRM */}
+                    <Col span={24}>
+                      <Card className="help-section-card" title="Conseils d'utilisation">
+                        <Row gutter={[16, 16]}>
+                          <Col xs={24} md={12}>
+                            <Alert
+                              message="Profil complet"
+                              description="Renseignez un maximum d'informations pour optimiser le matching avec vos projets"
+                              type="info"
+                              showIcon
+                            />
+                          </Col>
+                          <Col xs={24} md={12}>
+                            <Alert
+                              message="Capacité réaliste"
+                              description="Assurez-vous que la capacité d'investissement correspond à la réalité"
+                              type="warning"
+                              showIcon
+                            />
+                          </Col>
+                          <Col xs={24} md={12}>
+                            <Alert
+                              message="Suivi régulier"
+                              description="Mettez à jour régulièrement le statut et les informations de contact"
+                              type="success"
+                              showIcon
+                            />
+                          </Col>
+                          <Col xs={24} md={12}>
+                            <Alert
+                              message="Notes internes"
+                              description="Documentez précisément les critères et préférences de chaque investisseur"
+                              type="info"
+                              showIcon
+                            />
+                          </Col>
+                        </Row>
+                      </Card>
+                    </Col>
+                  </Row>
+                </Card>
+              </div>
+            </TabPane>
+          </Tabs>
+        </Card>
+      </motion.div>
+
+      {/* CSS intégré - identique à ProjetForm */}
       <style jsx>{`
-        .crm-container {
-          background-color: #f0f2f5;
-          border-radius: 4px;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        .modern-container {
           padding: 24px;
+          background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+          min-height: 100vh;
         }
-        
-        .crm-header {
+
+        .modern-header-card {
+          border-radius: 16px;
+          border: 1px solid #f0f0f0;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+          margin-bottom: 24px;
+          overflow: hidden;
+        }
+
+        .header-content {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 16px 20px;
-          background-color: white;
-          border-radius: 8px;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-          margin-bottom: 16px;
+          padding: 8px;
         }
-        
-        .crm-lead-info {
+
+        .header-info {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+
+        .header-details {
+          flex: 1;
+        }
+
+        .header-actions {
           display: flex;
           align-items: center;
         }
-        
-        .crm-avatar {
-          margin-right: 12px;
+
+        .modern-content-card {
+          border-radius: 16px;
+          border: 1px solid #f0f0f0;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+          overflow: hidden;
         }
-        
-        .crm-title {
-          display: flex;
-          flex-direction: column;
+
+        .modern-tabs .ant-tabs-tab {
+          padding: 12px 24px;
+          font-weight: 500;
         }
-        
-        .crm-lead-label {
-          font-size: 18px;
+
+        .modern-tabs .ant-tabs-tab-active {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white !important;
+          border-radius: 8px 8px 0 0;
+        }
+
+        .tab-content {
+          padding: 24px;
+        }
+
+        .form-section-card {
+          border-radius: 12px;
+          border: 1px solid #f0f0f0;
+          margin-bottom: 24px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+          transition: all 0.3s ease;
+        }
+
+        .form-section-card:hover {
+          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+          transform: translateY(-2px);
+        }
+
+        .form-section-card .ant-card-head {
+          background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+          border-bottom: 1px solid #e8e8e8;
+        }
+
+        .form-section-card .ant-card-head-title {
           font-weight: 600;
           color: #333;
         }
-        
-        .lead-name {
-          color: #722ed1;
+
+        .form-actions-card {
+          border-radius: 12px;
+          border: 1px solid #f0f0f0;
+          background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         }
-        
-        .crm-lead-actions {
-          margin-top: 4px;
-        }
-        
-        .crm-breadcrumb {
-          font-size: 12px;
-        }
-        
-        .crm-header-actions {
-          display: flex;
-          gap: 8px;
-        }
-        
-        .crm-btn {
-          border-radius: 4px;
-        }
-        
-        .crm-meta-info {
-          display: flex;
-          background-color: white;
-          padding: 12px 20px;
-          margin-bottom: 16px;
-          border-radius: 8px;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-          flex-wrap: wrap;
-        }
-        
-        .crm-meta-item {
-          margin-right: 32px;
-          margin-bottom: 8px;
-          display: flex;
-          align-items: center;
-        }
-        
-        .crm-meta-label {
-          color: #999;
-          font-size: 12px;
-          margin-right: 8px;
-          font-weight: 500;
-        }
-        
-        .crm-meta-value {
-          color: #333;
-          font-size: 12px;
-          display: flex;
-          align-items: center;
-        }
-        
-        .crm-content-tabs {
-          background-color: white;
-          padding: 20px;
-          border-radius: 8px;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        }
-        
-        .crm-form-container {
-          padding: 16px;
-        }
-        
-        .form-section-card {
-          margin-bottom: 24px;
-          border-radius: 8px;
-          box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-        }
-        
-        .enhanced-form-item {
-          margin-bottom: 20px;
-        }
-        
-        .enhanced-input,
-        .enhanced-select,
-        .enhanced-textarea {
-          border-radius: 6px;
-        }
-        
-        .form-actions {
-          margin-top: 32px;
-          padding-top: 24px;
-          border-top: 1px solid #f0f0f0;
-          text-align: right;
-        }
-        
-        .crm-help-container {
-          padding: 24px 0;
-        }
-        
+
         .help-card {
-          height: 100%;
+          border-radius: 12px;
+          border: 1px solid #f0f0f0;
+        }
+
+        .help-section-card {
           border-radius: 8px;
+          border: 1px solid #f0f0f0;
+          height: 100%;
         }
-        
-        .loading-container {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-height: 400px;
+
+        .help-list {
+          line-height: 2;
+          margin: 0;
+          padding-left: 20px;
         }
-        
-        .loading-container p {
-          margin-top: 16px;
-          color: #666;
+
+        .help-list li {
+          margin-bottom: 8px;
         }
-        
+
+        .modern-form .ant-form-item-label > label {
+          font-weight: 500;
+          color: #333;
+        }
+
+        .modern-input,
+        .modern-select .ant-select-selector,
+        .modern-textarea {
+          border-radius: 8px;
+          border: 1px solid #d9d9d9;
+          transition: all 0.3s ease;
+        }
+
+        .modern-input:focus,
+        .modern-select.ant-select-focused .ant-select-selector,
+        .modern-textarea:focus {
+          border-color: #667eea;
+          box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+
+        .modern-btn {
+          border-radius: 8px;
+          font-weight: 500;
+          transition: all 0.3s ease;
+        }
+
+        .modern-btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .modern-btn-primary {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          border: none;
+          border-radius: 8px;
+          font-weight: 500;
+          transition: all 0.3s ease;
+        }
+
+        .modern-btn-primary:hover {
+          background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Responsive Design */
         @media (max-width: 768px) {
-          .crm-container {
-            padding: 12px;
+          .modern-container {
+            padding: 16px;
           }
-          
-          .crm-header {
+
+          .header-content {
             flex-direction: column;
             align-items: flex-start;
+            gap: 16px;
           }
-          
-          .crm-header-actions {
-            margin-top: 16px;
+
+          .header-actions {
             width: 100%;
+            justify-content: flex-end;
           }
-          
-          .crm-meta-info {
+
+          .tab-content {
+            padding: 16px;
+          }
+
+          .form-section-card {
+            margin-bottom: 16px;
+          }
+        }
+
+        @media (max-width: 576px) {
+          .header-info {
             flex-direction: column;
-          }
-          
-          .crm-meta-item {
-            margin-bottom: 8px;
-          }
-          
-          .form-actions {
+            align-items: center;
             text-align: center;
           }
-          
-          .form-actions .ant-space {
-            width: 100%;
-            flex-direction: column;
-          }
-          
-          .form-actions button {
-            width: 100%;
-          }
+        }
+
+        /* Animations */
+        .ant-card {
+          transition: all 0.3s ease;
+        }
+
+        .ant-form-item {
+          margin-bottom: 20px;
+        }
+
+        .ant-alert {
+          border-radius: 8px;
+        }
+
+        .ant-breadcrumb {
+          font-weight: 500;
+        }
+
+        .ant-breadcrumb a {
+          color: #666;
+          transition: color 0.3s ease;
+        }
+
+        .ant-breadcrumb a:hover {
+          color: #667eea;
+        }
+
+        /* Amélioration des sélecteurs Ant Design */
+        .ant-select-dropdown {
+          border-radius: 8px;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        .ant-select-item {
+          border-radius: 4px;
+          margin: 2px 8px;
+          transition: all 0.2s ease;
+        }
+
+        .ant-select-item:hover {
+          background: linear-gradient(135deg, #f0f2ff 0%, #e6f7ff 100%);
+        }
+
+        .ant-select-item-option-selected {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+        }
+
+        .ant-date-picker {
+          width: 100%;
+        }
+
+        .ant-picker-dropdown {
+          border-radius: 8px;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        /* Effet focus pour les inputs avec prefix */
+        .ant-input-affix-wrapper:focus,
+        .ant-input-affix-wrapper-focused {
+          border-color: #667eea;
+          box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+
+        /* Amélioration des cards d'aide */
+        .help-section-card .ant-card-head {
+          background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
+          border-bottom: 1px solid #e6f7ff;
+        }
+
+        .help-section-card .ant-card-head-title {
+          color: #1890ff;
+          font-weight: 600;
+        }
+
+        /* Animation pour les badges de statut */
+        .ant-badge {
+          transition: all 0.3s ease;
+        }
+
+        .ant-badge:hover {
+          transform: scale(1.05);
         }
       `}</style>
     </div>

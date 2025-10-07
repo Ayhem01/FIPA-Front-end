@@ -5,7 +5,7 @@ import {
   Card, Row, Col, Typography, Tag, Button, Space, Spin,
   Descriptions, Tabs, Table, Statistic, Divider, Tooltip,
   Timeline, Modal, Empty, Breadcrumb, Badge, Avatar, Result,
-  Form, Input, Select, Radio, message
+  Form, Input, Select, Radio, message, Grid, Alert
 } from 'antd';
 import {
   ArrowLeftOutlined, EditOutlined, DeleteOutlined, CalendarOutlined,
@@ -13,26 +13,289 @@ import {
   ClockCircleOutlined, CheckCircleOutlined, InfoCircleOutlined,
   ExclamationCircleOutlined, EnvironmentOutlined, ProfileOutlined,
   PlusOutlined, MailOutlined, PhoneOutlined, FundOutlined, CloseCircleOutlined,
-  UserAddOutlined
+  UserAddOutlined, HomeOutlined, PlayCircleOutlined, SettingOutlined,
+  PhoneOutlined as PhoneIcon, QuestionCircleOutlined, SyncOutlined,
+  ReloadOutlined, ShareAltOutlined, FireOutlined, ThunderboltOutlined
 } from '@ant-design/icons';
 import { getActionById, deleteAction, fetchEntreprises, 
   fetchEtapes } from '../../features/marketingSlice';
 import { createInvite } from '../../features/inviteSlice';
 import moment from 'moment';
 import { API_BASE_URL, getAuthHeader } from '../../features/taskSlice';
-import '../../../src/assets/styles/action-form.css';
 import { getCurrentUser } from '../../features/userSlice';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
 const { Option } = Select;
 const { TextArea } = Input;
+const { useBreakpoint } = Grid;
+
+// Composant de statistique animée similaire au dashboard
+const AnimatedStatCard = ({ icon, title, value, color, loading, delay = 0, prefix = '', suffix = '' }) => {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    if (!loading && value > 0) {
+      const duration = 1500;
+      const steps = 30;
+      const increment = value / steps;
+      let current = 0;
+      
+      const timer = setInterval(() => {
+        current += increment;
+        if (current >= value) {
+          setDisplayValue(value);
+          clearInterval(timer);
+        } else {
+          setDisplayValue(Math.floor(current));
+        }
+      }, duration / steps);
+
+      return () => clearInterval(timer);
+    }
+  }, [value, loading]);
+
+  const cardVariants = {
+    hidden: { 
+      opacity: 0, 
+      y: 20,
+      scale: 0.95
+    },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      scale: 1,
+      transition: {
+        duration: 0.5,
+        delay: delay * 0.1,
+        ease: "easeOut"
+      }
+    },
+    hover: {
+      y: -3,
+      scale: 1.02,
+      transition: {
+        duration: 0.2,
+        ease: "easeInOut"
+      }
+    }
+  };
+
+  return (
+    <motion.div
+      variants={cardVariants}
+      initial="hidden"
+      animate="visible"
+      whileHover="hover"
+      style={{ height: '100%' }}
+    >
+      <Card 
+        className="stat-card-modern"
+        style={{
+          height: '100%',
+          background: `linear-gradient(135deg, ${color}15 0%, ${color}25 100%)`,
+          border: `1px solid ${color}30`,
+          borderRadius: '16px',
+          overflow: 'hidden',
+          position: 'relative'
+        }}
+        bodyStyle={{ padding: '20px' }}
+      >
+        <div className="stat-card-content">
+          <div className="stat-header">
+            <motion.div 
+              className="stat-icon"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: delay * 0.1 + 0.2 }}
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                background: `linear-gradient(135deg, ${color} 0%, ${color}80 100%)`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: '20px',
+                boxShadow: `0 4px 12px ${color}40`
+              }}
+            >
+              {loading ? <SyncOutlined spin /> : icon}
+            </motion.div>
+          </div>
+
+          <div className="stat-body">
+            <Text type="secondary" style={{ fontSize: '13px', fontWeight: 500 }}>
+              {title}
+            </Text>
+            
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: delay * 0.1 + 0.3 }}
+            >
+              <Title level={3} style={{ 
+                margin: '8px 0 0 0', 
+                color: color,
+                fontWeight: 700,
+                fontSize: '24px'
+              }}>
+                {prefix}
+                <motion.span
+                  key={displayValue}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  {displayValue.toLocaleString()}
+                </motion.span>
+                {suffix}
+              </Title>
+            </motion.div>
+          </div>
+        </div>
+
+        {/* Effet de brillance */}
+        <motion.div
+          className="shine-effect"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: '-100%',
+            width: '100%',
+            height: '100%',
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+            transform: 'skewX(-25deg)'
+          }}
+          animate={{
+            left: ['100%', '200%']
+          }}
+          transition={{
+            duration: 2,
+            delay: delay * 0.1 + 1,
+            ease: "easeInOut"
+          }}
+        />
+      </Card>
+    </motion.div>
+  );
+};
+
+// Composant de carte animée similaire au dashboard
+const AnimatedContentCard = ({ title, children, loading, extra, delay = 0, icon }) => {
+  const cardVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: {
+        duration: 0.6,
+        delay: delay * 0.1,
+        ease: "easeOut"
+      }
+    }
+  };
+
+  return (
+    <motion.div
+      variants={cardVariants}
+      initial="hidden"
+      animate="visible"
+      style={{ height: '100%' }}
+    >
+      <Card
+        className="content-card-modern"
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: delay * 0.1 + 0.2 }}
+            >
+              <div style={{
+                width: '8px',
+                height: '24px',
+                borderRadius: '4px',
+                background: 'linear-gradient(135deg, #1890ff, #096dd9)'
+              }} />
+            </motion.div>
+            {icon && (
+              <motion.div
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ delay: delay * 0.1 + 0.3 }}
+                style={{ color: '#1890ff' }}
+              >
+                {icon}
+              </motion.div>
+            )}
+            <Title level={4} style={{ margin: 0, fontWeight: 600 }}>
+              {title}
+            </Title>
+          </div>
+        }
+        extra={extra}
+        style={{
+          height: '100%',
+          borderRadius: '16px',
+          border: '1px solid #f0f0f0',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+          overflow: 'hidden'
+        }}
+        bodyStyle={{ padding: '24px' }}
+      >
+        <AnimatePresence mode="wait">
+          {loading ? (
+            <motion.div
+              key="loading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '200px'
+              }}
+            >
+              <div style={{ textAlign: 'center' }}>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  style={{ marginBottom: '16px' }}
+                >
+                  <SyncOutlined style={{ fontSize: '32px', color: '#1890ff' }} />
+                </motion.div>
+                <Text type="secondary">Chargement des données...</Text>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="content"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4 }}
+            >
+              {children}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Card>
+    </motion.div>
+  );
+};
 
 const ActionDetail = () => {
   const { id } = useParams();
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const screens = useBreakpoint();
 
+  // États pour l'interface
+  const [refreshing, setRefreshing] = useState(false);
+  
   // Récupération de l'utilisateur courant depuis le Redux store
   const currentUser = useSelector((state) => state.user.user);
 
@@ -45,36 +308,40 @@ const ActionDetail = () => {
   const [addInviteModalVisible, setAddInviteModalVisible] = useState(false);
   const [inviteForm] = Form.useForm();
   
-  // Définir le loading des dépendances sans inclure usersLoading
   const loadingDependencies = entreprisesLoading || etapesLoading;
 
   // Charger les détails de l'action
   useEffect(() => {
-    dispatch(getActionById(id));
-    dispatch(getCurrentUser());
+    loadData();
   }, [dispatch, id]);
 
-  // Fonction pour charger les données nécessaires pour le formulaire (sans les utilisateurs)
+  const loadData = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        dispatch(getActionById(id)),
+        dispatch(getCurrentUser())
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  // Fonction pour charger les données nécessaires pour le formulaire
   const loadFormDependencies = () => {
-    // Charger uniquement les entreprises et les étapes
     dispatch(fetchEntreprises());
     dispatch(fetchEtapes());
   };
 
   // Ouvrir le modal et charger les données
   const openAddInviteModal = () => {
-    // Réinitialiser le formulaire
     inviteForm.resetFields();
-    
-    // Définir des valeurs initiales, avec l'utilisateur courant comme propriétaire
     inviteForm.setFieldsValue({
       type_invite: 'externe', 
       statut: 'en_attente',
       action_id: id,
-      proprietaire_id: currentUser?.id  // Définir l'ID de l'utilisateur courant
+      proprietaire_id: currentUser?.id
     });
-    
-    // Charger les dépendances et afficher le modal
     loadFormDependencies();
     setAddInviteModalVisible(true);
   };
@@ -97,12 +364,11 @@ const ActionDetail = () => {
     inviteForm
       .validateFields()
       .then(values => {
-        // Ajout de l'action_id et proprietaire_id à l'objet invité
         const inviteData = {
           ...values,
           action_id: id,
           statut: values.statut || 'en_attente',
-          proprietaire_id: currentUser?.id  // S'assurer que l'ID du propriétaire est bien défini
+          proprietaire_id: currentUser?.id
         };
 
         message.loading('Ajout de l\'invité en cours...', 0.5);
@@ -112,13 +378,10 @@ const ActionDetail = () => {
             message.success('Invité ajouté avec succès');
             inviteForm.resetFields();
             setAddInviteModalVisible(false);
-            // Rafraîchir les détails de l'action pour voir le nouvel invité
             dispatch(getActionById(id));
           })
           .catch(error => {
             console.error('Erreur complète:', error);
-            
-            // Afficher les messages d'erreur spécifiques si disponibles
             if (error && error.errors) {
               const errorMessages = Object.values(error.errors).flat().join(', ');
               message.error(`Erreur lors de l'ajout: ${errorMessages}`);
@@ -135,26 +398,52 @@ const ActionDetail = () => {
   // Utilitaires pour l'affichage
   const getStatusColor = (status) => {
     const statusMap = {
-      'planifiee': 'blue',
-      'terminee': 'green',
-      'annulee': 'red',
-      'reportee': 'orange',
+      'planifiee': 'processing',
+      'terminee': 'success',
+      'annulee': 'error',
+      'reportee': 'warning',
     };
     return statusMap[status] || 'default';
   };
 
-  const getTimingBadge = (timing) => {
-    const timingProps = {
-      'a_venir': { status: 'processing', text: 'À venir', color: '#52c41a' },
-      'en_cours': { status: 'success', text: 'En cours', color: '#1890ff' },
-      'passee': { status: 'default', text: 'Passée', color: '#d9d9d9' }
+  const getStatusText = (status) => {
+    const statusMap = {
+      'planifiee': 'Planifiée',
+      'terminee': 'Terminée',
+      'annulee': 'Annulée',
+      'reportee': 'Reportée',
     };
-    
-    const { status, text, color } = timingProps[timing] || { status: 'default', text: 'Inconnu', color: '#d9d9d9' };
-    
-    return (
-      <Badge status={status} text={text} style={{ color }} />
-    );
+    return statusMap[status] || status;
+  };
+
+  const getTypeIcon = (type) => {
+    const typeIconMap = {
+      'media': <PlayCircleOutlined />,
+      'cte': <SettingOutlined />,
+      'salon': <TeamOutlined />,
+      'delegation': <UserOutlined />,
+      'seminaire_jipays': <FileTextOutlined />,
+      'demarchage_direct': <PhoneIcon />,
+      'salon_sectoriel': <GlobalOutlined />,
+      'seminaire_jisecteur': <FileTextOutlined />,
+      'visite_entreprise': <EnvironmentOutlined />,
+    };
+    return typeIconMap[type] || <FileTextOutlined />;
+  };
+
+  const getTypeColor = (type) => {
+    const typeColorMap = {
+      'media': '#1890ff',
+      'cte': '#52c41a',
+      'salon': '#722ed1',
+      'delegation': '#fa8c16',
+      'seminaire_jipays': '#13c2c2',
+      'demarchage_direct': '#eb2f96',
+      'salon_sectoriel': '#faad14',
+      'seminaire_jisecteur': '#f5222d',
+      'visite_entreprise': '#a0d911',
+    };
+    return typeColorMap[type] || '#666';
   };
 
   const formatType = (type) => {
@@ -180,420 +469,55 @@ const ActionDetail = () => {
     return date ? moment(date).format('DD/MM/YYYY HH:mm') : '-';
   };
 
-  const getTypeIcon = (type) => {
-    const typeIconMap = {
-      'media': <GlobalOutlined />,
-      'cte': <CalendarOutlined />,
-      'salon': <FileTextOutlined />,
-      'delegation': <UserOutlined />,
-      'seminaire_jipays': <CalendarOutlined />,
-      'demarchage_direct': <UserOutlined />,
-      'salon_sectoriel': <FileTextOutlined />,
-      'seminaire_jisecteur': <CalendarOutlined />,
-      'visite_entreprise': <UserOutlined />,
-    };
-    return typeIconMap[type] || <FileTextOutlined />;
-  };
-
-  // Fonction pour afficher les détails spécifiques selon le type d'action
-  const renderTypeSpecificDetails = () => {
-    if (!action) return null;
-    
-    const typeComponentsMap = {
-      'media': renderMediaDetails,
-      'cte': renderCteDetails,
-      'salon': renderSalonDetails,
-      'delegation': renderDelegationDetails,
-      'seminaire_jipays': renderSeminaireDetails,
-      'demarchage_direct': renderDemarchageDirectDetails,
-      'salon_sectoriel': renderSalonSectorielDetails,
-      'seminaire_jisecteur': renderSeminaireSecteurDetails,
-      'visite_entreprise': renderVisiteEntrepriseDetails,
-    };
-    
-    const renderFunction = typeComponentsMap[action.type];
-    return renderFunction ? renderFunction() : <Empty description="Aucun détail spécifique disponible" />;
-  };
-  
-  // Rendus spécifiques pour chaque type d'action
-  const renderMediaDetails = () => {
-    const media = action.media;
-    if (!media) return <Empty description="Aucune information média disponible" />;
-    
-    // Helper pour afficher les champs booléens
-    const renderBoolean = (value) => {
-      return value ? <Tag color="green">Oui</Tag> : <Tag color="red">Non</Tag>;
-    };
-    
-    return (
-      <>
-        {/* Statut de l'action */}
-        <div className="media-status-container">
-          <h4 className="media-section-title">Statut de l'action</h4>
-          <Row gutter={[16, 16]}>
-            <Col span={4}>
-              <Card size="small" className={`status-card ${media.proposee ? 'status-active' : ''}`}>
-                <div className="status-title">Proposée</div>
-                <div className="status-value">{renderBoolean(media.proposee)}</div>
-              </Card>
-            </Col>
-            <Col span={4}>
-              <Card size="small" className={`status-card ${media.programmee ? 'status-active' : ''}`}>
-                <div className="status-title">Programmée</div>
-                <div className="status-value">{renderBoolean(media.programmee)}</div>
-              </Card>
-            </Col>
-            <Col span={4}>
-              <Card size="small" className={`status-card ${media.realisee ? 'status-active' : ''}`}>
-                <div className="status-title">Réalisée</div>
-                <div className="status-value">{renderBoolean(media.realisee)}</div>
-              </Card>
-            </Col>
-            <Col span={4}>
-              <Card size="small" className={`status-card ${media.reportee ? 'status-active' : ''}`}>
-                <div className="status-title">Reportée</div>
-                <div className="status-value">{renderBoolean(media.reportee)}</div>
-              </Card>
-            </Col>
-            <Col span={4}>
-              <Card size="small" className={`status-card ${media.annulee ? 'status-active' : ''}`}>
-                <div className="status-title">Annulée</div>
-                <div className="status-value">{renderBoolean(media.annulee)}</div>
-              </Card>
-            </Col>
-          </Row>
-        </div>
-  
-        <Divider />
-        
-        <Descriptions 
-          bordered 
-          column={{ xxl: 3, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}
-          title="Informations générales"
-        >
-          <Descriptions.Item label="Action">{media.action || '-'}</Descriptions.Item>
-          <Descriptions.Item label="Proposée par">{media['proposee par'] || '-'}</Descriptions.Item>
-          <Descriptions.Item label="Type d'action">{media.type_action || '-'}</Descriptions.Item>
-          <Descriptions.Item label="Type de média">{media.type_media || '-'}</Descriptions.Item>
-          <Descriptions.Item label="Durée">{media.duree || '-'}</Descriptions.Item>
-          <Descriptions.Item label="Langue">{media.langue || '-'}</Descriptions.Item>
-        </Descriptions>
-        
-        <Divider />
-        
-        <Descriptions 
-          bordered 
-          column={{ xxl: 3, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}
-          title="Détails financiers"
-        >
-          <Descriptions.Item label="Budget">
-            {media.budget ? `${media.budget} ${media.devise || ''}` : '-'}
-          </Descriptions.Item>
-          <Descriptions.Item label="Devise">{media.devise || '-'}</Descriptions.Item>
-          <Descriptions.Item label="Imputation financière">{media.imputation_financiere || '-'}</Descriptions.Item>
-        </Descriptions>
-        
-        <Divider />
-        
-        <Descriptions 
-          bordered 
-          column={{ xxl: 3, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}
-          title="Informations de diffusion"
-        >
-          <Descriptions.Item label="Diffusion">{media.diffusion || '-'}</Descriptions.Item>
-          <Descriptions.Item label="Zone d'impact">{media.zone_impact || '-'}</Descriptions.Item>
-          <Descriptions.Item label="Nationalité">{media.nationalite?.name || '-'}</Descriptions.Item>
-          <Descriptions.Item label="Volume/Couverture">{media.volume_couverture || '-'}</Descriptions.Item>
-          <Descriptions.Item label="Date début">{formatDate(media.date_debut)}</Descriptions.Item>
-          <Descriptions.Item label="Date fin">{formatDate(media.date_fin)}</Descriptions.Item>
-        </Descriptions>
-        
-        <Divider />
-        
-        <Descriptions 
-          bordered 
-          column={{ xxl: 3, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}
-          title="Public cible et audience"
-        >
-          <Descriptions.Item label="Cible" span={3}>{media.cible || '-'}</Descriptions.Item>
-          <Descriptions.Item label="Tirage/Audience">{media.tirage_audience || '-'}</Descriptions.Item>
-          <Descriptions.Item label="Composition du lectorat" span={2}>{media.composition_lectorat || '-'}</Descriptions.Item>
-        </Descriptions>
-        
-        <Divider />
-        
-        <Descriptions 
-          bordered 
-          column={{ xxl: 3, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}
-          title="Objectifs et résultats"
-        >
-          <Descriptions.Item label="Objectif" span={3}>{media.objectif || '-'}</Descriptions.Item>
-          <Descriptions.Item label="Résultats attendus" span={3}>{media.resultats_attendus || '-'}</Descriptions.Item>
-          <Descriptions.Item label="Évaluation">{media.evaluation || '-'}</Descriptions.Item>
-          <Descriptions.Item label="Reconduction">{media.reconduction || '-'}</Descriptions.Item>
-          <Descriptions.Item label="Collaboration FIPA">{media.collaboration_fipa || '-'}</Descriptions.Item>
-        </Descriptions>
-        
-        <Divider />
-        
-        <Descriptions 
-          bordered 
-          column={{ xxl: 3, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}
-          title="Contacts et responsables"
-        >
-          <Descriptions.Item label="Responsable bureau média">
-            {media.responsable_bureau_media?.name || '-'}
-          </Descriptions.Item>
-          <Descriptions.Item label="VAV siège média">
-            {media.vav_siege_media?.name || '-'}
-          </Descriptions.Item>
-          <Descriptions.Item label="Régie publicitaire">{media.regie_publicitaire || '-'}</Descriptions.Item>
-          <Descriptions.Item label="Contact média">{media.media_contact || '-'}</Descriptions.Item>
-        </Descriptions>
-        
-        {media.commentaires_specifiques && (
-          <>
-            <Divider />
-            <Descriptions 
-              bordered 
-              column={1}
-              title="Commentaires additionnels"
-            >
-              <Descriptions.Item label="Commentaires spécifiques">
-                {media.commentaires_specifiques}
-              </Descriptions.Item>
-            </Descriptions>
-          </>
-        )}
-      </>
-    );
-  };
-
-  const renderCteDetails = () => {
-    const cte = action.cte;
-    if (!cte) return <Empty description="Aucune information CTE disponible" />;
-    
-    return (
-      <Descriptions bordered column={{ xxl: 3, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}>
-        <Descriptions.Item label="Date opération">{formatDate(cte.date_operation)}</Descriptions.Item>
-        <Descriptions.Item label="Nombre participants">{cte.nombre_participants || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Entreprises visitées">{cte.nombre_entreprises_visitees || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Entreprises à visiter">{cte.nombre_entreprises_a_visiter || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Pays cible">{cte.pays?.name || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Secteur">{cte.secteur?.name || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Description" span={3}>{cte.description || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Observations" span={3}>{cte.observations || '-'}</Descriptions.Item>
-      </Descriptions>
-    );
-  };
-
-  const renderSalonDetails = () => {
-    const salon = action.salon;
-    if (!salon) return <Empty description="Aucune information de salon disponible" />;
-    
-    return (
-      <Descriptions bordered column={{ xxl: 3, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}>
-        <Descriptions.Item label="Intitulé">{salon.intitule || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Édition">{salon.edition || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Organisateur">{salon.organisateur || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Lieu">{salon.lieu || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Pays">{salon.pays?.name || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Périodicité">{salon.periodicite || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Date début">{formatDate(salon.date_debut)}</Descriptions.Item>
-        <Descriptions.Item label="Date fin">{formatDate(salon.date_fin)}</Descriptions.Item>
-        <Descriptions.Item label="Coût location">{salon.cout_location || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Coût aménagement">{salon.cout_amenagement || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Surface en m²">{salon.surface_m2 || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Nombre exposants">{salon.nombre_exposants || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Description" span={3}>{salon.description || '-'}</Descriptions.Item>
-      </Descriptions>
-    );
-  };
-
-  const renderDelegationDetails = () => {
-    const delegation = action.delegation;
-    if (!delegation) return <Empty description="Aucune information de délégation disponible" />;
-    
-    return (
-      <Descriptions bordered column={{ xxl: 3, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}>
-        <Descriptions.Item label="Pays origine">{delegation.pays?.name || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Secteur">{delegation.secteur?.name || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Nombre participants">{delegation.nombre_participants || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Initiateur">{delegation.initiateur?.name || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Responsable binôme">{delegation.responsable_binome?.name || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Responsable FIPA">{delegation.responsable_fipa?.name || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Description" span={3}>{delegation.description || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Programme" span={3}>{delegation.programme || '-'}</Descriptions.Item>
-        {delegation.liste_membres_pdf && (
-          <Descriptions.Item label="Liste des membres" span={3}>
-            <Button type="link" icon={<FileTextOutlined />} href={delegation.liste_membres_pdf}>
-              Télécharger la liste
-            </Button>
-          </Descriptions.Item>
-        )}
-      </Descriptions>
-    );
-  };
-
-  const renderSeminaireDetails = () => {
-    const seminaire = action.seminaire_jipays;
-    if (!seminaire) return <Empty description="Aucune information de séminaire disponible" />;
-    
-    return (
-      <Descriptions bordered column={{ xxl: 3, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}>
-        <Descriptions.Item label="Intitulé">{seminaire.intitule || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Pays">{seminaire.pays?.name || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Région">{seminaire.regions || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Lieu">{seminaire.lieu || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Date début">{formatDate(seminaire.date_debut)}</Descriptions.Item>
-        <Descriptions.Item label="Date fin">{formatDate(seminaire.date_fin)}</Descriptions.Item>
-        <Descriptions.Item label="Nombre participants">{seminaire.nombre_participants || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Initiateur">{seminaire.initiateur?.name || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Binôme">{seminaire.binome?.name || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Objectifs" span={3}>{seminaire.objectifs || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Programme" span={3}>{seminaire.programme || '-'}</Descriptions.Item>
-      </Descriptions>
-    );
-  };
-
-  const renderDemarchageDirectDetails = () => {
-    const demarchage = action.demarchage_direct;
-    if (!demarchage) return <Empty description="Aucune information de démarchage disponible" />;
-    
-    return (
-      <Descriptions bordered column={{ xxl: 3, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}>
-        <Descriptions.Item label="Pays">{demarchage.pays?.name || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Région">{demarchage.regions || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Secteur">{demarchage.secteur?.name || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Date début">{formatDate(demarchage.date_debut)}</Descriptions.Item>
-        <Descriptions.Item label="Date fin">{formatDate(demarchage.date_fin)}</Descriptions.Item>
-        <Descriptions.Item label="Initiateur">{demarchage.initiateur?.name || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Binôme">{demarchage.binome?.name || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Nombre entreprises ciblées">{demarchage.nombre_entreprises_ciblees || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Nombre entreprises visitées">{demarchage.nombre_entreprises_visitees || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Description" span={3}>{demarchage.description || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Observations" span={3}>{demarchage.observations || '-'}</Descriptions.Item>
-      </Descriptions>
-    );
-  };
-
-  const renderSalonSectorielDetails = () => {
-    const salon = action.salon_sectoriel;
-    if (!salon) return <Empty description="Aucune information de salon sectoriel disponible" />;
-    
-    return (
-      <Descriptions bordered column={{ xxl: 3, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}>
-        <Descriptions.Item label="Intitulé">{salon.intitule || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Édition">{salon.edition || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Secteur">{salon.secteur?.name || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Pays">{salon.pays?.name || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Lieu">{salon.lieu || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Organisateur">{salon.organisateur || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Date début">{formatDate(salon.date_debut)}</Descriptions.Item>
-        <Descriptions.Item label="Date fin">{formatDate(salon.date_fin)}</Descriptions.Item>
-        <Descriptions.Item label="Surface en m²">{salon.surface_m2 || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Coût participation">{salon.cout_participation || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Nombre exposants">{salon.nombre_exposants || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Nombre visiteurs">{salon.nombre_visiteurs || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Description" span={3}>{salon.description || '-'}</Descriptions.Item>
-      </Descriptions>
-    );
-  };
-
-  const renderSeminaireSecteurDetails = () => {
-    const seminaire = action.seminaire_jisecteur;
-    if (!seminaire) return <Empty description="Aucune information de séminaire secteur disponible" />;
-    
-    return (
-      <Descriptions bordered column={{ xxl: 3, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}>
-        <Descriptions.Item label="Intitulé">{seminaire.intitule || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Secteur">{seminaire.secteur?.name || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Pays">{seminaire.pays?.name || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Région">{seminaire.regions || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Lieu">{seminaire.lieu || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Groupe">{seminaire.groupe?.name || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Date début">{formatDate(seminaire.date_debut)}</Descriptions.Item>
-        <Descriptions.Item label="Date fin">{formatDate(seminaire.date_fin)}</Descriptions.Item>
-        <Descriptions.Item label="Initiateur">{seminaire.initiateur?.name || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Binôme">{seminaire.binome?.name || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Nombre participants">{seminaire.nombre_participants || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Objectifs" span={3}>{seminaire.objectifs || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Programme" span={3}>{seminaire.programme || '-'}</Descriptions.Item>
-      </Descriptions>
-    );
-  };
-
-  const renderVisiteEntrepriseDetails = () => {
-    const visite = action.visite_entreprise;
-    if (!visite) return <Empty description="Aucune information de visite d'entreprise disponible" />;
-    
-    return (
-      <Descriptions bordered column={{ xxl: 3, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}>
-        <Descriptions.Item label="Raison sociale">{visite.raison_sociale || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Nationalité">{visite.nationalite?.name || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Secteur">{visite.secteur?.name || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Activité">{visite.activite || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Responsable">{visite.responsable || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Fonction">{visite.fonction || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Adresse">{visite.adresse || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Téléphone">{visite.telephone || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Email">{visite.email || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Date visite">{formatDate(visite.date_visite)}</Descriptions.Item>
-        <Descriptions.Item label="Date contact">{formatDate(visite.date_contact)}</Descriptions.Item>
-        <Descriptions.Item label="Nombre visites">{visite.nombre_visites || '-'}</Descriptions.Item>
-        <Descriptions.Item label="Entreprise importante">
-          {visite.entreprise_importante ? <Tag color="green">Oui</Tag> : <Tag color="red">Non</Tag>}
-        </Descriptions.Item>
-        <Descriptions.Item label="Encadré avec programme">
-          {visite.encadre_avec_programme ? <Tag color="green">Oui</Tag> : <Tag color="red">Non</Tag>}
-        </Descriptions.Item>
-        <Descriptions.Item label="Responsable suivi">{visite.responsable_suivi?.name || '-'}</Descriptions.Item>
-        {visite.programme_pdf && (
-          <Descriptions.Item label="Programme" span={3}>
-            <Button type="link" icon={<FileTextOutlined />} href={visite.programme_pdf}>
-              Télécharger le programme
-            </Button>
-          </Descriptions.Item>
-        )}
-      </Descriptions>
-    );
-  };
-
-  // Rendu des invités avec bouton d'ajout
+  // Rendu des invités avec design moderne
   const renderInvites = () => {
     const columns = [
       {
-        title: 'Nom',
+        title: 'Invité',
         dataIndex: 'nom',
         key: 'nom',
         render: (text, record) => (
-          <Space>
-            <Avatar icon={<UserOutlined />} />
-            <Text>{text} {record.prenom}</Text>
-          </Space>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Avatar 
+              size="default"
+              style={{ 
+                background: 'linear-gradient(135deg, #1890ff, #096dd9)',
+                border: '2px solid white',
+                boxShadow: '0 2px 8px rgba(24, 144, 255, 0.3)'
+              }}
+              icon={<UserOutlined />}
+            />
+            <div>
+              <Text strong style={{ fontSize: '14px' }}>{text} {record.prenom}</Text>
+              {record.fonction && (
+                <>
+                  <br />
+                  <Text type="secondary" style={{ fontSize: '12px' }}>{record.fonction}</Text>
+                </>
+              )}
+            </div>
+          </div>
         ),
       },
       {
-        title: 'Email',
-        dataIndex: 'email',
-        key: 'email',
-        render: email => (
-          <Space>
-            <MailOutlined />
-            <a href={`mailto:${email}`}>{email}</a>
-          </Space>
+        title: 'Contact',
+        key: 'contact',
+        render: (_, record) => (
+          <div>
+            {record.email && (
+              <div style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <MailOutlined style={{ color: '#1890ff', fontSize: '12px' }} />
+                <a href={`mailto:${record.email}`} style={{ fontSize: '13px' }}>{record.email}</a>
+              </div>
+            )}
+            {record.telephone && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <PhoneOutlined style={{ color: '#52c41a', fontSize: '12px' }} />
+                <span style={{ fontSize: '13px' }}>{record.telephone}</span>
+              </div>
+            )}
+          </div>
         ),
-      },
-      {
-        title: 'Téléphone',
-        dataIndex: 'telephone',
-        key: 'telephone',
-        render: tel => tel ? (
-          <Space>
-            <PhoneOutlined />
-            <span>{tel}</span>
-          </Space>
-        ) : '-',
       },
       {
         title: 'Statut',
@@ -601,16 +525,25 @@ const ActionDetail = () => {
         key: 'statut',
         render: statut => {
           const statusMap = {
-            'confirmee': { color: 'green', text: 'Confirmé', icon: <CheckCircleOutlined /> },
-            'en_attente': { color: 'gold', text: 'En attente', icon: <ClockCircleOutlined /> },
-            'refusee': { color: 'red', text: 'Décliné', icon: <CloseCircleOutlined /> },
-            'participee': { color: 'blue', text: 'Participé', icon: <CheckCircleOutlined /> }
+            'confirmee': { color: 'success', text: 'Confirmé', icon: <CheckCircleOutlined /> },
+            'en_attente': { color: 'warning', text: 'En attente', icon: <ClockCircleOutlined /> },
+            'refusee': { color: 'error', text: 'Décliné', icon: <CloseCircleOutlined /> },
+            'participee': { color: 'processing', text: 'Participé', icon: <CheckCircleOutlined /> }
           };
           
           const { color, text, icon } = statusMap[statut] || { color: 'default', text: statut, icon: <InfoCircleOutlined /> };
           
           return (
-            <Tag color={color} icon={icon}>
+            <Tag 
+              color={color} 
+              icon={icon}
+              style={{ 
+                borderRadius: '12px',
+                padding: '2px 8px',
+                fontSize: '12px',
+                fontWeight: 500
+              }}
+            >
               {text}
             </Tag>
           );
@@ -620,7 +553,11 @@ const ActionDetail = () => {
         title: 'Date invitation',
         dataIndex: 'created_at',
         key: 'created_at',
-        render: date => formatDateTime(date),
+        render: date => (
+          <Text type="secondary" style={{ fontSize: '12px' }}>
+            {formatDateTime(date)}
+          </Text>
+        ),
       },
       {
         title: 'Actions',
@@ -628,7 +565,17 @@ const ActionDetail = () => {
         render: (_, record) => (
           <Space>
             <Link to={`/invites/${record.id}`}>
-              <Button type="link" icon={<FileTextOutlined />}>Voir</Button>
+              <Button 
+                type="text" 
+                icon={<InfoCircleOutlined />} 
+                size="small"
+                style={{ 
+                  color: '#1890ff',
+                  borderRadius: '6px'
+                }}
+              >
+                Voir
+              </Button>
             </Link>
           </Space>
         ),
@@ -636,72 +583,82 @@ const ActionDetail = () => {
     ];
 
     return (
-      <>
-        <div style={{ marginBottom: 16, textAlign: 'right' }}>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div style={{ 
+          marginBottom: 20, 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <TeamOutlined style={{ color: '#1890ff' }} />
+            <Text type="secondary" style={{ fontSize: '14px', fontWeight: 500 }}>
+              {action?.invites?.length || 0} invité(s) au total
+            </Text>
+          </div>
           <Button 
             type="primary" 
             icon={<UserAddOutlined />}
             onClick={openAddInviteModal}
+            style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              border: 'none',
+              borderRadius: '8px',
+              fontWeight: 500,
+              boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+            }}
           >
             Ajouter un invité
           </Button>
         </div>
         
         {!action || !action.invites || action.invites.length === 0 ? (
-          <Empty description="Aucun invité pour cette action" />
+          <Empty 
+            description="Aucun invité pour cette action" 
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            style={{ padding: '40px 20px' }}
+          />
         ) : (
           <Table 
             dataSource={action.invites.map(invite => ({ ...invite, key: invite.id }))}
             columns={columns}
-            pagination={false}
             size="middle"
-            className="invites-table"
+            pagination={{
+              pageSize: 10,
+         
+            }}
+            style={{ 
+              borderRadius: '12px',
+              overflow: 'hidden',
+              border: '1px solid #f0f0f0'
+            }}
           />
         )}
-      </>
-    );
-  };
-
-  // Rendu des étapes si disponibles
-  const renderEtapes = () => {
-    if (!action || !action.etapes || action.etapes.length === 0) {
-      return <Empty description="Aucune étape définie pour cette action" />;
-    }
-    
-    return (
-      <Timeline mode="left">
-        {action.etapes.map((etape, index) => (
-          <Timeline.Item 
-            key={etape.id || index}
-            color={etape.complete ? 'green' : 'blue'}
-            label={formatDate(etape.date_echeance)}
-          >
-            <div className="timeline-item">
-              <Title level={5}>{etape.titre}</Title>
-              <Paragraph>{etape.description}</Paragraph>
-              <div className="timeline-footer">
-                <Tag color={etape.complete ? 'green' : 'processing'}>
-                  {etape.complete ? 'Terminé' : 'En cours'}
-                </Tag>
-                {etape.responsable && (
-                  <Text type="secondary">
-                    <UserOutlined /> {etape.responsable.name}
-                  </Text>
-                )}
-              </div>
-            </div>
-          </Timeline.Item>
-        ))}
-      </Timeline>
+      </motion.div>
     );
   };
 
   // Si chargement
-  if (loading) {
+  if (loading || refreshing) {
     return (
-      <div className="loading-container">
-        <Spin size="large" />
-        <p>Chargement des détails de l'action...</p>
+      <div className="action-details-container">
+        <div className="loading-container">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            style={{ marginBottom: '16px' }}
+          >
+            <SyncOutlined style={{ fontSize: '48px', color: '#1890ff' }} />
+          </motion.div>
+          <Title level={4}>Chargement des détails de l'action...</Title>
+          <Text type="secondary">Veuillez patienter</Text>
+        </div>
       </div>
     );
   }
@@ -709,14 +666,23 @@ const ActionDetail = () => {
   // Si pas d'action trouvée
   if (!action) {
     return (
-      <div className="action-not-found">
+      <div className="action-details-container">
         <Result
           status="404"
           title="Action non trouvée"
           subTitle="L'action que vous recherchez n'existe pas ou a été supprimée."
           extra={
-            <Button type="primary" icon={<ArrowLeftOutlined />}>
-              <Link to="/actions">Retour à la liste</Link>
+            <Button 
+              type="primary" 
+              icon={<ArrowLeftOutlined />} 
+              onClick={() => navigate('/actions')}
+              style={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                border: 'none',
+                borderRadius: '8px'
+              }}
+            >
+              Retour à la liste
             </Button>
           }
         />
@@ -724,231 +690,470 @@ const ActionDetail = () => {
     );
   }
 
+  const headerVariants = {
+    hidden: { opacity: 0, y: -20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.6, ease: "easeOut" }
+    }
+  };
+
   return (
-    <div className="action-detail-container">
-      {/* En-tête avec fil d'Ariane et boutons d'action */}
-      <div className="action-detail-header">
+    <div className="action-details-container">
+      {/* Breadcrumb */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        style={{ marginBottom: '24px' }}
+      >
         <Breadcrumb>
           <Breadcrumb.Item>
-            <Link to="/">Tableau de bord</Link>
+            <Link to="/dashboard" style={{ color: '#666', fontWeight: 500 }}>
+              <HomeOutlined /> Dashboard
+            </Link>
           </Breadcrumb.Item>
           <Breadcrumb.Item>
-            <Link to="/actions">Actions</Link>
+            <Link to="/actions" style={{ color: '#666', fontWeight: 500 }}>
+              <FileTextOutlined /> Actions
+            </Link>
           </Breadcrumb.Item>
-          <Breadcrumb.Item>{action.nom}</Breadcrumb.Item>
+          <Breadcrumb.Item style={{ fontWeight: 600 }}>{action.nom}</Breadcrumb.Item>
         </Breadcrumb>
-        
-        <div className="action-buttons">
-          <Space>
-            <Link to="/actions">
-              <Button icon={<ArrowLeftOutlined />}>
-                Retour
-              </Button>
-            </Link>
-            <Link to={`/actions/edit/${action.id}`}>
-              <Button type="primary" icon={<EditOutlined />}>
-                Modifier
-              </Button>
-            </Link>
-            <Button 
-              danger 
-              icon={<DeleteOutlined />}
-              onClick={() => setDeleteModalVisible(true)}
-            >
-              Supprimer
-            </Button>
-          </Space>
-        </div>
-      </div>
+      </motion.div>
       
-      {/* Carte principale avec le titre et le statut */}
-      <Card className="action-main-card">
-        <Row gutter={[24, 24]} align="middle">
-          <Col xs={24} md={16}>
-            <div className="action-title">
-              <Space align="start">
-                <div className="action-type-icon">
-                  {getTypeIcon(action.type)}
-                </div>
-                <div>
-                  <Title level={2}>{action.nom}</Title>
-                  <Space size="large">
-                    <Tag color="#004165">
+      {/* En-tête principal similaire au dashboard */}
+      <motion.div
+        variants={headerVariants}
+        initial="hidden"
+        animate="visible"
+        className="action-header"
+        style={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderRadius: '20px',
+          padding: '32px',
+          marginBottom: '32px',
+          color: 'white',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+      >
+        <motion.div
+          className="header-background"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            opacity: 0.1,
+            backgroundImage: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.1"%3E%3Ccircle cx="30" cy="30" r="4"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")'
+          }}
+          animate={{
+            backgroundPosition: ['0px 0px', '60px 60px']
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "linear"
+          }}
+        />
+
+        <Row justify="space-between" align="middle" style={{ position: 'relative', zIndex: 1 }}>
+          <Col xs={24} lg={16}>
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              style={{ display: 'flex', alignItems: 'center', gap: '20px' }}
+            >
+              <motion.div
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Avatar 
+                  size={64} 
+                  icon={getTypeIcon(action.type)}
+                  style={{ 
+                    background: `linear-gradient(135deg, ${getTypeColor(action.type)} 0%, ${getTypeColor(action.type)}80 100%)`,
+                    fontSize: '28px',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.2)'
+                  }} 
+                />
+              </motion.div>
+              
+              <div>
+                <Title level={1} style={{ color: 'white', margin: 0, fontWeight: 700 }}>
+                  {action.nom}
+                </Title>
+                <div style={{ marginTop: '8px' }}>
+                  <Space size={16}>
+                    <Tag 
+                      icon={getTypeIcon(action.type)}
+                      style={{
+                        background: 'rgba(255,255,255,0.2)',
+                        border: '1px solid rgba(255,255,255,0.3)',
+                        color: 'white',
+                        borderRadius: '20px',
+                        padding: '4px 12px',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        backdropFilter: 'blur(10px)'
+                      }}
+                    >
                       {formatType(action.type)}
                     </Tag>
-                    <Tag color={getStatusColor(action.statut)}>
-                      {action.statut === 'planifiee' ? 'Planifiée' : 
-                       action.statut === 'terminee' ? 'Terminée' : 
-                       action.statut === 'annulee' ? 'Annulée' : 
-                       action.statut === 'reportee' ? 'Reportée' : action.statut}
-                    </Tag>
-                    {getTimingBadge(action.timing)}
+                    <Badge 
+                      status={getStatusColor(action.statut)} 
+                      text={
+                        <span style={{ color: 'rgba(255,255,255,0.9)', fontWeight: 600 }}>
+                          {getStatusText(action.statut)}
+                        </span>
+                      }
+                    />
                   </Space>
                 </div>
-              </Space>
-            </div>
-          </Col>
-          <Col xs={24} md={8}>
-            <div className="action-stats">
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Statistic 
-                    title="Invités" 
-                    value={action.invites_count || 0}
-                    prefix={<TeamOutlined />}
-                  />
-                </Col>
-                <Col span={12}>
-                  <Statistic 
-                    title="Confirmés" 
-                    value={action.invites_confirmes_count || 0}
-                    prefix={<CheckCircleOutlined />}
-                    valueStyle={{ color: '#52c41a' }}
-                  />
-                </Col>
-              </Row>
-            </div>
-          </Col>
-        </Row>
-      </Card>
-      
-      {/* Description et détails généraux */}
-      <Card className="action-detail-card" title={
-        <Space>
-          <InfoCircleOutlined />
-          <span>Informations générales</span>
-        </Space>
-      }>
-        <Row gutter={[24, 24]}>
-          <Col xs={24} md={16}>
-            {action.description && (
-              <div className="action-description">
-                <Paragraph>{action.description}</Paragraph>
               </div>
-            )}
-            <Descriptions bordered column={{ xxl: 3, xl: 3, lg: 2, md: 2, sm: 1, xs: 1 }}>
-              <Descriptions.Item label={<Space><CalendarOutlined /> Date début</Space>}>
-                {formatDate(action.date_debut)}
-              </Descriptions.Item>
-              <Descriptions.Item label={<Space><CalendarOutlined /> Date fin</Space>}>
-                {formatDate(action.date_fin) || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={<Space><UserOutlined /> Responsable</Space>}>
-                {action.responsable ? action.responsable.name : '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={<Space><EnvironmentOutlined /> Lieu</Space>}>
-                {action.lieu || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={<Space><EnvironmentOutlined /> Ville</Space>}>
-                {action.ville || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={<Space><GlobalOutlined /> Pays</Space>}>
-                {action.pays || '-'}
-              </Descriptions.Item>
-              {action.notes_internes && (
-                <Descriptions.Item label="Notes internes" span={3}>
-                  {action.notes_internes}
-                </Descriptions.Item>
-              )}
-              <Descriptions.Item label="Créé le">
-                {formatDateTime(action.created_at)}
-              </Descriptions.Item>
-              <Descriptions.Item label="Dernière mise à jour">
-                {formatDateTime(action.updated_at)}
-              </Descriptions.Item>
-            </Descriptions>
+            </motion.div>
           </Col>
           
-          <Col xs={24} md={8}>
-            <div className="action-sidebar">
-              <Card className="action-dates-card" size="small" title={
-                <Space>
-                  <CalendarOutlined />
-                  <span>Calendrier</span>
-                </Space>
-              }>
-                <div className="date-display">
-                  <div className="date-range">
-                    <div className="date-item">
-                      <div className="date-label">Début</div>
-                      <div className="date-value">
-                        {formatDate(action.date_debut)}
-                      </div>
-                    </div>
-                    
-                    {action.date_fin && (
-                      <>
-                        <div className="date-separator">→</div>
-                        <div className="date-item">
-                          <div className="date-label">Fin</div>
-                          <div className="date-value">
-                            {formatDate(action.date_fin)}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  <div className="date-duration">
-                    {action.date_fin ? 
-                      `${moment(action.date_fin).diff(moment(action.date_debut), 'days') + 1} jour(s)` : 
-                      '1 jour'}
-                  </div>
-                </div>
-              </Card>
-            </div>
+          <Col xs={24} lg={8}>
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 }}
+              style={{ 
+                display: 'flex', 
+                gap: '12px', 
+                justifyContent: screens.lg ? 'flex-end' : 'flex-start',
+                flexWrap: 'wrap',
+                marginTop: screens.lg ? 0 : '16px'
+              }}
+            >
+              <Button 
+                icon={<ArrowLeftOutlined />}
+                onClick={() => navigate('/actions')}
+                style={{
+                  background: 'rgba(255,255,255,0.1)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  color: 'white',
+                  borderRadius: '8px',
+                  backdropFilter: 'blur(10px)'
+                }}
+              >
+                Retour
+              </Button>
+              <Button 
+                type="primary" 
+                icon={<EditOutlined />}
+                onClick={() => navigate(`/actions/edit/${action.id}`)}
+                style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  borderRadius: '8px',
+                  backdropFilter: 'blur(10px)'
+                }}
+              >
+                Modifier
+              </Button>
+              <Button 
+                danger 
+                icon={<DeleteOutlined />}
+                onClick={() => setDeleteModalVisible(true)}
+                style={{
+                  background: 'rgba(255,77,79,0.2)',
+                  border: '1px solid rgba(255,77,79,0.3)',
+                  color: '#ff4d4f',
+                  borderRadius: '8px',
+                  backdropFilter: 'blur(10px)'
+                }}
+              >
+                Supprimer
+              </Button>
+              
+            </motion.div>
           </Col>
         </Row>
-      </Card>
-      
-      {/* Détails spécifiques au type */}
-      <Card className="action-detail-card" title={
-        <Space>
-          <ProfileOutlined />
-          <span>Détails spécifiques ({formatType(action.type)})</span>
-        </Space>
-      }>
-        {renderTypeSpecificDetails()}
-      </Card>
+      </motion.div>
+
+      {/* Statistiques rapides */}
+      <Row gutter={[24, 24]} style={{ marginBottom: '32px' }}>
+        <Col xs={12} sm={6}>
+          <AnimatedStatCard
+            icon={<TeamOutlined />}
+            title="Total Invités"
+            value={action.invites_count || 0}
+            color="#1890ff"
+            delay={0}
+          />
+        </Col>
+        <Col xs={12} sm={6}>
+          <AnimatedStatCard
+            icon={<CheckCircleOutlined />}
+            title="Confirmés"
+            value={action.invites_confirmes_count || 0}
+            color="#52c41a"
+            delay={1}
+          />
+        </Col>
+        <Col xs={12} sm={6}>
+          <AnimatedStatCard
+            icon={<ClockCircleOutlined />}
+            title="En Attente"
+            value={(action.invites_count || 0) - (action.invites_confirmes_count || 0)}
+            color="#faad14"
+            delay={2}
+          />
+        </Col>
+        <Col xs={12} sm={6}>
+          <AnimatedStatCard
+            icon={<CalendarOutlined />}
+            title="Jours Restants"
+            value={action.date_debut ? Math.max(0, moment(action.date_debut).diff(moment(), 'days')) : 0}
+            color="#722ed1"
+            delay={3}
+          />
+        </Col>
+      </Row>
+
+      {/* Informations générales */}
+      <Row gutter={[24, 24]} style={{ marginBottom: '32px' }}>
+        <Col xs={24} lg={16}>
+          <AnimatedContentCard
+            title="Informations générales"
+            icon={<InfoCircleOutlined />}
+            delay={0}
+          >
+            {action.description && (
+              <div style={{ marginBottom: '24px' }}>
+                <Paragraph style={{ 
+                  fontSize: '16px', 
+                  lineHeight: '1.6',
+                  background: 'linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%)',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: '1px solid #e6f0ff'
+                }}>
+                  {action.description}
+                </Paragraph>
+              </div>
+            )}
+            
+            <Descriptions 
+              bordered 
+              column={{ xxl: 3, xl: 3, lg: 2, md: 2, sm: 1, xs: 1 }}
+              style={{
+                backgroundColor: 'white',
+                borderRadius: '12px',
+                overflow: 'hidden'
+              }}
+            >
+              <Descriptions.Item 
+                label={
+                  <Space>
+                    <CalendarOutlined style={{ color: '#52c41a' }} />
+                    <Text strong>Date début</Text>
+                  </Space>
+                }
+              >
+                <Text strong style={{ color: '#52c41a' }}>{formatDate(action.date_debut)}</Text>
+              </Descriptions.Item>
+              <Descriptions.Item 
+                label={
+                  <Space>
+                    <CalendarOutlined style={{ color: '#fa8c16' }} />
+                    <Text strong>Date fin</Text>
+                  </Space>
+                }
+              >
+                <Text strong style={{ color: '#fa8c16' }}>{formatDate(action.date_fin) || '-'}</Text>
+              </Descriptions.Item>
+              <Descriptions.Item 
+                label={
+                  <Space>
+                    <UserOutlined style={{ color: '#722ed1' }} />
+                    <Text strong>Responsable</Text>
+                  </Space>
+                }
+              >
+                {action.responsable ? action.responsable.name : '-'}
+              </Descriptions.Item>
+              <Descriptions.Item 
+                label={
+                  <Space>
+                    <EnvironmentOutlined style={{ color: '#eb2f96' }} />
+                    <Text strong>Lieu</Text>
+                  </Space>
+                }
+              >
+                {action.lieu || '-'}
+              </Descriptions.Item>
+              <Descriptions.Item 
+                label={
+                  <Space>
+                    <EnvironmentOutlined style={{ color: '#13c2c2' }} />
+                    <Text strong>Ville</Text>
+                  </Space>
+                }
+              >
+                {action.ville || '-'}
+              </Descriptions.Item>
+              <Descriptions.Item 
+                label={
+                  <Space>
+                    <GlobalOutlined style={{ color: '#faad14' }} />
+                    <Text strong>Pays</Text>
+                  </Space>
+                }
+              >
+                {action.pays || '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Créé le">
+                <Text type="secondary">{formatDateTime(action.created_at)}</Text>
+              </Descriptions.Item>
+              <Descriptions.Item label="Dernière mise à jour">
+                <Text type="secondary">{formatDateTime(action.updated_at)}</Text>
+              </Descriptions.Item>
+            </Descriptions>
+          </AnimatedContentCard>
+        </Col>
+        
+        <Col xs={24} lg={8}>
+          <AnimatedContentCard
+            title="Calendrier"
+            icon={<CalendarOutlined />}
+            delay={1}
+          >
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+              <div style={{
+                background: 'linear-gradient(135deg, #e6f7ff 0%, #f0f2ff 100%)',
+                borderRadius: '16px',
+                padding: '24px',
+                border: '2px solid #1890ff30'
+              }}>
+                <div style={{ marginBottom: '16px' }}>
+                  <Text type="secondary" style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    Date de début
+                  </Text>
+                  <Title level={3} style={{ margin: '4px 0', color: '#1890ff' }}>
+                    {formatDate(action.date_debut)}
+                  </Title>
+                </div>
+                
+                {action.date_fin && (
+                  <>
+                    <Divider style={{ margin: '16px 0' }} />
+                    <div>
+                      <Text type="secondary" style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                        Date de fin
+                      </Text>
+                      <Title level={3} style={{ margin: '4px 0', color: '#fa8c16' }}>
+                        {formatDate(action.date_fin)}
+                      </Title>
+                    </div>
+                  </>
+                )}
+                
+                <div style={{ marginTop: '16px' }}>
+                  <Badge 
+                    count={
+                      action.date_fin ? 
+                        `${moment(action.date_fin).diff(moment(action.date_debut), 'days') + 1} jour(s)` : 
+                        '1 jour'
+                    } 
+                    style={{ 
+                      backgroundColor: '#1890ff',
+                      borderRadius: '12px',
+                      padding: '4px 8px'
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </AnimatedContentCard>
+        </Col>
+      </Row>
       
       {/* Onglets pour les entités liées */}
-      <Card className="action-detail-card">
-        <Tabs defaultActiveKey="1">
+      <AnimatedContentCard
+        title="Gestion des invités"
+        icon={<TeamOutlined />}
+        delay={2}
+      >
+        <Tabs 
+          defaultActiveKey="1" 
+          style={{
+            '& .ant-tabs-tab': {
+              padding: '12px 24px',
+              fontWeight: 500,
+              borderRadius: '8px 8px 0 0'
+            }
+          }}
+        >
           <TabPane 
-            tab={<Space><TeamOutlined /> Invités ({action.invites_count || 0})</Space>} 
+            tab={
+              <Space>
+                <TeamOutlined /> 
+                Invités 
+                <Badge 
+                  count={action.invites_count || 0} 
+                  showZero 
+                  style={{ backgroundColor: '#1890ff' }}
+                />
+              </Space>
+            } 
             key="1"
           >
             {renderInvites()}
           </TabPane>
-          <TabPane 
-            tab={<Space><ProfileOutlined /> Étapes</Space>} 
-            key="2"
-          >
-            {renderEtapes()}
-          </TabPane>
         </Tabs>
-      </Card>
+      </AnimatedContentCard>
       
       {/* Modal de confirmation de suppression */}
       <Modal
-        title="Confirmer la suppression"
-        visible={deleteModalVisible}
+        title={
+          <Space>
+            <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />
+            <span>Confirmer la suppression</span>
+          </Space>
+        }
+        open={deleteModalVisible}
         onOk={handleDeleteAction}
         onCancel={() => setDeleteModalVisible(false)}
         okText="Oui, supprimer"
         cancelText="Annuler"
-        okButtonProps={{ danger: true }}
+        okButtonProps={{ 
+          danger: true,
+          style: { borderRadius: '8px' }
+        }}
+        cancelButtonProps={{ style: { borderRadius: '8px' } }}
+        style={{ borderRadius: '16px' }}
       >
-        <p>Êtes-vous sûr de vouloir supprimer cette action ?</p>
-        <p>Cette opération est irréversible et supprimera également toutes les données associées.</p>
+        <div style={{ padding: '20px 0' }}>
+          <Alert
+            message="Action irréversible"
+            description="Cette action supprimera définitivement l'action et toutes les données associées."
+            type="warning"
+            showIcon
+            style={{ marginBottom: '16px', borderRadius: '8px' }}
+          />
+          <Text>Êtes-vous sûr de vouloir supprimer cette action ?</Text>
+        </div>
       </Modal>
 
-      {/* Modal pour ajouter un invité avec les champs obligatoires */}
+      {/* Modal pour ajouter un invité */}
       <Modal
-        title="Ajouter un invité"
-        visible={addInviteModalVisible}
+        title={
+          <Space>
+            <UserAddOutlined style={{ color: '#1890ff' }} />
+            <span>Ajouter un invité</span>
+          </Space>
+        }
+        open={addInviteModalVisible}
         onCancel={() => setAddInviteModalVisible(false)}
         footer={[
-          <Button key="cancel" onClick={() => setAddInviteModalVisible(false)}>
+          <Button key="cancel" onClick={() => setAddInviteModalVisible(false)} style={{ borderRadius: '8px' }}>
             Annuler
           </Button>,
           <Button 
@@ -957,16 +1162,28 @@ const ActionDetail = () => {
             onClick={handleAddInvite}
             loading={loadingDependencies}
             disabled={loadingDependencies}
+            style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              border: 'none',
+              borderRadius: '8px'
+            }}
           >
             Ajouter
           </Button>,
         ]}
-        width={700}
+        width={800}
+        style={{ borderRadius: '16px' }}
       >
         {loadingDependencies ? (
-          <div style={{ textAlign: 'center', padding: '30px' }}>
-            <Spin size="large" />
-            <p>Chargement des données...</p>
+          <div style={{ textAlign: 'center', padding: '40px' }}>
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              style={{ marginBottom: '16px' }}
+            >
+              <SyncOutlined style={{ fontSize: '32px', color: '#1890ff' }} />
+            </motion.div>
+            <Text>Chargement des données...</Text>
           </div>
         ) : (
           <Form
@@ -976,7 +1193,7 @@ const ActionDetail = () => {
               type_invite: 'externe', 
               statut: 'en_attente',
               action_id: id,
-              proprietaire_id: currentUser?.id // Initialisation avec l'utilisateur courant
+              proprietaire_id: currentUser?.id
             }}
           >
             <Row gutter={16}>
@@ -986,7 +1203,7 @@ const ActionDetail = () => {
                   label="Nom"
                   rules={[{ required: true, message: 'Veuillez entrer le nom' }]}
                 >
-                  <Input placeholder="Nom" />
+                  <Input placeholder="Nom" style={{ borderRadius: '8px' }} />
                 </Form.Item>
               </Col>
               <Col span={12}>
@@ -995,7 +1212,7 @@ const ActionDetail = () => {
                   label="Prénom"
                   rules={[{ required: true, message: 'Veuillez entrer le prénom' }]}
                 >
-                  <Input placeholder="Prénom" />
+                  <Input placeholder="Prénom" style={{ borderRadius: '8px' }} />
                 </Form.Item>
               </Col>
             </Row>
@@ -1010,12 +1227,20 @@ const ActionDetail = () => {
                     { type: 'email', message: 'Email invalide' }
                   ]}
                 >
-                  <Input placeholder="Email" prefix={<MailOutlined />} />
+                  <Input 
+                    placeholder="Email" 
+                    prefix={<MailOutlined style={{ color: '#1890ff' }} />}
+                    style={{ borderRadius: '8px' }}
+                  />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item name="telephone" label="Téléphone">
-                  <Input placeholder="Téléphone" prefix={<PhoneOutlined />} />
+                  <Input 
+                    placeholder="Téléphone" 
+                    prefix={<PhoneOutlined style={{ color: '#52c41a' }} />}
+                    style={{ borderRadius: '8px' }}
+                  />
                 </Form.Item>
               </Col>
             </Row>
@@ -1031,6 +1256,7 @@ const ActionDetail = () => {
                     placeholder="Sélectionner une entreprise" 
                     showSearch
                     loading={entreprisesLoading}
+                    style={{ borderRadius: '8px' }}
                     filterOption={(input, option) =>
                       option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
                     }
@@ -1050,78 +1276,313 @@ const ActionDetail = () => {
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item
-                  name="etape_id"
-                  label="Étape"
-                  rules={[{ required: true, message: 'L\'étape est obligatoire' }]}
-                >
-                  <Select 
-                    placeholder="Sélectionner une étape"
-                    loading={etapesLoading}
-                    notFoundContent={etapesLoading ? <Spin size="small" /> : <Empty description="Aucune étape trouvée" />}
-                  >
-                    {Array.isArray(etapes) && etapes.map(etape => (
-                      <Option key={etape.id} value={etape.id}>{etape.nom}</Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Row gutter={16}>
-              <Col span={12}>
-                {/* Champ caché pour l'ID du propriétaire */}
-                <Form.Item
-                  name="proprietaire_id"
-                  hidden
-                >
-                  <Input type="hidden" />
-                </Form.Item>
-                
-                {/* Champ informatif pour afficher le nom de l'utilisateur courant */}
-                <Form.Item label="Propriétaire">
+                <Form.Item name="fonction" label="Fonction">
                   <Input 
-                    value={currentUser?.name || "Vous"} 
-                    disabled 
-                    prefix={<UserOutlined />} 
-                    style={{ color: "#555", cursor: "default" }} 
+                    placeholder="Fonction dans l'entreprise"
+                    style={{ borderRadius: '8px' }}
                   />
                 </Form.Item>
               </Col>
-              <Col span={12}>
-                <Form.Item name="fonction" label="Fonction">
-                  <Input placeholder="Fonction" />
-                </Form.Item>
-              </Col>
             </Row>
 
             <Row gutter={16}>
               <Col span={12}>
-                <Form.Item name="type_invite" label="Type d'invité">
+                <Form.Item
+                  name="type_invite"
+                  label="Type d'invité"
+                  rules={[{ required: true, message: 'Le type est obligatoire' }]}
+                >
                   <Radio.Group>
-                    <Radio value="externe">Externe</Radio>
                     <Radio value="interne">Interne</Radio>
+                    <Radio value="externe">Externe</Radio>
                   </Radio.Group>
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item name="statut" label="Statut">
-                  <Select placeholder="Sélectionner un statut">
-                    <Option value="en_attente">En attente</Option>
-                    <Option value="confirmee">Confirmé</Option>
-                    <Option value="refusee">Refusé</Option>
-                    <Option value="participee">Participé</Option>
+                <Form.Item
+                  name="statut"
+                  label="Statut"
+                  rules={[{ required: true, message: 'Le statut est obligatoire' }]}
+                >
+                  <Select placeholder="Statut de l'invitation" style={{ borderRadius: '8px' }}>
+                    <Option value="en_attente">
+                      <Badge status="warning" text="En attente" />
+                    </Option>
+                    <Option value="confirmee">
+                      <Badge status="success" text="Confirmé" />
+                    </Option>
+                    <Option value="refusee">
+                      <Badge status="error" text="Décliné" />
+                    </Option>
                   </Select>
                 </Form.Item>
               </Col>
             </Row>
 
             <Form.Item name="commentaires" label="Commentaires">
-              <TextArea rows={4} placeholder="Commentaires" />
+              <TextArea 
+                rows={3} 
+                placeholder="Commentaires ou notes sur cet invité"
+                style={{ borderRadius: '8px' }}
+              />
             </Form.Item>
           </Form>
         )}
       </Modal>
+
+      {/* Styles CSS intégrés */}
+      <style jsx>{`
+        .action-details-container {
+          padding: 24px;
+          background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+          min-height: 100vh;
+        }
+
+        .loading-container {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          min-height: 60vh;
+          background: white;
+          border-radius: 20px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+          text-align: center;
+          padding: 40px;
+        }
+
+        .action-header {
+          position: relative;
+        }
+
+        .stat-card-modern {
+          transition: all 0.3s ease;
+          cursor: pointer;
+        }
+
+        .stat-card-modern:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important;
+        }
+
+        .stat-card-content {
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+        }
+
+        .stat-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 12px;
+        }
+
+        .stat-body {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-end;
+        }
+
+        .content-card-modern {
+          transition: all 0.3s ease;
+          margin-bottom: 24px;
+        }
+
+        .content-card-modern:hover {
+          box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important;
+        }
+
+        .ant-descriptions-bordered .ant-descriptions-item-label {
+          background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+          font-weight: 600;
+          color: #333;
+        }
+
+        .ant-descriptions-bordered .ant-descriptions-item-content {
+          background: white;
+        }
+
+        .ant-table-thead > tr > th {
+          background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+          font-weight: 600;
+          color: #333;
+          border-bottom: 2px solid #f0f0f0;
+        }
+
+        .ant-table-tbody > tr:hover > td {
+          background: linear-gradient(135deg, #f0f2ff 0%, #e6f7ff 100%);
+        }
+
+        .ant-tabs-tab {
+          padding: 12px 24px !important;
+          font-weight: 500 !important;
+          border-radius: 8px 8px 0 0 !important;
+          transition: all 0.3s ease !important;
+        }
+
+        .ant-tabs-tab-active {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+          color: white !important;
+        }
+
+        .ant-modal-content {
+          border-radius: 16px !important;
+          overflow: hidden;
+        }
+
+        .ant-modal-header {
+          background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+          border-bottom: 1px solid #e8e8e8;
+        }
+
+        .ant-modal-footer {
+          border-top: 1px solid #f0f0f0;
+          background: #fafafa;
+        }
+
+        .ant-form-item-label > label {
+          font-weight: 500;
+          color: #333;
+        }
+
+        .ant-input,
+        .ant-select-selector,
+        .ant-input-affix-wrapper {
+          transition: all 0.3s ease;
+        }
+
+        .ant-input:focus,
+        .ant-select-focused .ant-select-selector,
+        .ant-input-affix-wrapper-focused {
+          border-color: #667eea;
+          box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+
+        .ant-breadcrumb {
+          font-weight: 500;
+        }
+
+        .ant-breadcrumb a {
+          color: #666;
+          transition: color 0.3s ease;
+        }
+
+        .ant-breadcrumb a:hover {
+          color: #667eea;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+          .action-details-container {
+            padding: 16px;
+          }
+
+          .action-header {
+            padding: 24px !important;
+            border-radius: 16px !important;
+            text-align: center;
+          }
+
+          .stat-card-modern {
+            margin-bottom: 16px;
+          }
+
+          .content-card-modern {
+            margin-bottom: 16px;
+          }
+        }
+
+        @media (max-width: 576px) {
+          .action-header {
+            padding: 20px !important;
+            border-radius: 12px !important;
+          }
+        }
+
+        /* Animations */
+        @keyframes shimmer {
+          0% { background-position: -468px 0; }
+          100% { background-position: 468px 0; }
+        }
+
+        .loading-shimmer {
+          animation: shimmer 1.5s ease-in-out infinite;
+          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+          background-size: 400% 100%;
+        }
+
+        /* Effet de parallaxe pour le header */
+        .header-background {
+          background-attachment: fixed;
+        }
+
+        /* Amélioration des sélecteurs Ant Design */
+        .ant-select-dropdown {
+          border-radius: 8px;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        .ant-select-item {
+          border-radius: 4px;
+          margin: 2px 8px;
+          transition: all 0.2s ease;
+        }
+
+        .ant-select-item:hover {
+          background: linear-gradient(135deg, #f0f2ff 0%, #e6f7ff 100%);
+        }
+
+        .ant-select-item-option-selected {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+        }
+
+        /* Animation pour les badges et tags */
+        .ant-badge,
+        .ant-tag {
+          transition: all 0.3s ease;
+        }
+
+        .ant-badge:hover,
+        .ant-tag:hover {
+          transform: scale(1.05);
+        }
+
+        /* Amélioration des statistiques */
+        .ant-statistic {
+          text-align: center;
+        }
+
+        .ant-statistic-title {
+          font-weight: 500;
+          color: #666;
+        }
+
+        .ant-statistic-content {
+          font-weight: 600;
+        }
+
+        /* Empty state */
+        .ant-empty {
+          padding: 40px 20px;
+        }
+
+        .ant-empty-description {
+          color: #999;
+          font-size: 14px;
+        }
+
+        /* Loading state */
+        .ant-spin-container {
+          transition: opacity 0.3s ease;
+        }
+
+        .ant-spin-blur {
+          opacity: 0.5;
+        }
+      `}</style>
     </div>
   );
 };

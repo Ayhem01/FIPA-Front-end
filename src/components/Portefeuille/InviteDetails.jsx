@@ -6,7 +6,7 @@ import {
   Card, Descriptions, Button, Space, Spin, Tag, Tabs, Typography, Modal,
   message, Divider, Row, Col, Breadcrumb, Statistic, Tooltip, Badge, Checkbox, List,
   Dropdown, Menu, Steps, Alert, Timeline, Form, DatePicker, Select, Input, Progress, InputNumber,
-  Avatar
+  Avatar, Grid
 } from 'antd';
 import {
   EditOutlined, DeleteOutlined, ArrowLeftOutlined, ExclamationCircleOutlined,
@@ -14,9 +14,11 @@ import {
   BankOutlined, TeamOutlined, CheckCircleOutlined, CloseCircleOutlined, 
   QuestionCircleOutlined, DownOutlined, EllipsisOutlined, HistoryOutlined, LoadingOutlined, PlusOutlined,
   MessageOutlined, InfoCircleOutlined, SendOutlined, AuditOutlined, BellOutlined, GlobalOutlined, RightOutlined,
-  SearchOutlined, SettingOutlined, ClockCircleOutlined, ArrowUpOutlined, WarningOutlined, LinkOutlined
+  SearchOutlined, SettingOutlined, ClockCircleOutlined, ArrowUpOutlined, WarningOutlined, LinkOutlined,
+  HomeOutlined, SyncOutlined, FireOutlined, ThunderboltOutlined, ReloadOutlined
 } from '@ant-design/icons';
 import { CheckOutlined } from '@ant-design/icons';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import {
   getInviteById,
@@ -28,7 +30,6 @@ import {
   convertToProspect,
   resetOperation,
   getInvitePipeline,
-
 } from '../../features/inviteSlice';
 import { fetchPays, fetchSecteurs, fetchEntreprises } from '../../features/marketingSlice';
 import moment from 'moment';
@@ -48,20 +49,265 @@ import TaskCreateModal from '../Tasks/TaskCreateModal';
 import PipelineStageManager from '../Portefeuille/PipelineStageManager';
 import PipelineVisualizer from '../Portefeuille/PipelineVisualizer';
 
-
-
-
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
 const { confirm } = Modal;
 const { Step } = Steps;
 const { Option } = Select;
 const { TextArea } = Input;
+const { useBreakpoint } = Grid;
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+
+// Composant de statistique animée similaire au dashboard
+const AnimatedStatCard = ({ icon, title, value, prefix, suffix, color, loading, delay = 0 }) => {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    if (!loading && typeof value === 'number' && value > 0) {
+      const duration = 1500;
+      const steps = 30;
+      const increment = value / steps;
+      let current = 0;
+      
+      const timer = setInterval(() => {
+        current += increment;
+        if (current >= value) {
+          setDisplayValue(value);
+          clearInterval(timer);
+        } else {
+          setDisplayValue(Math.floor(current));
+        }
+      }, duration / steps);
+
+      return () => clearInterval(timer);
+    } else if (!loading) {
+      setDisplayValue(value);
+    }
+  }, [value, loading]);
+
+  const cardVariants = {
+    hidden: { 
+      opacity: 0, 
+      y: 20,
+      scale: 0.95
+    },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      scale: 1,
+      transition: {
+        duration: 0.5,
+        delay: delay * 0.1,
+        ease: "easeOut"
+      }
+    },
+    hover: {
+      y: -3,
+      scale: 1.02,
+      transition: {
+        duration: 0.2,
+        ease: "easeInOut"
+      }
+    }
+  };
+
+  return (
+    <motion.div
+      variants={cardVariants}
+      initial="hidden"
+      animate="visible"
+      whileHover="hover"
+      style={{ height: '100%' }}
+    >
+      <Card 
+        className="stat-card-modern"
+        style={{
+          height: '100%',
+          background: `linear-gradient(135deg, ${color}15 0%, ${color}25 100%)`,
+          border: `1px solid ${color}30`,
+          borderRadius: '16px',
+          overflow: 'hidden',
+          position: 'relative'
+        }}
+        bodyStyle={{ padding: '20px' }}
+      >
+        <div className="stat-card-content">
+          <motion.div 
+            className="stat-icon"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: delay * 0.1 + 0.2 }}
+            style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '10px',
+              background: `linear-gradient(135deg, ${color} 0%, ${color}80 100%)`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontSize: '20px',
+              boxShadow: `0 4px 12px ${color}40`,
+              marginBottom: '12px'
+            }}
+          >
+            {loading ? <SyncOutlined spin /> : icon}
+          </motion.div>
+
+          <Text type="secondary" style={{ fontSize: '13px', fontWeight: 500 }}>
+            {title}
+          </Text>
+          
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: delay * 0.1 + 0.3 }}
+          >
+            <Title level={3} style={{ 
+              margin: '4px 0 0 0', 
+              color: color,
+              fontWeight: 700,
+              fontSize: '22px'
+            }}>
+              {prefix}
+              <motion.span
+                key={displayValue}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                {typeof displayValue === 'number' ? displayValue.toLocaleString() : displayValue}
+              </motion.span>
+              {suffix}
+            </Title>
+          </motion.div>
+        </div>
+
+        {/* Effet de brillance */}
+        <motion.div
+          className="shine-effect"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: '-100%',
+            width: '100%',
+            height: '100%',
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+            transform: 'skewX(-25deg)'
+          }}
+          animate={{
+            left: ['100%', '200%']
+          }}
+          transition={{
+            duration: 2,
+            delay: delay * 0.1 + 1,
+            ease: "easeInOut"
+          }}
+        />
+      </Card>
+    </motion.div>
+  );
+};
+
+// Composant de carte animée similaire au dashboard
+const AnimatedContentCard = ({ title, children, loading, extra, delay = 0 }) => {
+  const cardVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: {
+        duration: 0.6,
+        delay: delay * 0.1,
+        ease: "easeOut"
+      }
+    }
+  };
+
+  return (
+    <motion.div
+      variants={cardVariants}
+      initial="hidden"
+      animate="visible"
+      style={{ height: '100%' }}
+    >
+      <Card
+        className="content-card-modern"
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: delay * 0.1 + 0.2 }}
+            >
+              <div style={{
+                width: '8px',
+                height: '24px',
+                borderRadius: '4px',
+                background: 'linear-gradient(135deg, #1890ff, #096dd9)'
+              }} />
+            </motion.div>
+            <Title level={4} style={{ margin: 0, fontWeight: 600 }}>
+              {title}
+            </Title>
+          </div>
+        }
+        extra={extra}
+        style={{
+          height: '100%',
+          borderRadius: '16px',
+          border: '1px solid #f0f0f0',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+          overflow: 'hidden'
+        }}
+        bodyStyle={{ padding: '24px' }}
+      >
+        <AnimatePresence mode="wait">
+          {loading ? (
+            <motion.div
+              key="loading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '200px'
+              }}
+            >
+              <div style={{ textAlign: 'center' }}>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  style={{ marginBottom: '16px' }}
+                >
+                  <SyncOutlined style={{ fontSize: '32px', color: '#1890ff' }} />
+                </motion.div>
+                <Text type="secondary">Chargement des données...</Text>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="content"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4 }}
+            >
+              {children}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Card>
+    </motion.div>
+  );
+};
+
 const InviteDetails = () => {
-  // Déplacé à l'intérieur du composant - correction de l'erreur
   const [taskForm] = Form.useForm();
   const [shouldCreateTask, setShouldCreateTask] = useState(false);
+  const screens = useBreakpoint();
 
   const { id } = useParams();
   const dispatch = useDispatch();
@@ -72,7 +318,6 @@ const InviteDetails = () => {
   const [selectedPipelineStage, setSelectedPipelineStage] = useState(null);
   const [conversionForm] = Form.useForm();
   const [pipelineForm] = Form.useForm();
-  // Ajouter un état pour forcer le rechargement
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [taskModalVisible, setTaskModalVisible] = useState(false);
   const [selectedStageForTask, setSelectedStageForTask] = useState(null);
@@ -81,15 +326,10 @@ const InviteDetails = () => {
   const [editingStage, setEditingStage] = useState(null);
   const [stageForm] = Form.useForm();
   const [blockages, setBlockages] = useState([]);
-  // const [stageModalVisible, setStageModalVisible] = useState(false); // modal ouverte/fermée
   const [addBlockageVisible, setAddBlockageVisible] = useState(false);
   const [pipelineTasks, setPipelineTasks] = useState({ planned: [], recent: [] });
   const [loadingTasks, setLoadingTasks] = useState(false);
-  // const [taskModalVisible, setTaskModalVisible] = useState(false);
-  // const [selectedStageForTask, setSelectedStageForTask] = useState(null);
   const [selectedStageName, setSelectedStageName] = useState('');
-
-
 
   const {
     selectedInvite: { data: invite, loading, error },
@@ -118,13 +358,11 @@ const InviteDetails = () => {
   }, [dispatch, currentUser]);
 
   useEffect(() => {
-    // Vérifier si l'invitation a été convertie
     if (invite && invite.is_converted && invite.prospect_id) {
       console.log('Invitation convertie vers prospect ID:', invite.prospect_id);
     }
   }, [invite]);
 
-  // Charger les données de l'invité et son pipeline
   useEffect(() => {
     if (id) {
       dispatch(getInviteById(id));
@@ -137,9 +375,8 @@ const InviteDetails = () => {
     return () => {
       dispatch(resetOperation());
     };
-  }, [dispatch, id, refreshTrigger]); // Ajouter refreshTrigger pour forcer le rechargement
+  }, [dispatch, id, refreshTrigger]);
 
-  // Gérer les opérations réussies ou échouées
   useEffect(() => {
     if (operation.success) {
       switch (operation.type) {
@@ -152,15 +389,13 @@ const InviteDetails = () => {
           break;
         case 'send_invitation':
           message.success('Invitation envoyée avec succès');
-          // Recharger les données
           dispatch(getInviteById(id));
           break;
         case 'initialize_pipeline':
           message.success('Pipeline initialisé avec succès');
-          // Recharger explicitement les données du pipeline après l'initialisation
           setTimeout(() => {
             dispatch(getInvitePipeline(id));
-            setRefreshTrigger(prev => prev + 1); // Forcer le rechargement
+            setRefreshTrigger(prev => prev + 1);
           }, 500);
           break;
         case 'advance_pipeline':
@@ -184,7 +419,6 @@ const InviteDetails = () => {
   const effectiveCurrentStage = currentStage ||
     (pipelineStages && pipelineStages.length > 0 ? pipelineStages[0] : null);
 
-  // Debug: Ajouter des logs pour comprendre pourquoi le bouton est désactivé
   useEffect(() => {
     if (invite && effectiveCurrentStage) {
       console.log('=== DEBUG BOUTON CONVERT ===');
@@ -217,12 +451,9 @@ const InviteDetails = () => {
         .unwrap()
         .then(response => {
           const tasks = response.data || [];
-
-          // Diviser les tâches en "planifiées" (futures) et "récentes" (passées)
           const now = moment();
           const planned = tasks.filter(task => moment(task.end || task.start).isAfter(now));
           const recent = tasks.filter(task => moment(task.end || task.start).isSameOrBefore(now));
-
           setPipelineTasks({ planned, recent });
         })
         .catch(error => {
@@ -245,8 +476,6 @@ const InviteDetails = () => {
     }
   }, [activeTab, effectiveCurrentStage, loadPipelineTasks, refreshTrigger]);
 
-
-  // Confirmation de suppression
   const showDeleteConfirm = () => {
     confirm({
       title: `Êtes-vous sûr de vouloir supprimer cet invité?`,
@@ -282,7 +511,6 @@ const InviteDetails = () => {
         all_day: false,
         type: values.type,
         priority: values.priority,
-        // user_id: currentUser.id
       };
 
       dispatch(createPipelineStageTask({
@@ -294,7 +522,7 @@ const InviteDetails = () => {
         .then(response => {
           message.success('Tâche créée avec succès');
           setTaskModalVisible(false);
-          setRefreshTrigger(prev => prev + 1); // Ceci déclenchera le rechargement des tâches
+          setRefreshTrigger(prev => prev + 1);
         })
         .catch(error => {
           message.error(`Erreur: ${error}`);
@@ -302,10 +530,8 @@ const InviteDetails = () => {
     });
   };
 
-  // Ajoutez un effet pour réinitialiser le formulaire de tâche lorsqu'on ouvre le modal
   useEffect(() => {
     if (pipelineModalVisible) {
-      // Réinitialiser le formulaire de tâche avec des valeurs par défaut
       const now = moment();
       taskForm.setFieldsValue({
         title: `Tâche pour ${invite?.nom || 'invité'} - ${currentStage?.name || 'suivi'}`,
@@ -318,127 +544,17 @@ const InviteDetails = () => {
     }
   }, [pipelineModalVisible, invite, currentStage, taskForm]);
 
-
-  // Modifier le statut
   const handleStatusChange = (newStatus) => {
     dispatch(updateInviteStatus({ id, statut: newStatus }));
   };
 
-  // Envoyer l'invitation
   const handleSendInvitation = () => {
     dispatch(sendInvitation(id));
   };
 
-  // const handleMoveStage = (stage, direction) => {
-  //   const newOrder = direction === 'up' ? stage.order - 1 : stage.order + 1;
-
-  //   if (newOrder < 1 || newOrder > pipelineStages.length) {
-  //     return;
-  //   }
-
-  //   dispatch(updatePipelineStage({
-  //     entityType: 'invite',
-  //     id: stage.id,
-  //     stageData: {
-  //       ...stage,
-  //       order: newOrder
-  //     }
-  //   })).unwrap()
-  //     .then(() => {
-  //       // Recharger les données du pipeline après mise à jour
-  //       dispatch(getInvitePipeline(id));
-  //     })
-  //     .catch(err => {
-  //       message.error(`Erreur lors du déplacement de l'étape: ${err}`);
-  //     });
-  // };
-
-  // Gérer l'édition d'une étape
-  // const handleEditStage = (stage) => {
-  //   setEditingStage(stage);
-  //   // Réinitialiser d'abord pour effacer toutes les valeurs précédentes
-  //   stageForm.resetFields();
-  //   // Puis définir les valeurs du stage à modifier
-  //   stageForm.setFieldsValue({
-  //     name: stage.name,
-  //     description: stage.description,
-  //     order: stage.order,
-  //     is_final: stage.is_final
-  //   });
-  //   setStageModalVisible(true);
-  // };
-
-  // Gérer la suppression d'une étape
-  // const handleDeleteStage = (stageId) => {
-  //   Modal.confirm({
-  //     title: 'Confirmer la suppression',
-  //     icon: <ExclamationCircleOutlined />,
-  //     content: 'Êtes-vous sûr de vouloir supprimer ce Stage?',
-  //     okText: 'Oui',
-  //     onOk: () => {
-  //       dispatch(deletePipelineStage({
-  //         entityType: 'invite',
-  //         id: stageId
-  //       })).unwrap()
-  //         .then(() => {
-  //           message.success('Étape supprimée avec succès');
-  //           // Recharger les données du pipeline
-  //           dispatch(getInvitePipeline(id));
-  //         })
-  //         .catch(err => {
-  //           message.error(`Erreur lors de la suppression de l'étape: ${err}`);
-  //         });
-  //     }
-  //   });
-  // };
-
-  // Gérer l'ajout ou la mise à jour d'une étape
-  // const handleSaveStage = () => {
-  //   stageForm.validateFields()
-  //     .then(values => {
-  //       if (editingStage) {
-  //         // Mettre à jour une étape existante
-  //         dispatch(updatePipelineStage({
-  //           entityType: 'invite',
-  //           id: editingStage.id,
-  //           stageData: values
-  //         })).unwrap()
-  //           .then(() => {
-  //             message.success('Stage mise à jour avec succès');
-  //             setStageModalVisible(false); // Corriger ici: fermer le bon modal
-  //             setEditingStage(null); // Réinitialiser l'étape en édition
-  //             // Recharger les données du pipeline
-  //             dispatch(getInvitePipeline(id));
-  //           })
-  //           .catch(err => {
-  //             message.error(`Erreur lors de la mise à jour de ce stage: ${err}`);
-  //           });
-  //       } else {
-  //         // Ajouter une nouvelle étape
-  //         dispatch(addPipelineStage({
-  //           entityType: 'invite',
-  //           entityId: id, // Assurez-vous de passer l'ID de l'invite
-  //           stageData: values
-  //         })).unwrap()
-  //           .then(() => {
-  //             message.success('Étape ajoutée avec succès');
-  //             setStageModalVisible(false); // Corriger ici: fermer le bon modal
-  //             // Recharger les données du pipeline
-  //             dispatch(getInvitePipeline(id));
-  //           })
-  //           .catch(err => {
-  //             message.error(`Erreur lors de l'ajout de l'étape: ${err}`);
-  //           });
-  //       }
-  //     });
-  // };
-
-  // Avancer dans le pipeline
   const handleAdvancePipeline = async () => {
     try {
       const values = await pipelineForm.validateFields();
-
-      // Utiliser automatiquement l'étape suivante
       const stageId = nextStage?.id;
 
       if (!stageId) {
@@ -446,7 +562,6 @@ const InviteDetails = () => {
         return;
       }
 
-      // Envoyer les données au backend
       await dispatch(advancePipeline({
         id,
         stage_id: stageId,
@@ -458,31 +573,24 @@ const InviteDetails = () => {
       setPipelineModalVisible(false);
       pipelineForm.resetFields();
 
-      // Recharger les données au lieu d'appeler loadInviteData
       dispatch(getInviteById(id));
       dispatch(getInvitePipeline(id));
-      setRefreshTrigger(prev => prev + 1); // Déclencher un rechargement
+      setRefreshTrigger(prev => prev + 1);
 
     } catch (error) {
       console.error('Erreur lors de l\'avancement:', error);
     }
   };
 
-  // Convertir en prospect
-  // Modifier la fonction handleConversion pour formater les dates
-
   const handleConversion = () => {
     conversionForm.validateFields().then(values => {
-      // Fonction utilitaire pour formater les dates
       const formatDateForBackend = (momentDate) => {
         if (!momentDate) return null;
-        // Format MySQL: YYYY-MM-DD HH:MM:SS
         return momentDate.format('YYYY-MM-DD HH:mm:ss');
       };
 
-      // Construire les données de conversion avec formatage des dates
       const conversionData = {
-        id, // obligatoire (lien avec l'invitation)
+        id,
         entreprise_id: values.entreprise_id,
         nom: values.nom,
         email: values.email,
@@ -497,10 +605,9 @@ const InviteDetails = () => {
         notes_internes: values.notes_internes,
         valeur_potentielle: values.valeur_potentielle,
         devise: values.devise || 'EUR',
-        // Formater les dates correctement
         date_dernier_contact: formatDateForBackend(values.date_dernier_contact),
         prochain_contact_prevu: formatDateForBackend(values.prochain_contact_prevu),
-        converted_to_id: id // id de l'invitation source
+        converted_to_id: id
       };
 
       console.log('Données de conversion formatées:', conversionData);
@@ -527,16 +634,11 @@ const InviteDetails = () => {
     });
   };
 
-  // Obtenir une référence valide à l'étape actuelle (même si currentStage est null)
-
-
-
   const loadBlockages = useCallback(async () => {
     try {
       const response = await axios.get(`${API_URL}/blockages`);
       const allBlockages = response.data.data || [];
 
-      // Filtrer pour ce pipeline et cette étape
       const stageBlockages = allBlockages.filter(
         blockage =>
           blockage.blockable_type === 'invite' &&
@@ -551,7 +653,6 @@ const InviteDetails = () => {
     }
   }, [id, effectiveCurrentStage]);
 
-  // Remplacer votre statusMenu actuel
   const statusMenu = (
     <Menu>
       <Menu.Item key="en_attente" disabled={invite?.statut === 'en_attente'} onClick={() => handleStatusChange('en_attente')}>
@@ -645,287 +746,620 @@ const InviteDetails = () => {
     );
   };
 
-  // Formater la date
   const formatDate = (dateString) => {
     if (!dateString) return 'Non définie';
     return moment(dateString).format('DD/MM/YYYY HH:mm');
   };
 
-  // Affichage pendant le chargement
   if (loading) {
     return (
-      <div className="loading-container">
-        <Spin size="large" tip="Chargement des détails de l'invité..." />
+      <div className="modern-loading-container">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="loading-content"
+        >
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            style={{ marginBottom: '16px' }}
+          >
+            <SyncOutlined style={{ fontSize: '48px', color: '#1890ff' }} />
+          </motion.div>
+          <Title level={4} style={{ color: '#666' }}>
+            Chargement des détails de l'invité...
+          </Title>
+        </motion.div>
       </div>
     );
   }
 
-  // Affichage en cas d'erreur
   if (error) {
     return (
-      <Card className="error-card">
-        <div className="error-message">
-          <ExclamationCircleOutlined style={{ fontSize: 24, color: '#ff4d4f', marginBottom: 16 }} />
-          <Title level={4}>Erreur lors du chargement</Title>
-          <Text type="danger">{error}</Text>
-          <Button type="primary" onClick={() => navigate('/invites')} style={{ marginTop: 16 }}>
-            Retour à la liste
-          </Button>
-        </div>
-      </Card>
-    );
-  }
-
-  // Affichage si l'invité n'est pas trouvé
-  if (!invite) {
-    return (
-      <Card className="not-found-card">
-        <div style={{ textAlign: 'center', padding: '20px 0' }}>
-          <InfoCircleOutlined style={{ fontSize: 48, color: '#1890ff', marginBottom: 16 }} />
-          <Title level={4}>Invité non trouvé</Title>
-          <Text>L'invité que vous recherchez n'existe pas ou a été supprimé.</Text>
-          <div style={{ marginTop: 24 }}>
-            <Button type="primary" onClick={() => navigate('/invites')}>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="modern-container"
+      >
+        <Card className="modern-error-card">
+          <div className="error-content">
+            <ExclamationCircleOutlined className="error-icon" />
+            <Title level={4}>Erreur lors du chargement</Title>
+            <Text type="danger">{error}</Text>
+            <Button type="primary" onClick={() => navigate('/invites')} style={{ marginTop: 16 }}>
               Retour à la liste
             </Button>
           </div>
-        </div>
-      </Card>
+        </Card>
+      </motion.div>
     );
   }
 
-  // NOUVEAU RENDU AVEC DESIGN CRM
+  if (!invite) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="modern-container"
+      >
+        <Card className="modern-not-found-card">
+          <div className="not-found-content">
+            <InfoCircleOutlined className="not-found-icon" />
+            <Title level={4}>Invité non trouvé</Title>
+            <Text>L'invité que vous recherchez n'existe pas ou a été supprimé.</Text>
+            <Button type="primary" onClick={() => navigate('/invites')} style={{ marginTop: 24 }}>
+              Retour à la liste
+            </Button>
+          </div>
+        </Card>
+      </motion.div>
+    );
+  }
+
+  const headerVariants = {
+    hidden: { opacity: 0, y: -20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.6, ease: "easeOut" }
+    }
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.5, ease: "easeOut" }
+    }
+  };
+
   return (
-    <div className="crm-container">
-      {/* En-tête avec le style CRM */}
-      <div className="crm-header">
-        <div className="crm-lead-info">
-          <div className="crm-avatar">
-            <Avatar icon={<UserOutlined />} size={42} style={{ backgroundColor: '#1890ff' }} />
-          </div>
-          <div className="crm-title">
-            <div className="crm-lead-label">
-              Lead: <span className="lead-name">"{invite.nom} {invite.prenom}"</span>
-              {invite.entreprise && <span className="lead-company"> - ({invite.entreprise.nom})</span>}
-            </div>
-            <div className="crm-lead-actions">
-              <Link to="#" className="crm-link">{invite.entreprise?.nom || 'Entreprise non définie'}</Link>
-            </div>
-          </div>
-        </div>
+    <div className="modern-container">
+      {/* Breadcrumb */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <Breadcrumb style={{ marginBottom: 24 }}>
+          <Breadcrumb.Item>
+            <Link to="/dashboard">
+              <HomeOutlined /> Dashboard
+            </Link>
+          </Breadcrumb.Item>
+          <Breadcrumb.Item>
+            <Link to="/invites">
+              <TeamOutlined /> Invités
+            </Link>
+          </Breadcrumb.Item>
+          <Breadcrumb.Item>
+            <UserOutlined /> {invite.nom} {invite.prenom}
+          </Breadcrumb.Item>
+        </Breadcrumb>
+      </motion.div>
 
-        <div className="crm-header-actions">
-          <Button
-            className="crm-btn crm-send-btn"
-            type="default"
-            icon={<SendOutlined />}
-            onClick={handleSendInvitation}
-            disabled={invite.statut !== 'en_attente'}
-          >
-            Send Invitation
-          </Button>
-
-          <Dropdown overlay={statusMenu} placement="bottomRight">
-            <Button className="crm-btn crm-options-btn">
-              Status <DownOutlined />
-            </Button>
-          </Dropdown>
-
-          {invite.is_converted && invite.prospect ? (
-            <Button
-              className="crm-btn crm-view-prospect-btn"
-              type="primary"
-              icon={<LinkOutlined />}
-              onClick={() => navigate(`/prospects/${invite.prospect.id}`)}
-            >
-              Voir le prospect
-            </Button>
-          ) : invite.is_converted ? (
-            <Button
-              className="crm-btn crm-converted-btn"
-              disabled
-              icon={<CheckOutlined />}
-            >
-              Déjà converti
-            </Button>
-          ) : (
-            <Button
-              className="crm-btn crm-convert-btn"
-              type="primary"
-              onClick={() => {
-                setConversionModalVisible(true);
-              }}
-              disabled={invite.statut === 'converti'}
-            >
-              Convert
-            </Button>
-          )}
-
-        </div>
-      </div>
-
-      {/* Informations du pipeline */}
-      <div className="crm-meta-info">
-        <div className="crm-meta-item">
-        <div className="crm-meta-label">CONVERSION STATUS:</div>
-  <div className="crm-meta-value">
-    {invite.is_converted ? (
-      <Tag color="success" icon={<CheckOutlined />}>
-        Converti en prospect
-      </Tag>
-    ) : (
-      <Tag color="blue">
-        En cours
-      </Tag>
-    )}
-  </div>
-</div>
-        <div className="crm-meta-item">
-          <div className="crm-meta-label">ACTION:</div>
-          <div className="crm-meta-value">
-            <Link to="#" className="crm-link">{invite.action?.nom || 'Non définie'}</Link>
-          </div>
-        </div>
-        <div className="crm-meta-item">
-          <div className="crm-meta-label">PIPELINE ADDED:</div>
-          <div className="crm-meta-value">{moment(invite.created_at).format('MMM D, YYYY')}</div>
-        </div>
-        <div className="crm-meta-item">
-          <div className="crm-meta-label">TIME IN CURRENT STAGE:</div>
-          <div className="crm-meta-value">
-            {progression && progression.length > 0
-              ? moment().diff(moment(progression[0].created_at), 'days') + ' DAYS'
-              : 'N/A'}
-          </div>
-        </div>
-        <div className="crm-meta-item">
-          <div className="crm-meta-label">OWNER(S):</div>
-          <div className="crm-meta-value">
-            <Avatar size="small" icon={<UserOutlined />} style={{ marginRight: 8 }} />
-            <Link to="#" className="crm-link">{invite.proprietaire?.name || 'Non assigné'}</Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Visualisation du pipeline avec étapes */}
-      <div className="crm-pipeline-visualization">
-        <PipelineStageManager
-          entityType="invite"
-          entityId={id}
-          stages={pipelineStages}
-          currentStage={currentStage}
-          progression={progression || []}
-          pipelineCompletedAt={invite?.is_converted ? invite?.date_conversion || new Date().toISOString() : null}
-          onStagesChange={() => dispatch(getInvitePipeline(id))}
-          showAddButton={true}
-          buttonText="Add stage"
-          buttonClassName="crm-btn add-stage"
-          showVisualizer={true}
+      {/* En-tête principal similaire au dashboard */}
+      <motion.div
+        variants={headerVariants}
+        initial="hidden"
+        animate="visible"
+        className="invite-header"
+        style={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderRadius: '20px',
+          padding: '32px',
+          marginBottom: '32px',
+          color: 'white',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+      >
+        <motion.div
+          className="header-background"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            opacity: 0.1,
+            backgroundImage: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.1"%3E%3Ccircle cx="30" cy="30" r="4"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")'
+          }}
+          animate={{
+            backgroundPosition: ['0px 0px', '60px 60px']
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "linear"
+          }}
         />
-      </div>
 
-      {/* Onglets d'information détaillée */}
-      <div className="crm-content-tabs">
-        <Tabs activeKey={activeTab} onChange={setActiveTab} type="card">
-          <TabPane tab={<span><InfoCircleOutlined /> Details</span>} key="details">
-            <div className="crm-details-section">
-              <div className="crm-details-header">
-                <h3>Lead Information</h3>
-                <Button icon={<EditOutlined />} size="small" onClick={() => navigate(`/invites/${id}/edit`)}>
-                  Edit details
+        <Row justify="space-between" align="middle" style={{ position: 'relative', zIndex: 1 }}>
+          <Col xs={24} lg={16}>
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              style={{ display: 'flex', alignItems: 'center', gap: '20px' }}
+            >
+              <motion.div
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Avatar 
+                  size={64} 
+                  icon={<UserOutlined />} 
+                  style={{ 
+                    backgroundColor: invite.potentiel === 'élevé' ? '#f5222d' : 
+                                    invite.potentiel === 'moyen' ? '#faad14' : '#1890ff',
+                    fontSize: '28px',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.2)'
+                  }} 
+                />
+              </motion.div>
+              
+              <div>
+                <Title level={1} style={{ color: 'white', margin: 0, fontWeight: 700 }}>
+                  {invite.nom} {invite.prenom}
+                  {invite.is_converted && (
+                    <Tag color="success" style={{ marginLeft: 12 }}>
+                      <CheckOutlined /> Converti
+                    </Tag>
+                  )}
+                </Title>
+                <Paragraph style={{ color: 'rgba(255,255,255,0.8)', fontSize: '16px', margin: '8px 0 0 0' }}>
+                  <BankOutlined style={{ marginRight: 6 }} />
+                  {invite.entreprise?.nom || 'Entreprise non définie'} • 
+                  <CalendarOutlined style={{ marginLeft: 8, marginRight: 6 }} />
+                  {invite.action?.nom || 'Action non définie'}
+                </Paragraph>
+              </div>
+            </motion.div>
+          </Col>
+          
+          <Col xs={24} lg={8}>
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 }}
+              style={{ 
+                display: 'flex', 
+                gap: '12px', 
+                justifyContent: screens.lg ? 'flex-end' : 'flex-start',
+                flexWrap: 'wrap',
+                marginTop: screens.lg ? 0 : '16px'
+              }}
+            >
+              <Button 
+                icon={<EditOutlined />} 
+                onClick={() => navigate(`/invites/${id}/edit`)}
+                size="large"
+                style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  color: 'white',
+                  borderRadius: '8px',
+                  backdropFilter: 'blur(10px)'
+                }}
+              >
+                Modifier 
+              </Button>
+              <Button
+                icon={<DeleteOutlined />}
+                type='danger'
+              onClick={showDeleteConfirm}
+              size='large'
+              style={{
+                background: 'rgba(255,255,255,0.2)',
+                border: '1px solid rgba(255,255,255,0.3)',
+                color: 'white',
+                borderRadius: '8px',
+                backdropFilter: 'blur(10px)'
+              }}
+              >Delete</Button>
+              <Button
+                type="default"
+                icon={<SendOutlined />}
+                onClick={handleSendInvitation}
+                disabled={invite.statut !== 'en_attente'}
+                style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  color: 'white',
+                  borderRadius: '8px',
+                  backdropFilter: 'blur(10px)'
+                }}
+              >
+                {screens.xs ? '' : 'Envoyer invitation'}
+              </Button>
+
+              <Dropdown overlay={statusMenu} placement="bottomRight">
+                <Button 
+                  style={{
+                    background: 'rgba(255,255,255,0.1)',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    color: 'white',
+                    borderRadius: '8px',
+                    backdropFilter: 'blur(10px)'
+                  }}
+                >
+                  Statut <DownOutlined />
                 </Button>
+              </Dropdown>
+ {invite.is_converted && invite.prospect ? (
+                <Button
+                  type="primary"
+                  icon={<LinkOutlined />}
+                  onClick={() => navigate(`/prospects/${invite.prospect.id}`)}
+                  size="large"
+                  block
+                  style={{
+                    background: 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 500
+                  }}
+                >
+                  Voir le prospect
+                </Button>
+              ) : invite.is_converted ? (
+                <Button
+                  disabled
+                  icon={<CheckOutlined />}
+                  size="large"
+                  block
+                  style={{ borderRadius: '8px' }}
+                >
+                  Déjà converti
+                </Button>
+              ) : (
+              <Button 
+               type="primary"
+                onClick={() => setConversionModalVisible(true)}
+                style={{
+                  background: 'rgba(255,255,255,0.1)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  color: 'white',
+                  borderRadius: '8px',
+                  backdropFilter: 'blur(10px)'
+                }}
+              >
+                Convertir en prospect
+              </Button>
+              )}
+            </motion.div>
+          </Col>
+        </Row>
+      </motion.div>
+
+      {/* Métriques de pipeline */}
+      <Row gutter={[24, 24]} style={{ marginBottom: '32px' }}>
+      <Col xs={12} sm={6}>
+          <AnimatedStatCard
+            icon={
+              invite.statut === 'confirmee' || invite.statut === 'participation_confirmee' ? <CheckCircleOutlined /> : 
+              invite.statut === 'refusee' || invite.statut === 'absente' ? <CloseCircleOutlined /> :
+              invite.statut === 'envoyee' ? <SendOutlined /> :
+              <ClockCircleOutlined />
+            }
+            title="Statut de l'invitation"
+            value={
+              invite.statut === 'en_attente' ? 'En attente' :
+              invite.statut === 'envoyee' ? 'Envoyée' :
+              invite.statut === 'confirmee' ? 'Confirmée' :
+              invite.statut === 'details_envoyes' ? 'Détails envoyés' :
+              invite.statut === 'refusee' ? 'Refusée' :
+              invite.statut === 'participation_confirmee' ? 'Participation confirmée' :
+              invite.statut === 'participation_sans_suivi' ? 'A participé' :
+              invite.statut === 'absente' ? 'Absent' :
+              invite.statut === 'aucune_reponse' ? 'Aucune réponse' :
+              'Inconnu'
+            }
+            color={
+              invite.statut === 'confirmee' || invite.statut === 'participation_confirmee' ? '#52c41a' :
+              invite.statut === 'refusee' || invite.statut === 'absente' ? '#ff4d4f' :
+              invite.statut === 'envoyee' || invite.statut === 'details_envoyes' ? '#1890ff' :
+              invite.statut === 'participation_sans_suivi' ? '#722ed1' :
+              '#faad14'
+            }
+            delay={0}
+          />
+        </Col>
+        <Col xs={12} sm={6}>
+          <AnimatedStatCard
+            icon={<AuditOutlined />}
+            title="Étape actuelle"
+            value={effectiveCurrentStage?.name || 'Aucune'}
+            color="#1890ff"
+            delay={1}
+          />
+        </Col>
+        <Col xs={12} sm={6}>
+          <AnimatedStatCard
+            icon={<CalendarOutlined />}
+            title="Temps dans l'étape"
+            value={progression && progression.length > 0
+              ? moment().diff(moment(progression[0].created_at), 'days')
+              : 0}
+            suffix=" jours"
+            color="#722ed1"
+            delay={2}
+          />
+        </Col>
+        <Col xs={12} sm={6}>
+          <AnimatedStatCard
+            icon={<CalendarOutlined />}
+            title="Date d'ajout"
+            value={moment(invite.created_at).format('DD/MM/YYYY')}
+            color="#13c2c2"
+            delay={3}
+          />
+        </Col>
+      </Row>
+
+      {/* Visualisation du pipeline */}
+      {pipelineStages.length > 0 && (
+        <motion.div
+          variants={cardVariants}
+          initial="hidden"
+          animate="visible"
+          transition={{ delay: 0.3 }}
+        >
+          <AnimatedContentCard
+            title="Pipeline de suivi"
+            delay={0}
+            extra={
+              <Space>
+                <Button
+                  type="primary"
+                  icon={<RightOutlined />}
+                  onClick={() => setPipelineModalVisible(true)}
+                  disabled={!nextStage}
+                  style={{
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 500
+                  }}
+                >
+                  Avancer
+                </Button>
+              </Space>
+            }
+          >
+            <PipelineStageManager
+              entityType="invite"
+              entityId={id}
+              stages={pipelineStages}
+              currentStage={currentStage}
+              progression={progression || []}
+              pipelineCompletedAt={invite?.is_converted ? invite?.date_conversion || new Date().toISOString() : null}
+              onStagesChange={() => dispatch(getInvitePipeline(id))}
+              showAddButton={true}
+              buttonText="Ajouter une étape"
+              buttonClassName="modern-btn"
+              showVisualizer={true}
+            />
+          </AnimatedContentCard>
+        </motion.div>
+      )}
+
+      {/* Actions rapides */}
+      <motion.div
+        variants={cardVariants}
+        initial="hidden"
+        animate="visible"
+        transition={{ delay: 0.4 }}
+      >
+        
+      </motion.div>
+
+      {/* Contenu principal avec onglets */}
+      <motion.div
+        variants={cardVariants}
+        initial="hidden"
+        animate="visible"
+        transition={{ delay: 0.5 }}
+      >
+        <AnimatedContentCard
+          title="Informations détaillées"
+          delay={1}
+        >
+          <Tabs 
+            activeKey={activeTab} 
+            onChange={setActiveTab} 
+            type="card"
+            className="modern-tabs"
+          >
+            <TabPane tab={
+              <Space>
+                <InfoCircleOutlined />
+                Détails
+              </Space>
+            } key="details">
+              <div className="tab-content">
+                <Descriptions bordered column={{ xs: 1, sm: 2 }} className="modern-descriptions">
+                  <Descriptions.Item label="Nom complet">
+                    <Text strong>{invite.nom} {invite.prenom}</Text>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Email">
+                    <Text copyable>{invite.email}</Text>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Téléphone">
+                    <Text copyable>{invite.telephone || 'Non renseigné'}</Text>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Fonction">
+                    {invite.fonction || 'Non renseignée'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Pays">
+                    {invite.pays?.nom || 'Non renseigné'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Type d'invité">
+                    <Tag color={invite.type_invite === 'interne' ? 'blue' : 'green'}>
+                      {invite.type_invite === 'interne' ? 'Interne' : 'Externe'}
+                    </Tag>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Entreprise">
+                    {invite.entreprise?.nom || 'Non assignée'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Secteur d'activité">
+                    {invite.secteur?.name || 'Non renseigné'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Potentiel">
+                    <Tag color={
+                      invite.potentiel === 'élevé' ? 'red' :
+                      invite.potentiel === 'moyen' ? 'orange' : 'blue'
+                    }>
+                      {invite.potentiel ? invite.potentiel.charAt(0).toUpperCase() + invite.potentiel.slice(1) : 'Non évalué'}
+                    </Tag>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Date d'événement">
+                    {invite.date_evenement ? moment(invite.date_evenement).format('DD/MM/YYYY') : 'Non définie'}
+                  </Descriptions.Item>
+                </Descriptions>
+
+                <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+                  <Col xs={24} sm={8}>
+                    <Card size="small" className="info-card">
+                      <Statistic
+                        title="Projet confidentiel"
+                        value={invite.confidentiel ? 'Oui' : 'Non'}
+                        valueStyle={{ color: invite.confidentiel ? '#f5222d' : '#52c41a' }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Card size="small" className="info-card">
+                      <div>
+                        <Text type="secondary">Type d'investissement</Text>
+                        <div style={{ marginTop: 4 }}>
+                          <Text strong>{invite.type_investissement || 'Expansion'}</Text>
+                        </div>
+                      </div>
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Card size="small" className="info-card">
+                      <div>
+                        <Text type="secondary">Plan d'investissement</Text>
+                        <div style={{ marginTop: 4 }}>
+                          <Text strong>{invite.plan_investissement || 'Intéressée par la Tunisie'}</Text>
+                        </div>
+                      </div>
+                    </Card>
+                  </Col>
+                </Row>
               </div>
+            </TabPane>
 
-              <Descriptions bordered column={2}>
-                <Descriptions.Item label="Nom complet">{invite.nom} {invite.prenom}</Descriptions.Item>
-                <Descriptions.Item label="Email">{invite.email}</Descriptions.Item>
-                <Descriptions.Item label="Téléphone">{invite.telephone || 'Non renseigné'}</Descriptions.Item>
-                <Descriptions.Item label="Fonction">{invite.fonction || 'Non renseignée'}</Descriptions.Item>
-                <Descriptions.Item label="Pays">{invite.pays?.nom || 'Non renseigné'}</Descriptions.Item>
-                <Descriptions.Item label="Type d'invité">
-                  {invite.type_invite === 'interne' ? 'Interne' : 'Externe'}
-                </Descriptions.Item>
-                <Descriptions.Item label="Entreprise">{invite.entreprise?.nom || 'Non assignée'}</Descriptions.Item>
-                <Descriptions.Item label="Secteur d'activité">{invite.secteur?.name || 'Non renseigné'}</Descriptions.Item>
-                <Descriptions.Item label="Potentiel">
-                  {invite.potentiel ? invite.potentiel.charAt(0).toUpperCase() + invite.potentiel.slice(1) : 'Non évalué'}
-                </Descriptions.Item>
-                <Descriptions.Item label="Date d'événement">
-                  {invite.date_evenement ? moment(invite.date_evenement).format('DD/MM/YYYY') : 'Non définie'}
-                </Descriptions.Item>
-              </Descriptions>
-
-              <div className="crm-info-blocks">
-                <Card title="Projet confidentiel:" bordered={false}>
-                  <Tag color={invite.confidentiel ? 'red' : 'green'}>
-                    {invite.confidentiel ? 'Oui' : 'Non'}
-                  </Tag>
-                </Card>
-
-                <Card title="Type d'investissement prévu:" bordered={false}>
-                  <Text>{invite.type_investissement || 'Expansion'}</Text>
-                </Card>
-
-                <Card title="Plan d'investissement (détails):" bordered={false}>
-                  <Text>{invite.plan_investissement || 'Intéressée par la Tunisie'}</Text>
-                </Card>
-              </div>
-            </div>
-          </TabPane>
-
-          <TabPane tab={<span><AuditOutlined /> Stages</span>} key="stages">
-            <div className="crm-stages-section">
-              {pipelineStages.length > 0 ? (
-                <>
-                  <Card title="Progression dans le pipeline" className="crm-stages-card">
+            <TabPane tab={
+              <Space>
+                <AuditOutlined />
+                Étapes
+              </Space>
+            } key="stages">
+              <div className="tab-content">
+                {pipelineStages.length > 0 ? (
+                  <Card title="Progression dans le pipeline" className="stages-card">
                     <PipelineVisualizer
                       stages={pipelineStages}
                       currentStage={effectiveCurrentStage}
                       progression={progression || []}
                     />
                   </Card>
-                </>
-              ) : (
-                <Alert
-                  message="Aucun pipeline défini"
-                  description="Ce lead n'a pas encore de pipeline de suivi défini."
-                  type="info"
-                  showIcon
-                />
-              )}
-            </div>
-          </TabPane>
+                ) : (
+                  <Alert
+                    message="Aucun pipeline défini"
+                    description="Cet invité n'a pas encore de pipeline de suivi défini."
+                    type="info"
+                    showIcon
+                    className="no-pipeline-alert"
+                  />
+                )}
+              </div>
+            </TabPane>
 
-          <TabPane tab={<span><WarningOutlined /> Blockages ({blockages.length})</span>} key="blockages">
-            <PipelineBlockages
-              entityType="invite"
-              entityId={id}
-              pipelineStages={pipelineStages || []}
-              title="Blocages par étape du pipeline"
-            />
-          </TabPane>
-
-          <TabPane tab={<span><ClockCircleOutlined /> Tasks</span>} key="tasks">
-            <div className="crm-tasks-container">
-              <div className="crm-tasks-header">
-                <h3>Liste des tâches</h3>
+            <TabPane tab={
+              <Space>
+                <WarningOutlined />
+                Blocages 
+              </Space>
+            } key="blockages">
+              <div className="tab-content">
                 <Button
                   type="primary"
                   icon={<PlusOutlined />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!effectiveCurrentStage) {
-                      message.error("Aucune étape active pour ajouter une tâche.");
-                      return;
-                    }
-                    openTaskModal(effectiveCurrentStage.id, effectiveCurrentStage.name);
+                  onClick={() => setAddBlockageVisible(true)}
+                  style={{
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    border: 'none',
+                    marginBottom: 16
                   }}
                 >
-                  Add Task
+                  Add Blockage
                 </Button>
+                <PipelineBlockages
+                  entityType="invite"
+                  entityId={id}
+                  pipelineStages={pipelineStages || []}
+                  title="Blocages par étape du pipeline"
+                />
               </div>
+            </TabPane>
 
-              <div className="crm-tasks-content"  >
+            <TabPane tab={
+              <Space>
+                <ClockCircleOutlined />
+                Tâches
+              </Space>
+            } key="tasks">
+              <div className="tab-content">
+                <div className="tasks-header">
+                  <Title level={4}>Liste des tâches</Title>
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!effectiveCurrentStage) {
+                        message.error("Aucune étape active pour ajouter une tâche.");
+                        return;
+                      }
+                      openTaskModal(effectiveCurrentStage.id, effectiveCurrentStage.name);
+                    }}
+                    style={{
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontWeight: 500
+                    }}
+                  >
+                    Ajouter une tâche
+                  </Button>
+                </div>
+
                 <PipelineTasks
                   entityType="invite"
                   entityId={id}
@@ -935,27 +1369,38 @@ const InviteDetails = () => {
                   }}
                 />
               </div>
-            </div>
-          </TabPane>
+            </TabPane>
 
+            <TabPane tab={
+              <Space>
+                <FileTextOutlined />
+                Notes
+              </Space>
+            } key="notes">
+              <div className="tab-content">
+                <div className="notes-header">
+                  <Title level={4}>Notes</Title>
+                  <Button 
+                    type="primary" 
+                    icon={<PlusOutlined />} 
+                    style={{
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontWeight: 500
+                    }}
+                  >
+                    Ajouter une note
+                  </Button>
+                </div>
+                <Empty description="Aucune note" className="empty-state" />
+              </div>
+            </TabPane>
+          </Tabs>
+        </AnimatedContentCard>
+      </motion.div>
 
-
-
-
-          <TabPane tab={<span><FileTextOutlined /> Notes</span>} key="notes">
-            <div className="crm-notes-container">
-              <Button type="primary" icon={<PlusOutlined />} style={{ marginBottom: 16 }}>
-                Add Note
-              </Button>
-              <Empty description="No notes" />
-            </div>
-          </TabPane>
-
-
-        </Tabs>
-      </div>
-
-      {/* Modal de conversion en prospect */}
+      {/* Modaux */}
       <Modal
         title="Convertir en prospect"
         visible={conversionModalVisible}
@@ -973,6 +1418,7 @@ const InviteDetails = () => {
             Convertir
           </Button>
         ]}
+        width={800}
       >
         <Form
           form={conversionForm}
@@ -1128,67 +1574,6 @@ const InviteDetails = () => {
         </Form>
       </Modal>
 
-      {/* Modal pour modifier/ajouter une étape */}
-      {/* <Modal
-        title={editingStage ? "Modifier l'étape" : "Nouvelle étape"}
-        visible={stageModalVisible}
-        onCancel={() => {
-          setEditingStage(null);
-          setStageModalVisible(false);
-        }}
-        onOk={handleSaveStage}
-      >
-        <Form form={stageForm} layout="vertical" initialValues={editingStage || {}}>
-          <Form.Item
-            name="name"
-            label="Nom de l'étape"
-            rules={[{ required: true, message: "Nom obligatoire" }]}
-          >
-            <Input placeholder="Nom de l'étape" />
-          </Form.Item>
-
-          <Form.Item
-            name="description"
-            label="Description"
-          >
-            <Input.TextArea
-              rows={3}
-              placeholder="Description de cette étape du pipeline"
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="order"
-            label="Ordre"
-            rules={[
-              { required: true, message: "Ordre obligatoire" },
-              {
-                type: 'number',
-                min: 1,
-                message: "L'ordre doit être un nombre positif"
-              }
-            ]}
-          >
-            <InputNumber
-              min={1}
-              precision={0}
-              style={{ width: '100%' }}
-              placeholder="Position dans le pipeline"
-            />
-          </Form.Item>
-
-          {editingStage?.is_final && (
-            <Form.Item name="is_final" valuePropName="checked">
-              <Checkbox disabled>Étape finale</Checkbox>
-              <Text type="secondary" style={{ marginLeft: 8 }}>
-                (Cette étape est définie comme l'étape finale du pipeline)
-              </Text>
-            </Form.Item>
-          )}
-        </Form>
-      </Modal> */}
-
-      {/* Modal pour avancer dans le pipeline */}
       <Modal
         title={`Passer à l'étape ${nextStage?.order || ''} : ${nextStage?.name || ''}`}
         visible={pipelineModalVisible}
@@ -1231,7 +1616,6 @@ const InviteDetails = () => {
         </Form>
       </Modal>
 
-      {/* Modal pour créer une tâche */}
       <TaskCreateModal
         visible={taskModalVisible}
         onCancel={() => setTaskModalVisible(false)}
@@ -1247,292 +1631,525 @@ const InviteDetails = () => {
         entityName={invite?.nom}
       />
 
-      {/* CSS intégré pour les styles CRM */}
-      <style jsx>{`
-        .crm-container {
-          background-color: #f0f2f5;
-          border-radius: 4px;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-        
-        .crm-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 16px 20px;
-          background-color: white;
-          border-bottom: 1px solid #e8e8e8;
-        }
-        
-        .crm-lead-info {
-          display: flex;
-          align-items: center;
-        }
-        
-        .crm-avatar {
-          margin-right: 12px;
-        }
-        
-        .crm-title {
-          display: flex;
-          flex-direction: column;
-        }
-        
-        .crm-lead-label {
-          font-size: 18px;
-          font-weight: 600;
-          color: #333;
-        }
-        
-        .lead-name {
-          color: #1890ff;
-        }
-        
-        .lead-company {
-          color: #666;
-        }
-        
-        .crm-lead-actions {
-          display: flex;
-          font-size: 13px;
-          color: #888;
-        }
-        
-        .crm-link {
-          color: #1890ff;
-          margin-right: 16px;
-        }
-        
-        .crm-header-actions {
-          display: flex;
-          gap: 8px;
-        }
-        
-        .crm-btn {
-          border-radius: 3px;
-        }
-        
-        .crm-options-btn {
-          background-color: #f5f5f5;
-        }
-        
-        .crm-stage-btn {
-          background-color: #1890ff;
-          color: white;
-        }
-        
-        .crm-convert-btn {
-          background-color: #722ed1;
-          border-color: #722ed1;
-        }
-        
-        .crm-meta-info {
-          display: flex;
-          background-color: white;
-          padding: 10px 20px;
-          border-bottom: 1px solid #e8e8e8;
-        }
-        
-        .crm-meta-item {
-          margin-right: 40px;
-          display: flex;
-        }
-        
-        .crm-meta-label {
-          color: #999;
-          font-size: 12px;
-          margin-right: 8px;
-        }
-        
-        .crm-meta-value {
-          color: #333;
-          font-size: 12px;
-          display: flex;
-          align-items: center;
-        }
-        
-        .crm-pipeline-visualization {
-          background-color: white;
-          padding: 20px;
-          border-bottom: 1px solid #e8e8e8;
-        }
-        
-        .crm-pipeline-header {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 16px;
-        }
-        
-        .crm-pipeline-stages {
-          display: flex;
-        }
-        
-        .crm-stage {
-          padding: 6px 12px;
-          margin-right: 2px;
-          background-color: #f0f0f0;
-          border-radius: 4px;
-          font-size: 12px;
-          font-weight: 600;
-          color: #666;
-        }
-        
-        .crm-stage.current {
-          background-color: #1890ff;
-          color: white;
-        }
-        
-        .crm-stage.open {
-          background-color: #52c41a;
-          color: white;
-        }
-        
-        .crm-pipeline-actions {
-          display: flex;
-          gap: 8px;
-        }
-        
-        .crm-pipeline-steps {
-          display: flex;
-          margin-top: 20px;
-          position: relative;
-        }
-        
-        .crm-pipeline-steps::after {
-          content: '';
-          position: absolute;
-          top: 20px;
-          left: 0;
-          right: 0;
-          height: 2px;
-          background-color: #e8e8e8;
-          z-index: 1;
-        }
-        
-        .pipeline-step {
-          flex: 1;
-          position: relative;
-          text-align: center;
-          z-index: 2;
-        }
-        
-        .pipeline-step::after {
-          content: '';
-          position: absolute;
-          width: 12px;
-          height: 12px;
-          background-color: #e8e8e8;
-          border-radius: 50%;
-          top: 14px;
-          left: calc(50% - 6px);
-          z-index: 2;
-        }
-        
-        .pipeline-step.active::after {
-          background-color: #1890ff;
-          box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.2);
-        }
-        
-        .pipeline-step.completed::after {
-          background-color: #52c41a;
-        }
-        
-        .step-label {
-          font-size: 12px;
-          color: #666;
-          margin-top: 30px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          padding: 0 5px;
-        }
-        
-        .crm-content-tabs {
-          background-color: white;
-          padding: 20px;
-        }
-        
-        .crm-details-section {
-          padding: 16px;
-        }
-        
-        .crm-details-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 16px;
-        }
-        
-        .crm-details-header h3 {
-          margin: 0;
-          color: #333;
-        }
-        
-        .crm-info-blocks {
-          margin-top: 24px;
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          gap: 16px;
-        }
-        
-        .crm-stages-section {
-          padding: 16px;
-        }
-        
-        .crm-stages-card {
-          margin-bottom: 20px;
-        }
-        
-        .crm-tasks-container {
-          padding: 16px;
-        }
-        
-        .crm-tasks-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 16px;
-        }
-        
-        .crm-tasks-header h3 {
-          margin: 0;
-          color: #333;
-        }
-        
-        .crm-tasks-content {
-          min-height: 120px;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        }
-        
-        .crm-notes-container {
-          padding: 16px;
-        }
-        
-        @media (max-width: 768px) {
-          .crm-header {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          
-          .crm-header-actions {
-            margin-top: 16px;
-            width: 100%;
-            flex-wrap: wrap;
-          }
-          
-          .crm-meta-info {
-            flex-direction: column;
-          }
-          
-          .crm-meta-item {
-            margin-bottom: 8px;
-          }
-        }
-      `}</style>
-    </div>
-  );
-};
+<style jsx>{`
+  .modern-container {
+    padding: 24px;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    min-height: 100vh;
+  }
 
+  .modern-loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  }
+
+  .loading-content {
+    text-align: center;
+    padding: 40px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  }
+
+  .invite-header {
+    position: relative;
+  }
+
+  .header-background {
+    background-attachment: fixed;
+  }
+
+  .stat-card-modern {
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+
+  .stat-card-modern:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important;
+  }
+
+  .stat-card-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .content-card-modern {
+    transition: all 0.3s ease;
+    margin-bottom: 24px;
+  }
+
+  .content-card-modern:hover {
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important;
+  }
+
+  .actions-card {
+    border-radius: 16px;
+    border: 1px solid #f0f0f0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    margin-bottom: 24px;
+    background: white;
+  }
+
+  .actions-card .ant-card-body {
+    padding: 24px;
+  }
+
+  .modern-tabs {
+    margin-top: 0;
+  }
+
+  .modern-tabs .ant-tabs-tab {
+    border-radius: 8px 8px 0 0;
+    border: 1px solid #f0f0f0;
+    background: #fafafa;
+    margin-right: 4px;
+    transition: all 0.3s ease;
+    padding: 12px 16px;
+  }
+
+  .modern-tabs .ant-tabs-tab:hover {
+    background: #f0f2ff;
+    border-color: #1890ff;
+    transform: translateY(-1px);
+  }
+
+  .modern-tabs .ant-tabs-tab-active {
+    background: white;
+    border-color: #1890ff;
+    border-bottom-color: white;
+  }
+
+  .modern-tabs .ant-tabs-content-holder {
+    background: white;
+    border: 1px solid #f0f0f0;
+    border-radius: 0 8px 8px 8px;
+    padding: 0;
+  }
+
+  .tab-content {
+    padding: 24px;
+    min-height: 400px;
+  }
+
+  .modern-descriptions {
+    background: white;
+    border-radius: 8px;
+  }
+
+  .modern-descriptions .ant-descriptions-item-label {
+    font-weight: 600;
+    color: #333;
+    background: #fafafa;
+  }
+
+  .modern-descriptions .ant-descriptions-item-content {
+    background: white;
+  }
+
+  .info-card {
+    border-radius: 8px;
+    border: 1px solid #f0f0f0;
+    transition: all 0.3s ease;
+  }
+
+  .info-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+  }
+
+  .stages-card {
+    border-radius: 8px;
+    border: 1px solid #f0f0f0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+
+  .stages-card .ant-card-head {
+    background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+    border-bottom: 2px solid #e8e8e8;
+    border-radius: 8px 8px 0 0;
+  }
+
+  .stages-card .ant-card-head-title {
+    font-weight: 600;
+    color: #333;
+  }
+
+  .no-pipeline-alert {
+    border-radius: 8px;
+    border: 1px solid #faad14;
+  }
+
+  .tasks-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .tasks-header h4 {
+    margin: 0;
+    color: #333;
+    font-weight: 600;
+  }
+
+  .notes-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .notes-header h4 {
+    margin: 0;
+    color: #333;
+    font-weight: 600;
+  }
+
+  .empty-state {
+    padding: 60px 20px;
+  }
+
+  .empty-state .ant-empty-description {
+    color: #999;
+    font-size: 14px;
+  }
+
+  .modern-error-card {
+    text-align: center;
+    border-radius: 16px;
+    border: 1px solid #ff4d4f;
+    box-shadow: 0 4px 20px rgba(255, 77, 79, 0.1);
+  }
+
+  .error-content {
+    padding: 60px 40px;
+  }
+
+  .error-icon {
+    font-size: 48px;
+    color: #ff4d4f;
+    margin-bottom: 24px;
+  }
+
+  .modern-not-found-card {
+    text-align: center;
+    border-radius: 16px;
+    border: 1px solid #faad14;
+    box-shadow: 0 4px 20px rgba(250, 173, 20, 0.1);
+  }
+
+  .not-found-content {
+    padding: 60px 40px;
+  }
+
+  .not-found-icon {
+    font-size: 48px;
+    color: #faad14;
+    margin-bottom: 24px;
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .modern-container {
+      padding: 16px;
+    }
+
+    .invite-header {
+      padding: 24px !important;
+      border-radius: 16px !important;
+      text-align: center;
+    }
+
+    .stat-card-modern {
+      margin-bottom: 16px;
+    }
+
+    .content-card-modern {
+      margin-bottom: 16px;
+    }
+
+    .actions-card {
+      margin-bottom: 16px;
+    }
+
+    .tab-content {
+      padding: 16px;
+      min-height: 300px;
+    }
+
+    .tasks-header,
+    .notes-header {
+      flex-direction: column;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .modern-descriptions {
+      font-size: 14px;
+    }
+  }
+
+  @media (max-width: 576px) {
+    .invite-header {
+      padding: 20px !important;
+      border-radius: 12px !important;
+    }
+
+    .loading-content {
+      padding: 30px 20px;
+    }
+
+    .error-content,
+    .not-found-content {
+      padding: 40px 20px;
+    }
+
+    .tab-content {
+      padding: 12px;
+    }
+  }
+
+  /* Animations */
+  @keyframes shimmer {
+    0% { background-position: -468px 0; }
+    100% { background-position: 468px 0; }
+  }
+
+  .loading-shimmer {
+    animation: shimmer 1.5s ease-in-out infinite;
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 400% 100%;
+  }
+
+  /* Amélioration des modaux */
+  .ant-modal {
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .ant-modal-header {
+    background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+    border-bottom: 2px solid #e8e8e8;
+    padding: 20px 24px;
+  }
+
+  .ant-modal-title {
+    font-weight: 600;
+    color: #333;
+    font-size: 16px;
+  }
+
+  .ant-modal-body {
+    padding: 24px;
+  }
+
+  .ant-modal-footer {
+    border-top: 1px solid #f0f0f0;
+    padding: 16px 24px;
+    background: #fafafa;
+  }
+
+  /* Amélioration des formulaires */
+  .ant-form-item-label > label {
+    font-weight: 500;
+    color: #333;
+  }
+
+  .ant-input,
+  .ant-select-selector,
+  .ant-picker {
+    border-radius: 6px;
+    border: 1px solid #d9d9d9;
+    transition: all 0.3s ease;
+  }
+
+  .ant-input:focus,
+  .ant-input-focused,
+  .ant-select-focused .ant-select-selector,
+  .ant-picker-focused {
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+  }
+
+  /* Amélioration des boutons */
+  .ant-btn {
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+  }
+
+  .ant-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+
+  .ant-btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+  }
+
+  .ant-btn-primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+  }
+
+  /* Amélioration des tags et badges */
+  .ant-tag {
+    border-radius: 4px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+  }
+
+  .ant-tag:hover {
+    transform: scale(1.05);
+  }
+
+  .ant-badge {
+    transition: all 0.3s ease;
+  }
+
+  .ant-badge:hover {
+    transform: scale(1.05);
+  }
+
+  /* Amélioration des descriptions */
+  .ant-descriptions-bordered .ant-descriptions-item-label {
+    background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+    font-weight: 600;
+  }
+
+  .ant-descriptions-bordered .ant-descriptions-item-content {
+    background: white;
+  }
+
+  /* Amélioration du breadcrumb */
+  .ant-breadcrumb {
+    font-weight: 500;
+  }
+
+  .ant-breadcrumb a {
+    color: #666;
+    transition: color 0.3s ease;
+  }
+
+  .ant-breadcrumb a:hover {
+    color: #667eea;
+  }
+
+  /* Amélioration des alertes */
+  .ant-alert {
+    border-radius: 8px;
+    border: 1px solid;
+    padding: 16px;
+  }
+
+  .ant-alert-info {
+    background: linear-gradient(135deg, #e6f7ff 0%, #f0f9ff 100%);
+    border-color: #91d5ff;
+  }
+
+  .ant-alert-warning {
+    background: linear-gradient(135deg, #fffbe6 0%, #fff7e6 100%);
+    border-color: #ffd666;
+  }
+
+  .ant-alert-error {
+    background: linear-gradient(135deg, #fff2f0 0%, #fff1f0 100%);
+    border-color: #ffccc7;
+  }
+
+  .ant-alert-success {
+    background: linear-gradient(135deg, #f6ffed 0%, #f0f9e8 100%);
+    border-color: #b7eb8f;
+  }
+
+  /* Amélioration des dropdowns */
+  .ant-dropdown-menu {
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  }
+
+  .ant-dropdown-menu-item {
+    border-radius: 4px;
+    margin: 2px 8px;
+    transition: all 0.2s ease;
+  }
+
+  .ant-dropdown-menu-item:hover {
+    background: linear-gradient(135deg, #f0f2ff 0%, #e6f7ff 100%);
+  }
+
+  /* Effet de brillance pour les cartes */
+  .shine-effect {
+    pointer-events: none;
+  }
+
+  /* Amélioration des statistiques */
+  .ant-statistic {
+    text-align: center;
+  }
+
+  .ant-statistic-title {
+    font-weight: 500;
+    color: #666;
+    margin-bottom: 8px;
+  }
+
+  .ant-statistic-content {
+    font-weight: 700;
+    font-size: 20px;
+  }
+
+  /* Amélioration des steps */
+  .ant-steps-item-icon {
+    transition: all 0.3s ease;
+  }
+
+  .ant-steps-item:hover .ant-steps-item-icon {
+    transform: scale(1.1);
+  }
+
+  .ant-steps-item-process .ant-steps-item-icon {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+  }
+
+  .ant-steps-item-finish .ant-steps-item-icon {
+    background: #52c41a;
+    border-color: #52c41a;
+  }
+
+  /* Scrollbar personnalisée */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+  }
+`}</style>
+</div>
+);
+};
 export default InviteDetails;

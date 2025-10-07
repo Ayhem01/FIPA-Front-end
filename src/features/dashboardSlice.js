@@ -289,6 +289,197 @@ export const fetchInvitesByCountry = createAsyncThunk(
       }
     }
   );
+  export const fetchInviteStats = createAsyncThunk(
+    "dashboard/fetchInviteStats",
+    async (_, { rejectWithValue }) => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/invites/stats`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        return response.data;
+      } catch (error) {
+        return rejectWithValue(error.response?.data?.message || "Failed to fetch invite stats");
+      }
+    }
+  );
+  export const fetchInviteDashboard = createAsyncThunk(
+    "dashboard/fetchInviteDashboard",
+    async (_, { rejectWithValue }) => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/invites/dashboard`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        return response.data;
+      } catch (error) {
+        return rejectWithValue(error.response?.data?.message || "Failed to fetch invite dashboard");
+      }
+    }
+  );
+  
+  export const fetchInvitesByStatus = createAsyncThunk(
+    "dashboard/fetchInvitesByStatus",
+    async (_, { rejectWithValue }) => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/invites/charts/status`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        return response.data;
+      } catch (error) {
+        return rejectWithValue(error.response?.data?.message || "Failed to fetch invites by status");
+      }
+    }
+  );
+  
+  export const fetchInvitesByPotentiel = createAsyncThunk(
+    "dashboard/fetchInvitesByPotentiel",
+    async (_, { rejectWithValue }) => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/invites/charts/potentiel`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        return response.data;
+      } catch (error) {
+        return rejectWithValue(error.response?.data?.message || "Failed to fetch invites by potentiel");
+      }
+    }
+  );
+  
+  export const fetchInvitesEvolution = createAsyncThunk(
+    "dashboard/fetchInvitesEvolution",
+    async (_, { rejectWithValue }) => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/invites/charts/evolution`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        return response.data;
+      } catch (error) {
+        return rejectWithValue(error.response?.data?.message || "Failed to fetch invites evolution");
+      }
+    }
+  );
+  
+  export const fetchInvitesByPays = createAsyncThunk(
+    "dashboard/fetchInvitesByPays",
+    async (_, { rejectWithValue }) => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/invites/charts/pays`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        return response.data;
+      } catch (error) {
+        return rejectWithValue(error.response?.data?.message || "Failed to fetch invites by pays");
+      }
+    }
+  );
+  
+  export const fetchInvitesBySecteur = createAsyncThunk(
+    "dashboard/fetchInvitesBySecteur",
+    async (_, { rejectWithValue }) => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/invites/charts/secteur`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        return response.data;
+      } catch (error) {
+        return rejectWithValue(error.response?.data?.message || "Failed to fetch invites by secteur");
+      }
+    }
+  );
+  
+  export const fetchInvitesPipelineProgression = createAsyncThunk(
+    "dashboard/fetchInvitesPipelineProgression",
+    async (_, { rejectWithValue }) => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/invites/charts/pipeline`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        return response.data;
+      } catch (error) {
+        return rejectWithValue(error.response?.data?.message || "Failed to fetch invites pipeline progression");
+      }
+    }
+  );
+  
+  export const fetchInvitesConversionRate = createAsyncThunk(
+    "dashboard/fetchInvitesConversionRate",
+    async (_, { rejectWithValue }) => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/invites/charts/conversion`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        return response.data;
+      } catch (error) {
+        return rejectWithValue(error.response?.data?.message || "Failed to fetch invites conversion rate");
+      }
+    }
+  );
+  
+  export const fetchInvitesByType = createAsyncThunk(
+    "dashboard/fetchInvitesByType",
+    async (_, { rejectWithValue }) => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/invites/charts/type`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        return response.data;
+      } catch (error) {
+        return rejectWithValue(error.response?.data?.message || "Failed to fetch invites by type");
+      }
+    }
+  );
+  
+  export const fetchTopEntreprises = createAsyncThunk(
+    "dashboard/fetchTopEntreprises",
+    async (_, { rejectWithValue }) => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/invites/charts/entreprises`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        return response.data;
+      } catch (error) {
+        return rejectWithValue(error.response?.data?.message || "Failed to fetch top entreprises");
+      }
+    }
+  );
+  
+  export const fetchInvitesHeatmap = createAsyncThunk(
+    "dashboard/fetchInvitesHeatmap",
+    async (_, { rejectWithValue }) => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/invites/charts/heatmap`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        return response.data;
+      } catch (error) {
+        return rejectWithValue(error.response?.data?.message || "Failed to fetch invites heatmap");
+      }
+    }
+  );
+  
   
 
 // Slice
@@ -315,6 +506,19 @@ const dashboardSlice = createSlice({
     pipelineProgression: { data: [], loading: false, error: null },
     investmentByRegion: { data: [], loading: false, error: null },
   
+    inviteStats: { data: null, loading: false, error: null },
+    inviteDashboard: { data: null, loading: false, error: null },
+    invitesByStatus: { data: [], loading: false, error: null },
+    invitesByPotentiel: { data: [], loading: false, error: null },
+    invitesEvolution: { data: [], loading: false, error: null },
+    invitesByPays: { data: [], loading: false, error: null },
+    invitesBySecteur: { data: [], loading: false, error: null },
+    invitesPipelineProgression: { data: [], loading: false, error: null },
+    invitesConversionRate: { data: null, loading: false, error: null },
+    invitesByType: { data: [], loading: false, error: null },
+    topEntreprises: { data: [], loading: false, error: null },
+    invitesHeatmap: { data: [], loading: false, error: null },
+ 
 
   },
   reducers: {},
@@ -552,7 +756,174 @@ const dashboardSlice = createSlice({
       .addCase(fetchInvestmentByRegion.rejected, (state, action) => {
         state.investmentByRegion.loading = false;
         state.investmentByRegion.error = action.payload;
+      })
+      .addCase(fetchInviteStats.pending, (state) => {
+        state.inviteStats.loading = true;
+        state.inviteStats.error = null;
+      })
+      .addCase(fetchInviteStats.fulfilled, (state, action) => {
+        state.inviteStats.loading = false;
+        state.inviteStats.data = action.payload;
+      })
+      .addCase(fetchInviteStats.rejected, (state, action) => {
+        state.inviteStats.loading = false;
+        state.inviteStats.error = action.payload;
+      })
+
+      // Invite Dashboard
+      .addCase(fetchInviteDashboard.pending, (state) => {
+        state.inviteDashboard.loading = true;
+        state.inviteDashboard.error = null;
+      })
+      .addCase(fetchInviteDashboard.fulfilled, (state, action) => {
+        state.inviteDashboard.loading = false;
+        state.inviteDashboard.data = action.payload;
+      })
+      .addCase(fetchInviteDashboard.rejected, (state, action) => {
+        state.inviteDashboard.loading = false;
+        state.inviteDashboard.error = action.payload;
+      })
+
+      // Invites by Status
+      .addCase(fetchInvitesByStatus.pending, (state) => {
+        state.invitesByStatus.loading = true;
+        state.invitesByStatus.error = null;
+      })
+      .addCase(fetchInvitesByStatus.fulfilled, (state, action) => {
+        state.invitesByStatus.loading = false;
+        state.invitesByStatus.data = action.payload.data || action.payload;
+      })
+      .addCase(fetchInvitesByStatus.rejected, (state, action) => {
+        state.invitesByStatus.loading = false;
+        state.invitesByStatus.error = action.payload;
+      })
+
+      // Invites by Potentiel
+      .addCase(fetchInvitesByPotentiel.pending, (state) => {
+        state.invitesByPotentiel.loading = true;
+        state.invitesByPotentiel.error = null;
+      })
+      .addCase(fetchInvitesByPotentiel.fulfilled, (state, action) => {
+        state.invitesByPotentiel.loading = false;
+        state.invitesByPotentiel.data = action.payload.data || action.payload;
+      })
+      .addCase(fetchInvitesByPotentiel.rejected, (state, action) => {
+        state.invitesByPotentiel.loading = false;
+        state.invitesByPotentiel.error = action.payload;
+      })
+
+      // Invites Evolution
+      .addCase(fetchInvitesEvolution.pending, (state) => {
+        state.invitesEvolution.loading = true;
+        state.invitesEvolution.error = null;
+      })
+      .addCase(fetchInvitesEvolution.fulfilled, (state, action) => {
+        state.invitesEvolution.loading = false;
+        state.invitesEvolution.data = action.payload.data || action.payload;
+      })
+      .addCase(fetchInvitesEvolution.rejected, (state, action) => {
+        state.invitesEvolution.loading = false;
+        state.invitesEvolution.error = action.payload;
+      })
+
+      // Invites by Pays
+      .addCase(fetchInvitesByPays.pending, (state) => {
+        state.invitesByPays.loading = true;
+        state.invitesByPays.error = null;
+      })
+      .addCase(fetchInvitesByPays.fulfilled, (state, action) => {
+        state.invitesByPays.loading = false;
+        state.invitesByPays.data = action.payload.data || action.payload;
+      })
+      .addCase(fetchInvitesByPays.rejected, (state, action) => {
+        state.invitesByPays.loading = false;
+        state.invitesByPays.error = action.payload;
+      })
+
+      // Invites by Secteur
+      .addCase(fetchInvitesBySecteur.pending, (state) => {
+        state.invitesBySecteur.loading = true;
+        state.invitesBySecteur.error = null;
+      })
+      .addCase(fetchInvitesBySecteur.fulfilled, (state, action) => {
+        state.invitesBySecteur.loading = false;
+        state.invitesBySecteur.data = action.payload.data || action.payload;
+      })
+      .addCase(fetchInvitesBySecteur.rejected, (state, action) => {
+        state.invitesBySecteur.loading = false;
+        state.invitesBySecteur.error = action.payload;
+      })
+
+      // Invites Pipeline Progression
+      .addCase(fetchInvitesPipelineProgression.pending, (state) => {
+        state.invitesPipelineProgression.loading = true;
+        state.invitesPipelineProgression.error = null;
+      })
+      .addCase(fetchInvitesPipelineProgression.fulfilled, (state, action) => {
+        state.invitesPipelineProgression.loading = false;
+        state.invitesPipelineProgression.data = action.payload.data || action.payload;
+      })
+      .addCase(fetchInvitesPipelineProgression.rejected, (state, action) => {
+        state.invitesPipelineProgression.loading = false;
+        state.invitesPipelineProgression.error = action.payload;
+      })
+
+      // Invites Conversion Rate
+      .addCase(fetchInvitesConversionRate.pending, (state) => {
+        state.invitesConversionRate.loading = true;
+        state.invitesConversionRate.error = null;
+      })
+      .addCase(fetchInvitesConversionRate.fulfilled, (state, action) => {
+        state.invitesConversionRate.loading = false;
+        state.invitesConversionRate.data = action.payload.data || action.payload;
+      })
+      .addCase(fetchInvitesConversionRate.rejected, (state, action) => {
+        state.invitesConversionRate.loading = false;
+        state.invitesConversionRate.error = action.payload;
+      })
+
+      // Invites by Type
+      .addCase(fetchInvitesByType.pending, (state) => {
+        state.invitesByType.loading = true;
+        state.invitesByType.error = null;
+      })
+      .addCase(fetchInvitesByType.fulfilled, (state, action) => {
+        state.invitesByType.loading = false;
+        state.invitesByType.data = action.payload.data || action.payload;
+      })
+      .addCase(fetchInvitesByType.rejected, (state, action) => {
+        state.invitesByType.loading = false;
+        state.invitesByType.error = action.payload;
+      })
+
+      // Top Entreprises
+      .addCase(fetchTopEntreprises.pending, (state) => {
+        state.topEntreprises.loading = true;
+        state.topEntreprises.error = null;
+      })
+      .addCase(fetchTopEntreprises.fulfilled, (state, action) => {
+        state.topEntreprises.loading = false;
+        state.topEntreprises.data = action.payload.data || action.payload;
+      })
+      .addCase(fetchTopEntreprises.rejected, (state, action) => {
+        state.topEntreprises.loading = false;
+        state.topEntreprises.error = action.payload;
+      })
+
+      // Invites Heatmap
+      .addCase(fetchInvitesHeatmap.pending, (state) => {
+        state.invitesHeatmap.loading = true;
+        state.invitesHeatmap.error = null;
+      })
+      .addCase(fetchInvitesHeatmap.fulfilled, (state, action) => {
+        state.invitesHeatmap.loading = false;
+        state.invitesHeatmap.data = action.payload.data || action.payload;
+      })
+      .addCase(fetchInvitesHeatmap.rejected, (state, action) => {
+        state.invitesHeatmap.loading = false;
+        state.invitesHeatmap.error = action.payload;
       });
+
   },
 });
 

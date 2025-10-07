@@ -115,21 +115,107 @@ export const createBlockage = createAsyncThunk(
   }
 );
 
-  
-  
-  
-
-export const updateBlockage = createAsyncThunk(
-  'blockages/updateBlockage',
-  async ({ id, blockageData }, { rejectWithValue }) => {
+export const fetchBlockagesAdmin = createAsyncThunk(
+  'blockages/fetchBlockagesAdmin',
+  async (filters = {}, { rejectWithValue }) => {
     try {
-      const response = await axios.put(`${API_URL}/blockages/${id}`, blockageData,getAuthHeader());
-      return response.data.data;
+      console.log('Récupération des blocages avec filtres:', filters);
+      
+      // Préparer les paramètres avec validation
+      const params = {
+        page: filters.page || 1,
+        per_page: filters.per_page || 15,
+        sort_by: filters.sort_by || 'created_at',
+        sort_direction: filters.sort_direction || 'desc'
+      };
+      
+      // Ajouter les filtres seulement s'ils sont définis
+      if (filters.status && filters.status !== 'all') {
+        params.status = filters.status;
+      }
+      
+      if (filters.priority && filters.priority !== 'all') {
+        params.priority = filters.priority;
+      }
+      
+      if (filters.blockage_type && filters.blockage_type !== 'all') {
+        params.blockage_type = filters.blockage_type;
+      }
+      
+      if (filters.blockable_type && filters.blockable_type !== 'all') {
+        params.blockable_type = filters.blockable_type;
+      }
+      
+      if (filters.is_escalated !== undefined && filters.is_escalated !== null && filters.is_escalated !== 'all') {
+        params.is_escalated = filters.is_escalated;
+      }
+      
+      if (filters.assigned_to) {
+        params.assigned_to = filters.assigned_to;
+      }
+      
+      if (filters.created_by) {
+        params.created_by = filters.created_by;
+      }
+      
+      if (filters.date_from) {
+        params.date_from = filters.date_from;
+      }
+      
+      if (filters.date_to) {
+        params.date_to = filters.date_to;
+      }
+      
+      // Ajouter la recherche
+      if (filters.search && filters.search.trim()) {
+        params.search = filters.search.trim();
+      }
+      
+      console.log('Paramètres finaux envoyés:', params);
+      
+      const response = await axios.get(`${API_URL}/blockages/all`, {
+        params,
+        ...getAuthHeader()
+      });
+      
+      console.log('Réponse API blockages admin:', response.data);
+      
+      // CORRECTION: Retourner la structure correcte selon la réponse API
+      return {
+        blockages: response.data.data, // La pagination Laravel complète
+        statistics: response.data.statistics,
+        filters_applied: response.data.filters_applied
+      };
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Erreur lors de la mise à jour du blocage');
+      console.error("Erreur lors de la récupération des blocages:", error);
+      console.error("Détails de l'erreur:", error.response?.data);
+      return rejectWithValue(error.response?.data?.message || 'Erreur lors du chargement des blocages');
     }
   }
 );
+
+  export const updateBlockage = createAsyncThunk(
+    'blockages/updateBlockage',
+    async ({ id, blockageData }, { rejectWithValue }) => {
+      try {
+        console.log('Mise à jour du blocage:', { id, blockageData });
+        
+        const response = await axios.put(
+          `${API_URL}/blockages/${id}`, 
+          blockageData,
+          getAuthHeader()
+        );
+        
+        console.log('Réponse mise à jour:', response.data);
+        return response.data.data || response.data;
+      } catch (error) {
+        console.error('Erreur mise à jour blocage:', error.response?.data);
+        return rejectWithValue(
+          error.response?.data?.message || 'Erreur lors de la mise à jour du blocage'
+        );
+      }
+    }
+  );
 
 export const resolveBlockage = createAsyncThunk(
   'blockages/resolveBlockage',
@@ -197,25 +283,111 @@ export const fetchInviteProgressionById = createAsyncThunk(
     }
   }
 );
+export const fetchBlockageDetails = createAsyncThunk(
+  'blockages/fetchBlockageDetails',
+  async (id, { rejectWithValue }) => {
+    try {
+      console.log(`Récupération des détails du blocage #${id}`);
+      
+      const response = await axios.get(
+        `${API_URL}/blockages/${id}`,
+        getAuthHeader()
+      );
+      
+      console.log('Détails du blocage récupérés:', response.data);
+      return response.data.data;
+    } catch (error) {
+      console.error('Erreur lors de la récupération des détails:', error);
+      return rejectWithValue(
+        error.response?.data?.message || 'Erreur lors de la récupération des détails du blocage'
+      );
+    }
+  }
+);
 
-    const blockageSlice = createSlice({
-        name: 'blockages',
-        initialState: {
-          list: [],
-          entityBlockages: [],
-          stageBlockages: [],
-          loading: false,
-          error: null,
-          operation: {
-            success: false,
-            error: null
-          }
-        },
-  reducers: {
-    resetOperation: (state) => {
-      state.operation = { type: null, success: false, error: null };
+const blockageSlice = createSlice({
+  name: 'blockages',
+  initialState: {
+    list: [],
+    entityBlockages: [],
+    stageBlockages: [],
+    selectedBlockage: null, 
+    detailsLoading: false,  
+    adminBlockages: {
+      data: [],
+      current_page: 1,
+      last_page: 1,
+      per_page: 15,
+      total: 0,
+      from: 0,
+      to: 0,
+      first_page_url: '',
+      last_page_url: '',
+      next_page_url: null,
+      prev_page_url: null,
+      path: '',
+      links: []
+    },
+    statistics: {
+      total: 0,
+      by_status: {
+        active: 0,
+        resolved: 0,
+        cancelled: 0
+      },
+      by_priority: {
+        low: 0,
+        medium: 0,
+        high: 0,
+        critical: 0
+      },
+      by_type: {
+        process: 0,
+        data: 0,
+        technical: 0,
+        other: 0
+      },
+      escalated_count: 0,
+      unassigned_count: 0
+    },
+    filters: {
+      status: null,
+      priority: null,
+      blockage_type: null,
+      blockable_type: null,
+      is_escalated: null,
+      date_from: null,
+      date_to: null
+    },
+    progression: [],
+    loading: false,
+    error: null,
+    operation: {
+      type: null,
+      success: false,
+      error: null
     }
   },
+         
+        reducers: {
+          resetOperation: (state) => {
+            state.operation = { type: null, success: false, error: null };
+          },
+          updateFilters: (state, action) => {
+            state.filters = { ...state.filters, ...action.payload };
+          },
+          clearFilters: (state) => {
+            state.filters = {
+              status: null,
+              priority: null,
+              blockage_type: null,
+              blockable_type: null,
+              is_escalated: null,
+              date_from: null,
+              date_to: null
+            };
+          }
+        },
   extraReducers: (builder) => {
     // Fetch blockages
     builder.addCase(fetchBlockages.pending, (state) => {
@@ -257,9 +429,6 @@ export const fetchInviteProgressionById = createAsyncThunk(
     });
 
     // Update blockage
-    builder.addCase(updateBlockage.pending, (state) => {
-      state.operation = { type: 'update', success: false, error: null };
-    });
     builder.addCase(updateBlockage.fulfilled, (state, action) => {
       // Mettre à jour dans la liste principale
       const index = state.list.findIndex(item => item.id === action.payload.id);
@@ -267,16 +436,24 @@ export const fetchInviteProgressionById = createAsyncThunk(
         state.list[index] = action.payload;
       }
       
-      // Mettre également à jour dans entityBlockages
+      // Mettre à jour dans entityBlockages
       const entityIndex = state.entityBlockages.findIndex(item => item.id === action.payload.id);
       if (entityIndex !== -1) {
         state.entityBlockages[entityIndex] = action.payload;
       }
       
+      // Mettre à jour dans adminBlockages
+      if (state.adminBlockages && state.adminBlockages.data) {
+        const adminIndex = state.adminBlockages.data.findIndex(item => item.id === action.payload.id);
+        if (adminIndex !== -1) {
+          state.adminBlockages.data[adminIndex] = action.payload;
+        }
+      }
+      
       state.operation = { type: 'update', success: true, error: null };
-    });
-    builder.addCase(updateBlockage.rejected, (state, action) => {
-      state.operation = { type: 'update', success: false, error: action.payload || 'Erreur inconnue' };
+    })
+    .addCase(updateBlockage.rejected, (state, action) => {
+      state.operation = { type: 'update', success: false, error: action.payload };
     });
 
     // Resolve blockage
@@ -366,7 +543,7 @@ export const fetchInviteProgressionById = createAsyncThunk(
     builder.addCase(getBlockagesByStage.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload;
-    });
+    })
     builder.addCase(fetchBlockagesForStage.pending, (state) => {
       state.loading = true;
       state.error = null;
@@ -378,9 +555,51 @@ export const fetchInviteProgressionById = createAsyncThunk(
     builder.addCase(fetchBlockagesForStage.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload;
+    })
+    builder.addCase(fetchBlockagesAdmin.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    })
+    builder.addCase(fetchBlockagesAdmin.fulfilled, (state, action) => {
+      state.loading = false;
+      // CORRECTION: Stocker correctement la structure de pagination Laravel
+      state.adminBlockages = action.payload.blockages;
+      state.statistics = action.payload.statistics;
+      state.filters = { ...state.filters, ...action.payload.filters_applied };
+      state.error = null;
+    })
+    builder.addCase(fetchBlockagesAdmin.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload || 'Erreur inconnue';
     });
+    builder.addCase(fetchBlockageDetails.pending, (state) => {
+      state.detailsLoading = true;
+      state.error = null;
+    });
+    builder.addCase(fetchBlockageDetails.fulfilled, (state, action) => {
+      state.detailsLoading = false;
+      state.selectedBlockage = action.payload;
+      state.error = null;
+    });
+    builder.addCase(fetchBlockageDetails.rejected, (state, action) => {
+      state.detailsLoading = false;
+      state.error = action.payload;
+      state.selectedBlockage = null;
+    });
+    // builder.addCase(fetchBlockages.pending, (state) => {
+    //   state.loading = true;
+    // });
+    // builder.addCase(fetchBlockages.fulfilled, (state, action) => {
+    //   state.list = action.payload;
+    //   state.loading = false;
+    //   state.error = null;
+    // });
+    // builder.addCase(fetchBlockages.rejected, (state, action) => {
+    //   state.loading = false;
+    //   state.error = action.payload || 'Erreur inconnue';
+    // });
   }
 });
 
-export const { resetOperation } = blockageSlice.actions;
+export const { resetOperation, updateFilters, clearFilters } = blockageSlice.actions;
 export default blockageSlice.reducer;
