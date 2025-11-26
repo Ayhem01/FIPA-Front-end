@@ -18,7 +18,7 @@ import {
     ProjectOutlined, DollarOutlined, FundOutlined, BarChartOutlined, FlagOutlined, ApartmentOutlined,
     EnvironmentOutlined, GlobalOutlined, SolutionOutlined, EditOutlined, CheckOutlined,
     SyncOutlined, ToolOutlined, PauseCircleOutlined, UploadOutlined, InboxOutlined, FileOutlined,
-    HomeOutlined
+    HomeOutlined, FireOutlined, ThunderboltOutlined, ReloadOutlined
 } from '@ant-design/icons';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -48,6 +48,7 @@ import { createPipelineStageTask, getPipelineStageTasks } from '../../features/t
 import TaskCreateModal from '../Tasks/TaskCreateModal';
 import PipelineStageManager from '../Portefeuille/PipelineStageManager';
 import PipelineVisualizer from '../Portefeuille/PipelineVisualizer';
+import BlockageForm from '../Blockages/BlockageForm'; // AJOUT
 
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
@@ -58,6 +59,296 @@ const { TextArea } = Input;
 const { useBreakpoint } = Grid;
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+
+// Composant de statistique animée (identique à InviteDetails)
+const AnimatedStatCard = ({ icon, title, value, prefix, suffix, color, loading, delay = 0 }) => {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    if (!loading && typeof value === 'number' && value > 0) {
+      const duration = 1500;
+      const steps = 30;
+      const increment = value / steps;
+      let current = 0;
+      
+      const timer = setInterval(() => {
+        current += increment;
+        if (current >= value) {
+          setDisplayValue(value);
+          clearInterval(timer);
+        } else {
+          setDisplayValue(Math.floor(current));
+        }
+      }, duration / steps);
+
+      return () => clearInterval(timer);
+    } else if (!loading) {
+      setDisplayValue(value);
+    }
+  }, [value, loading]);
+
+  const cardVariants = {
+    hidden: { 
+      opacity: 0, 
+      y: 20,
+      scale: 0.95
+    },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      scale: 1,
+      transition: {
+        duration: 0.5,
+        delay: delay * 0.1,
+        ease: "easeOut"
+      }
+    },
+    hover: {
+      y: -3,
+      scale: 1.02,
+      transition: {
+        duration: 0.2,
+        ease: "easeInOut"
+      }
+    }
+  };
+
+  return (
+    <motion.div
+      variants={cardVariants}
+      initial="hidden"
+      animate="visible"
+      whileHover="hover"
+      style={{ height: '100%' }}
+    >
+      <Card 
+        className="stat-card-modern"
+        style={{
+          height: '100%',
+          background: `linear-gradient(135deg, ${color}15 0%, ${color}25 100%)`,
+          border: `1px solid ${color}30`,
+          borderRadius: '16px',
+          overflow: 'hidden',
+          position: 'relative'
+        }}
+        bodyStyle={{ padding: '20px' }}
+      >
+        <div className="stat-card-content">
+          <motion.div 
+            className="stat-icon"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: delay * 0.1 + 0.2 }}
+            style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '10px',
+              background: `linear-gradient(135deg, ${color} 0%, ${color}80 100%)`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontSize: '20px',
+              boxShadow: `0 4px 12px ${color}40`,
+              marginBottom: '12px'
+            }}
+          >
+            {loading ? <SyncOutlined spin /> : icon}
+          </motion.div>
+
+          <Text type="secondary" style={{ fontSize: '13px', fontWeight: 500 }}>
+            {title}
+          </Text>
+          
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: delay * 0.1 + 0.3 }}
+          >
+            <Title level={3} style={{ 
+              margin: '4px 0 0 0', 
+              color: color,
+              fontWeight: 700,
+              fontSize: '22px'
+            }}>
+              {prefix}
+              <motion.span
+                key={displayValue}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                {typeof displayValue === 'number' ? displayValue.toLocaleString() : displayValue}
+              </motion.span>
+              {suffix}
+            </Title>
+          </motion.div>
+        </div>
+
+        {/* Effet de brillance */}
+        <motion.div
+          className="shine-effect"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: '-100%',
+            width: '100%',
+            height: '100%',
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+            transform: 'skewX(-25deg)'
+          }}
+          animate={{
+            left: ['100%', '200%']
+          }}
+          transition={{
+            duration: 2,
+            delay: delay * 0.1 + 1,
+            ease: "easeInOut"
+          }}
+        />
+      </Card>
+    </motion.div>
+  );
+};const getStatusInfo = (status) => {
+    switch (status) {
+        case 'planned':
+            return {
+                icon: <CalendarOutlined />,
+                text: 'Planifié',
+                color: '#faad14'
+            };
+        case 'in_progress':
+            return {
+                icon: <SyncOutlined spin />,
+                text: 'En cours',
+                color: '#1890ff'
+            };
+        case 'completed':
+            return {
+                icon: <CheckCircleOutlined />,
+                text: 'Terminé',
+                color: '#52c41a'
+            };
+        case 'on_hold':
+            return {
+                icon: <ClockCircleOutlined />,
+                text: 'En attente',
+                color: '#8c8c8c'
+            };
+        case 'suspended':
+            return {
+                icon: <PauseCircleOutlined />,
+                text: 'Suspendu',
+                color: '#fa8c16'
+            };
+        case 'abandoned':
+            return {
+                icon: <CloseCircleOutlined />,
+                text: 'Abandonné',
+                color: '#ff4d4f'
+            };
+        default:
+            return {
+                icon: <QuestionCircleOutlined />,
+                text: 'Inconnu',
+                color: '#d9d9d9'
+            };
+    }
+};
+
+// Composant de carte animée (identique à InviteDetails)
+const AnimatedContentCard = ({ title, children, loading, extra, delay = 0 }) => {
+  const cardVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: {
+        duration: 0.6,
+        delay: delay * 0.1,
+        ease: "easeOut"
+      }
+    }
+  };
+
+  return (
+    <motion.div
+      variants={cardVariants}
+      initial="hidden"
+      animate="visible"
+      style={{ height: '100%' }}
+    >
+      <Card
+        className="content-card-modern"
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: delay * 0.1 + 0.2 }}
+            >
+              <div style={{
+                width: '8px',
+                height: '24px',
+                borderRadius: '4px',
+                background: 'linear-gradient(135deg, #1890ff, #096dd9)'
+              }} />
+            </motion.div>
+            <Title level={4} style={{ margin: 0, fontWeight: 600 }}>
+              {title}
+            </Title>
+          </div>
+        }
+        extra={extra}
+        style={{
+          height: '100%',
+          borderRadius: '16px',
+          border: '1px solid #f0f0f0',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+          overflow: 'hidden'
+        }}
+        bodyStyle={{ padding: '24px' }}
+      >
+        <AnimatePresence mode="wait">
+          {loading ? (
+            <motion.div
+              key="loading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '200px'
+              }}
+            >
+              <div style={{ textAlign: 'center' }}>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  style={{ marginBottom: '16px' }}
+                >
+                  <SyncOutlined style={{ fontSize: '32px', color: '#1890ff' }} />
+                </motion.div>
+                <Text type="secondary">Chargement des données...</Text>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="content"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4 }}
+            >
+              {children}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Card>
+    </motion.div>
+  );
+};
 
 const ProjetDetails = () => {
     const [taskForm] = Form.useForm();
@@ -83,8 +374,6 @@ const ProjetDetails = () => {
     const [pipelineTasks, setPipelineTasks] = useState({ planned: [], recent: [] });
     const [loadingTasks, setLoadingTasks] = useState(false);
     const [selectedStageName, setSelectedStageName] = useState('');
-    const [documentsModalVisible, setDocumentsModalVisible] = useState(false);
-    // const [budgetModalVisible, setBudgetModalVisible] = useState(false);
     const [finalizeModalVisible, setFinalizeModalVisible] = useState(false);
 
     const {
@@ -318,58 +607,6 @@ const ProjetDetails = () => {
         }
     }, [id, effectiveCurrentStage]);
 
-    const statusMenu = (
-      <Menu>
-        <Menu.Item
-          key="planned"
-          disabled={projet?.status === "planned"}
-          onClick={() => handleStatusChange("planned")}
-        >
-          <Badge color="orange" text="Planifié" />
-        </Menu.Item>
-    
-        <Menu.Item
-          key="in_progress"
-          disabled={projet?.status === "in_progress"}
-          onClick={() => handleStatusChange("in_progress")}
-        >
-          <Badge color="processing" text="En cours" />
-        </Menu.Item>
-    
-        <Menu.Item
-          key="completed"
-          disabled={projet?.status === "completed"}
-          onClick={() => handleStatusChange("completed")}
-        >
-          <Badge color="success" text="Terminé" />
-        </Menu.Item>
-    
-        <Menu.Item
-          key="abandoned"
-          disabled={projet?.status === "abandoned"}
-          onClick={() => handleStatusChange("abandoned")}
-        >
-          <Badge color="error" text="Abandonné" />
-        </Menu.Item>
-    
-        <Menu.Item
-          key="suspended"
-          disabled={projet?.status === "suspended"}
-          onClick={() => handleStatusChange("suspended")}
-        >
-          <Badge color="warning" text="Suspendu" />
-        </Menu.Item>
-    
-        <Menu.Item
-          key="on_hold"
-          disabled={projet?.status === "on_hold"}
-          onClick={() => handleStatusChange("on_hold")}
-        >
-          <Badge color="default" text="En attente" />
-        </Menu.Item>
-      </Menu>
-    );
-
     const renderStatus = (status) => {
         let color, text, icon;
       
@@ -425,26 +662,20 @@ const ProjetDetails = () => {
     };
 
     const calculateProgress = () => {
-        // Si le projet est terminé, retourner 100%
         if (projet?.status === 'completed') {
             return 100;
         }
     
-        // Vérifier si on a des données de pipeline avec pourcentage
         if (pipelineData && typeof pipelineData.progression_percentage === 'number') {
             return Math.round(pipelineData.progression_percentage);
         }
     
-        // Si on a des stages et une progression
         if (pipelineStages && pipelineStages.length > 0) {
             const totalStages = pipelineStages.length;
             
-            // Si on a une progression avec historique
             if (progression && progression.length > 0) {
-                // Compter les étapes complétées
                 const completedStages = progression.filter(prog => prog.completed === true || prog.completed === 1).length;
                 
-                // Si on est à la dernière étape et qu'elle est complétée
                 const isLastStageCompleted = effectiveCurrentStage?.is_final && 
                     progression.some(prog => prog.stage_id === effectiveCurrentStage.id && (prog.completed === true || prog.completed === 1));
                 
@@ -452,32 +683,26 @@ const ProjetDetails = () => {
                     return 100;
                 }
                 
-                // Calculer le pourcentage basé sur les étapes complétées
                 return Math.round((completedStages / totalStages) * 100);
             }
             
-            // Sinon, utiliser l'ordre de l'étape actuelle
             if (effectiveCurrentStage) {
                 const currentOrder = effectiveCurrentStage.order || 0;
                 
-                // Si c'est la dernière étape
                 if (effectiveCurrentStage.is_final) {
-                    return 95; // Presque terminé mais pas encore finalisé
+                    return 95;
                 }
                 
-                // Calculer le pourcentage basé sur l'ordre actuel
                 return Math.round((currentOrder / totalStages) * 100);
             }
         }
     
-        // Par défaut, retourner 0
         return 0;
     };
 
     const isInFinalStage = effectiveCurrentStage?.is_final || false;
     const isProjectCompleted = projet?.status === 'completed';
 
-    // Format money function
     const formatMoney = (amount, currency = 'EUR') => {
         if (!amount) return 'Non défini';
         return new Intl.NumberFormat('fr-FR', {
@@ -494,8 +719,14 @@ const ProjetDetails = () => {
                     animate={{ opacity: 1, scale: 1 }}
                     className="loading-content"
                 >
-                    <Spin size="large" />
-                    <Title level={4} style={{ marginTop: 16, color: '#666' }}>
+                    <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                        style={{ marginBottom: '16px' }}
+                    >
+                        <SyncOutlined style={{ fontSize: '48px', color: '#1890ff' }} />
+                    </motion.div>
+                    <Title level={4} style={{ color: '#666' }}>
                         Chargement des détails du projet...
                     </Title>
                 </motion.div>
@@ -588,18 +819,54 @@ const ProjetDetails = () => {
                 </Breadcrumb>
             </motion.div>
 
-            {/* En-tête principal */}
+            {/* En-tête principal identique à InviteDetails */}
             <motion.div
                 variants={headerVariants}
                 initial="hidden"
                 animate="visible"
+                className="projet-header"
+                style={{
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    borderRadius: '20px',
+                    padding: '32px',
+                    marginBottom: '32px',
+                    color: 'white',
+                    position: 'relative',
+                    overflow: 'hidden'
+                }}
             >
-                <Card className="modern-header-card">
-                    <div className="header-content">
-                        <div className="header-info">
+                <motion.div
+                    className="header-background"
+                    style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        opacity: 0.1,
+                        backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.1\'%3E%3Ccircle cx=\'30\' cy=\'30\' r=\'4\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")'
+                    }}
+                    animate={{
+                        backgroundPosition: ['0px 0px', '60px 60px']
+                    }}
+                    transition={{
+                        duration: 20,
+                        repeat: Infinity,
+                        ease: "linear"
+                    }}
+                />
+
+                <Row justify="space-between" align="middle" style={{ position: 'relative', zIndex: 1 }}>
+                    <Col xs={24} lg={16}>
+                        <motion.div
+                            initial={{ opacity: 0, x: -30 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.2 }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '20px' }}
+                        >
                             <motion.div
-                                whileHover={{ scale: 1.05 }}
-                                transition={{ duration: 0.2 }}
+                                whileHover={{ scale: 1.1, rotate: 5 }}
+                                transition={{ duration: 0.3 }}
                             >
                                 <Avatar 
                                     size={64} 
@@ -608,12 +875,14 @@ const ProjetDetails = () => {
                                         backgroundColor: projet.status === 'completed' ? '#52c41a' : 
                                                         projet.status === 'in_progress' ? '#1890ff' : 
                                                         projet.status === 'abandoned' ? '#ff4d4f' : '#faad14',
-                                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                                        fontSize: '28px',
+                                        boxShadow: '0 4px 16px rgba(0,0,0,0.2)'
                                     }} 
                                 />
                             </motion.div>
-                            <div className="header-details">
-                                <Title level={2} style={{ margin: 0, color: '#1890ff' }}>
+                            
+                            <div>
+                                <Title level={1} style={{ color: 'white', margin: 0, fontWeight: 700 }}>
                                     {projet.titre || projet.title || projet.nom || 'Sans titre'}
                                     {projet.status === 'completed' && (
                                         <Tag color="success" style={{ marginLeft: 12 }}>
@@ -621,168 +890,203 @@ const ProjetDetails = () => {
                                         </Tag>
                                     )}
                                 </Title>
-                                <Space size="large" style={{ marginTop: 8 }}>
-                                    <Text type="secondary">
-                                        <BankOutlined style={{ marginRight: 6 }} />
-                                        {projet.entreprise?.nom || projet.company_name || 'Entreprise non définie'}
-                                    </Text>
-                                    <Text type="secondary">
-                                        <CalendarOutlined style={{ marginRight: 6 }} />
-                                        Créé le {moment(projet.created_at).format('DD/MM/YYYY')}
-                                    </Text>
-                                    <div>{renderStatus(projet.status)}</div>
-                                </Space>
+                                <Paragraph style={{ color: 'rgba(255,255,255,0.8)', fontSize: '16px', margin: '8px 0 0 0' }}>
+                                    <BankOutlined style={{ marginRight: 6 }} />
+                                    {projet.entreprise?.nom || projet.company_name || 'Entreprise non définie'} • 
+                                    <CalendarOutlined style={{ marginLeft: 8, marginRight: 6 }} />
+                                    Créé le {moment(projet.created_at).format('DD/MM/YYYY')}
+                                </Paragraph>
                             </div>
-                        </div>
-
-                        <div className="header-actions">
-                            <Space size="middle">
-                                <Button
-                                    type="default"
-                                    icon={<FileTextOutlined />}
-                                    onClick={() => setDocumentsModalVisible(true)}
-                                    className="modern-btn"
-                                >
-                                    {screens.xs ? '' : 'Documents'}
-                                </Button>
-
-                               
-
-                                {nextStage && !isInFinalStage && (
-                                    <Button
-                                        type="default"
-                                        icon={<RightOutlined />}
-                                        onClick={() => setPipelineModalVisible(true)}
-                                        className="modern-btn"
-                                    >
-                                        {screens.xs ? 'Avancer' : `Avancer `}
-                                    </Button>
-                                )}
-
-                                {isInFinalStage && !isProjectCompleted && (
-                                    <Button
-                                        type="primary"
-                                        icon={<CheckOutlined />}
-                                        onClick={() => setFinalizeModalVisible(true)}
-                                        className="modern-btn-primary"
-                                    >
-                                        {screens.xs ? 'Terminer' : 'Finaliser'}
-                                    </Button>
-                                )}
-
-                                <Dropdown overlay={statusMenu} placement="bottomRight">
-                                    <Button className="modern-btn">
-                                        Statut <DownOutlined />
-                                    </Button>
-                                </Dropdown>
-
-                                <Dropdown
-                                    overlay={
-                                        <Menu>
-                                            <Menu.Item key="edit" icon={<EditOutlined />} onClick={() => navigate(`/projets/${id}/edit`)}>
-                                                Modifier
-                                            </Menu.Item>
-                                            <Menu.Divider />
-                                            <Menu.Item key="delete" danger icon={<DeleteOutlined />} onClick={showDeleteConfirm}>
-                                                Supprimer
-                                            </Menu.Item>
-                                        </Menu>
-                                    }
-                                >
-                                    <Button icon={<EllipsisOutlined />} className="modern-btn" />
-                                </Dropdown>
-                            </Space>
-                        </div>
-                    </div>
-                </Card>
-            </motion.div>
-
-            {/* Métriques de pipeline */}
-            <motion.div
-                variants={cardVariants}
-                initial="hidden"
-                animate="visible"
-                transition={{ delay: 0.2 }}
+                        </motion.div>
+                    </Col>
+                    
+                    <Col xs={24} lg={8}>
+    <motion.div
+        initial={{ opacity: 0, x: 30 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.4 }}
+        style={{ 
+            display: 'flex', 
+            gap: '12px', 
+            justifyContent: screens.lg ? 'flex-end' : 'flex-start',
+            flexWrap: 'wrap',
+            marginTop: screens.lg ? 0 : '16px'
+        }}
+    >
+        {/* Bouton pour changer le statut */}
+        <Dropdown
+            overlay={
+                <Menu onClick={(e) => handleStatusChange(e.key)}>
+                    <Menu.Item key="planned" icon={<CalendarOutlined />}>
+                        Planifié
+                    </Menu.Item>
+                    <Menu.Item key="in_progress" icon={<SyncOutlined />}>
+                        En cours
+                    </Menu.Item>
+                    <Menu.Item key="completed" icon={<CheckCircleOutlined />}>
+                        Terminé
+                    </Menu.Item>
+                    <Menu.Item key="on_hold" icon={<ClockCircleOutlined />}>
+                        En attente
+                    </Menu.Item>
+                    <Menu.Item key="suspended" icon={<PauseCircleOutlined />}>
+                        Suspendu
+                    </Menu.Item>
+                    <Menu.Item key="abandoned" icon={<CloseCircleOutlined />} danger>
+                        Abandonné
+                    </Menu.Item>
+                </Menu>
+            }
+            placement="bottomRight"
+        >
+            <Button 
+                size="large"
+                icon={<DownOutlined />}
+                style={{
+                    background: 'rgba(255,255,255,0.2)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    color: 'white',
+                    borderRadius: '8px',
+                    backdropFilter: 'blur(10px)',
+                    fontWeight: 500
+                }}
             >
-                <Card className="modern-metrics-card">
-                    <Row gutter={[24, 24]}>
-                        <Col xs={24} sm={12} md={6}>
-                            <div className="metric-item">
-                                <div className="metric-icon">
-                                    {projet.status === 'completed' ? 
-                                        <CheckCircleOutlined style={{ color: '#52c41a', fontSize: '24px' }} /> : 
-                                        <ClockCircleOutlined style={{ color: '#faad14', fontSize: '24px' }} />
-                                    }
-                                </div>
-                                <div className="metric-content">
-                                    <div className="metric-label">Statut du projet</div>
-                                    <div className="metric-value" style={{ 
-                                        color: projet.status === 'completed' ? '#52c41a' : '#faad14' 
-                                    }}>
-                                        {projet.status === 'completed' ? "Terminé" : "En cours"}
-                                    </div>
-                                </div>
-                            </div>
-                        </Col>
-                        <Col xs={24} sm={12} md={6}>
-                            <div className="metric-item">
-                                <div className="metric-icon">
-                                    <AuditOutlined style={{ color: '#1890ff', fontSize: '24px' }} />
-                                </div>
-                                <div className="metric-content">
-                                    <div className="metric-label">Phase actuelle</div>
-                                    <div className="metric-value" style={{ color: '#1890ff' }}>
-                                        {effectiveCurrentStage?.name || 'Aucune'}
-                                    </div>
-                                </div>
-                            </div>
-                        </Col>
-                        <Col xs={24} sm={12} md={6}>
-                            <div className="metric-item">
-                                <div className="metric-icon">
-                                    <CalendarOutlined style={{ color: '#722ed1', fontSize: '24px' }} />
-                                </div>
-                                <div className="metric-content">
-                                    <div className="metric-label">Temps dans la phase</div>
-                                    <div className="metric-value" style={{ color: '#722ed1' }}>
-                                        {progression && progression.length > 0
-                                            ? moment().diff(moment(progression[0].created_at), 'days')
-                                            : 0} jours
-                                    </div>
-                                </div>
-                            </div>
-                        </Col>
-                        <Col xs={24} sm={12} md={6}>
-                            <div className="metric-item">
-                                <div className="metric-icon">
-                                    <DollarOutlined style={{ color: '#13c2c2', fontSize: '24px' }} />
-                                </div>
-                                <div className="metric-content">
-                                    <div className="metric-label">Budget total</div>
-                                    <div className="metric-value" style={{ color: '#13c2c2' }}>
-                                        {formatMoney(projet.investment_amount || projet.budget, projet.devise)}
-                                    </div>
-                                </div>
-                            </div>
-                        </Col>
-                    </Row>
-                </Card>
+                {screens.xs ? '' : 'Changer statut'}
+            </Button>
+        </Dropdown>
+
+        {/* Bouton Modifier */}
+        <Button
+            icon={<EditOutlined />}
+            onClick={() => navigate(`/projets/${id}/edit`)}
+            size="large"
+            style={{
+                background: 'rgba(255,255,255,0.2)',
+                border: '1px solid rgba(255,255,255,0.3)',
+                color: 'white',
+                borderRadius: '8px',
+                backdropFilter: 'blur(10px)',
+                fontWeight: 500
+            }}
+        >
+            {screens.xs ? '' : 'Modifier'}
+        </Button>
+
+        {/* Bouton Supprimer */}
+        <Button
+            danger
+            icon={<DeleteOutlined />}
+            onClick={showDeleteConfirm}
+            size="large"
+            style={{
+                background: 'rgba(255,255,255,0.2)',
+                border: '1px solid rgba(255,255,255,0.3)',
+                color: 'white',
+                borderRadius: '8px',
+                backdropFilter: 'blur(10px)',
+                fontWeight: 500
+            }}
+        >
+            {screens.xs ? '' : 'Supprimer'}
+        </Button>
+
+        {/* Bouton Finaliser (si phase finale et pas encore terminé) */}
+        {isInFinalStage && !isProjectCompleted && (
+            <Button
+                type="primary"
+                icon={<CheckOutlined />}
+                onClick={() => setFinalizeModalVisible(true)}
+                size="large"
+                style={{
+                    background: 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 500
+                }}
+            >
+                {screens.xs ? 'Terminer' : 'Finaliser le projet'}
+            </Button>
+        )}
+    </motion.div>
+</Col>
+                </Row>
             </motion.div>
+
+            {/* Métriques de pipeline avec AnimatedStatCard */}
+            <Row gutter={[24, 24]} style={{ marginBottom: '32px' }}>
+               <Col xs={12} sm={6}>
+    <AnimatedStatCard
+        icon={getStatusInfo(projet.status).icon}
+        title="Statut du projet"
+        value={getStatusInfo(projet.status).text}
+        color={getStatusInfo(projet.status).color}
+        delay={0}
+    />
+</Col>
+                <Col xs={12} sm={6}>
+                    <AnimatedStatCard
+                        icon={<AuditOutlined />}
+                        title="Phase actuelle"
+                        value={effectiveCurrentStage?.name || 'Aucune'}
+                        color="#1890ff"
+                        delay={1}
+                    />
+                </Col>
+                <Col xs={12} sm={6}>
+                    <AnimatedStatCard
+                        icon={<CalendarOutlined />}
+                        title="Temps dans la phase"
+                        value={progression && progression.length > 0
+                            ? moment().diff(moment(progression[0].created_at), 'days')
+                            : 0}
+                        suffix=" jours"
+                        color="#722ed1"
+                        delay={2}
+                    />
+                </Col>
+                <Col xs={12} sm={6}>
+                    <AnimatedStatCard
+                        icon={<DollarOutlined />}
+                        title="Budget total"
+                        value={formatMoney(projet.investment_amount || projet.budget, projet.devise)}
+                        color="#13c2c2"
+                        delay={3}
+                    />
+                </Col>
+            </Row>
 
             {/* Visualisation du pipeline */}
-            {pipelineStages.length > 0 ? (
+            {pipelineStages.length > 0 && (
                 <motion.div
                     variants={cardVariants}
                     initial="hidden"
                     animate="visible"
                     transition={{ delay: 0.3 }}
+                    style={{ marginBottom: '24px' }}
                 >
-                    <Card className="modern-pipeline-card" title={
-                        <Space>
-                            <AuditOutlined />
-                            Pipeline de suivi
-                        </Space>
-                    }>
+                    <AnimatedContentCard
+                        title="Pipeline de suivi"
+                        delay={0}
+                        extra={
+                            <Space>
+                                {nextStage && !isInFinalStage && (
+                                    <Button
+                                        type="primary"
+                                        icon={<RightOutlined />}
+                                        onClick={() => setPipelineModalVisible(true)}
+                                        style={{
+                                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                            border: 'none',
+                                            borderRadius: '8px',
+                                            fontWeight: 500
+                                        }}
+                                    >
+                                        Avancer
+                                    </Button>
+                                )}
+                            </Space>
+                        }
+                    >
                         <PipelineStageManager
                             entityType="projet"
                             entityId={id}
@@ -796,38 +1100,7 @@ const ProjetDetails = () => {
                             buttonClassName="modern-btn"
                             showVisualizer={true}
                         />
-                    </Card>
-                </motion.div>
-            ) : (
-                <motion.div
-                    variants={cardVariants}
-                    initial="hidden"
-                    animate="visible"
-                    transition={{ delay: 0.3 }}
-                >
-                    <Card className="modern-pipeline-card">
-                        <Alert
-                            message="Pipeline non initialisé"
-                            description={
-                                <div>
-                                    <p>Ce projet n'a pas encore de pipeline défini.</p>
-                                    <Button
-                                        type="primary"
-                                        icon={<PlusOutlined />}
-                                        onClick={handleInitializePipeline}
-                                        disabled={projet?.status === 'completed' || projet?.status === 'abandoned'}
-                                        style={{ marginTop: 10 }}
-                                        className="modern-btn-primary"
-                                    >
-                                        Initialiser le pipeline
-                                    </Button>
-                                </div>
-                            }
-                            type="info"
-                            showIcon
-                            className="no-pipeline-alert"
-                        />
-                    </Card>
+                    </AnimatedContentCard>
                 </motion.div>
             )}
 
@@ -838,7 +1111,10 @@ const ProjetDetails = () => {
                 animate="visible"
                 transition={{ delay: 0.4 }}
             >
-                <Card className="modern-content-card">
+                <AnimatedContentCard
+                    title="Informations détaillées"
+                    delay={1}
+                >
                     <Tabs 
                         activeKey={activeTab} 
                         onChange={setActiveTab} 
@@ -857,71 +1133,37 @@ const ProjetDetails = () => {
                                     <Button 
                                         icon={<EditOutlined />} 
                                         onClick={() => navigate(`/projets/${id}/edit`)}
-                                        className="modern-btn"
+                                        style={{
+                                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                            border: 'none',
+                                            borderRadius: '8px',
+                                            color: 'white',
+                                            fontWeight: 500
+                                        }}
                                     >
                                         Modifier
                                     </Button>
                                 </div>
 
-                                <Row gutter={16} style={{ marginBottom: 24 }}>
-                                    <Col xs={24} sm={12} md={6}>
-                                        <Card size="small" className="info-card">
-                                            <Statistic
-                                                title="Budget total"
-                                                value={projet.investment_amount || projet.budget || 0}
-                                                precision={0}
-                                                valueStyle={{ color: '#3f8600' }}
-                                                prefix={<DollarOutlined />}
-                                                suffix={projet.devise || 'EUR'}
-                                            />
-                                        </Card>
-                                    </Col>
-                                    <Col xs={24} sm={12} md={6}>
-                                        <Card size="small" className="info-card">
-                                            <Statistic
-                                                title="Emplois prévus"
-                                                value={projet.jobs_expected || 0}
-                                                valueStyle={{ color: '#1890ff' }}
-                                                prefix={<TeamOutlined />}
-                                            />
-                                        </Card>
-                                    </Col>
-                                    <Col xs={24} sm={12} md={6}>
-                                        <Card size="small" className="info-card">
-                                            <Statistic
-                                                title="Progression"
-                                                value={calculateProgress()}
-                                                valueStyle={{ color: '#722ed1' }}
-                                                prefix={<BarChartOutlined />}
-                                                suffix="%"
-                                            />
-                                        </Card>
-                                    </Col>
-                                    <Col xs={24} sm={12} md={6}>
-                                        <Card size="small" className="info-card">
-                                            <Statistic
-                                                title="Durée estimée"
-                                                value={projet.end_date && projet.start_date ?
-                                                    moment(projet.end_date).diff(moment(projet.start_date), 'months') :
-                                                    'N/A'
-                                                }
-                                                valueStyle={{ color: '#cf1322' }}
-                                                prefix={<CalendarOutlined />}
-                                                suffix="mois"
-                                            />
-                                        </Card>
-                                    </Col>
-                                </Row>
-
                                 <Descriptions bordered column={{ xs: 1, sm: 2 }} className="modern-descriptions">
-                                    <Descriptions.Item label="Titre du projet">{projet.title || projet.nom}</Descriptions.Item>
-                                    <Descriptions.Item label="Entreprise">{projet.entreprise?.nom || projet.company_name || 'Non assignée'}</Descriptions.Item>
-                                    <Descriptions.Item label="Secteur d'activité">{projet.secteur?.nom || projet.secteur?.name || 'Non renseigné'}</Descriptions.Item>
-                                    <Descriptions.Item label="Pays">{projet.pays?.nom || 'Non renseigné'}</Descriptions.Item>
+                                    <Descriptions.Item label="Titre du projet">
+                                        <Text strong>{projet.title || projet.nom}</Text>
+                                    </Descriptions.Item>
+                                    <Descriptions.Item label="Entreprise">
+                                        {projet.entreprise?.nom || projet.company_name || 'Non assignée'}
+                                    </Descriptions.Item>
+                                    <Descriptions.Item label="Secteur d'activité">
+                                        {projet.secteur?.nom || projet.secteur?.name || 'Non renseigné'}
+                                    </Descriptions.Item>
+                                    <Descriptions.Item label="Pays">
+                                        {projet.pays?.nom || 'Non renseigné'}
+                                    </Descriptions.Item>
                                     <Descriptions.Item label="Montant d'investissement">
                                         {formatMoney(projet.investment_amount || projet.budget || 0, projet.devise || 'EUR')}
                                     </Descriptions.Item>
-                                    <Descriptions.Item label="Responsable">{projet.responsable?.name || 'Non assigné'}</Descriptions.Item>
+                                    <Descriptions.Item label="Responsable">
+                                        {projet.responsable?.name || 'Non assigné'}
+                                    </Descriptions.Item>
                                     <Descriptions.Item label="Date de début">
                                         {projet.start_date ? moment(projet.start_date).format('DD/MM/YYYY') : 'Non définie'}
                                     </Descriptions.Item>
@@ -934,151 +1176,96 @@ const ProjetDetails = () => {
                                     <Descriptions.Item label="Emplois prévus">
                                         <Tag color="blue">{projet.jobs_expected || 0} emplois</Tag>
                                     </Descriptions.Item>
+                                    <Descriptions.Item label="Statut">
+                                        {renderStatus(projet.status)}
+                                    </Descriptions.Item>
+                                    <Descriptions.Item label="Progression">
+                                        <Progress 
+                                            percent={calculateProgress()} 
+                                            strokeColor={{
+                                                '0%': '#667eea',
+                                                '100%': '#764ba2',
+                                            }}
+                                        />
+                                    </Descriptions.Item>
                                     <Descriptions.Item label="Description" span={2}>
                                         {projet.description || 'Aucune description disponible.'}
                                     </Descriptions.Item>
                                 </Descriptions>
-
-                                <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
-                                    <Col xs={24} md={8}>
-                                        <Card size="small" className="info-card" title="Détails financiers">
-                                            <p>Montant d'investissement: {formatMoney(projet.investment_amount || projet.budget || 0, projet.devise || 'EUR')}</p>
-                                            <p>Pourcentage étranger: {projet.foreign_percentage || 0}%</p>
-                                            <p>Zone industrielle: {projet.industrial_zone || 'Non spécifiée'}</p>
-                                        </Card>
-                                    </Col>
-                                    <Col xs={24} md={8}>
-                                        <Card size="small" className="info-card" title="État du projet">
-                                            <p>
-                                                <Badge status={projet.in_progress ? "processing" : "default"} text={projet.in_progress ? "🚀 En cours" : "Non démarré"} />
-                                            </p>
-                                            <p>
-                                                <Badge status={projet.in_production ? "success" : "default"} text={projet.in_production ? "🏭 En production" : "Pas en production"} />
-                                            </p>
-                                            <p>
-                                                <Badge status={projet.is_blocked ? "error" : "default"} text={projet.is_blocked ? "⛔ Bloqué" : "Non bloqué"} />
-                                            </p>
-                                        </Card>
-                                    </Col>
-                                    <Col xs={24} md={8}>
-                                        <Card size="small" className="info-card" title="Notes internes">
-                                            <Text>{projet.notes || 'Aucune note interne.'}</Text>
-                                        </Card>
-                                    </Col>
-                                </Row>
                             </div>
                         </TabPane>
+<TabPane tab={
+    <Space>
+        <AuditOutlined />
+        Phases
+    </Space>
+} key="stages">
+    <div className="tab-content">
+        {pipelineStages.length > 0 ? (
+            <Card title="Progression dans le pipeline" className="stages-card">
+                <PipelineVisualizer
+                    stages={pipelineStages}
+                    currentStage={effectiveCurrentStage}
+                    progression={progression || []}
+                    entityStatus={projet?.status}
+                />
+            </Card>
+        ) : (
+            <Alert
+                message="Aucun pipeline défini"
+                description="Ce projet n'a pas encore de pipeline de suivi défini."
+                type="info"
+                showIcon
+                action={
+                    <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={() => {
+                            dispatch(initializeProjectPipeline({ id }));
+                        }}
+                        style={{
+                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontWeight: 500
+                        }}
+                    >
+                        Initialiser le pipeline
+                    </Button>
+                }
+                className="no-pipeline-alert"
+            />
+        )}
+    </div>
+</TabPane>
 
                         <TabPane tab={
-                            <Space>
-                                <AuditOutlined />
-                                Phases
-                            </Space>
-                        } key="stages">
-                            <div className="tab-content">
-                                {pipelineStages.length > 0 ? (
-                                    <>
-                                        <Card title="Progression dans le pipeline" className="stages-card">
-                                            <PipelineVisualizer
-                                                stages={pipelineStages}
-                                                currentStage={effectiveCurrentStage}
-                                                progression={progression || []}
-                                                entityStatus={projet?.status}
-                                            />
-                                        </Card>
-
-                                        <Card title="Actions de progression" style={{ marginTop: 16 }}>
-                                            <div style={{ marginBottom: 16 }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <div>
-                                                        <Text strong>Phase actuelle : </Text>
-                                                        <Tag color={effectiveCurrentStage?.is_final ? 'green' : 'blue'}>
-                                                            {effectiveCurrentStage?.name || 'Non définie'}
-                                                        </Tag>
-                                                        {effectiveCurrentStage?.is_final && (
-                                                            <Tag color="gold" style={{ marginLeft: 8 }}>
-                                                                Phase finale
-                                                            </Tag>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <div>
-                                                    {nextStage ? (
-                                                        <div>
-                                                            <Text strong>Prochaine phase : </Text>
-                                                            <Tag color="orange">{nextStage.name}</Tag>
-                                                            {nextStage.is_final && (
-                                                                <Tag color="gold" style={{ marginLeft: 8 }}>
-                                                                    Finale
-                                                                </Tag>
-                                                            )}
-                                                        </div>
-                                                    ) : (
-                                                        <Text type="success" strong>✓ Dernière phase atteinte</Text>
-                                                    )}
-                                                </div>
-                                                <div>
-                                                    {nextStage && !isInFinalStage && (
-                                                        <Button
-                                                            type="primary"
-                                                            icon={<RightOutlined />}
-                                                            onClick={() => setPipelineModalVisible(true)}
-                                                        >
-                                                            Avancer vers : {nextStage.name}
-                                                        </Button>
-                                                    )}
-
-                                                    {isInFinalStage && !isProjectCompleted && (
-                                                        <Button
-                                                            type="primary"
-                                                            icon={<CheckOutlined />}
-                                                            onClick={() => setFinalizeModalVisible(true)}
-                                                        >
-                                                            Finaliser
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </Card>
-                                    </>
-                                ) : (
-                                    <Alert
-                                        message="Aucun pipeline défini"
-                                        description="Ce projet n'a pas encore de pipeline de suivi défini."
-                                        type="info"
-                                        showIcon
-                                        action={
-                                            <Button
-                                                type="primary"
-                                                onClick={handleInitializePipeline}
-                                            >
-                                                Initialiser le pipeline
-                                            </Button>
-                                        }
-                                        className="no-pipeline-alert"
-                                    />
-                                )}
-                            </div>
-                        </TabPane>
-
-                        <TabPane tab={
-                            <Space>
-                                <WarningOutlined />
-                                Blocages 
-                            </Space>
-                        } key="blockages">
-                            <div className="tab-content">
-                                <PipelineBlockages
-                                    entityType="projet"
-                                    entityId={id}
-                                    pipelineStages={pipelineStages || []}
-                                    title="Blocages par phase du pipeline"
-                                />
-                            </div>
-                        </TabPane>
+  <Space>
+    <WarningOutlined />
+    Blocages 
+  </Space>
+} key="blockages">
+  <div className="tab-content">
+    <Button
+      type="primary"
+      icon={<PlusOutlined />}
+      onClick={() => setAddBlockageVisible(true)}
+      style={{
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        border: 'none',
+        marginBottom: 16
+      }}
+    >
+      Add Blockage
+    </Button>
+    <PipelineBlockages
+      entityType="projet"
+      entityId={id}
+      pipelineStages={pipelineStages || []}
+      title="Blocages par phase du pipeline"
+    />
+  </div>
+</TabPane>
 
                         <TabPane tab={
                             <Space>
@@ -1100,7 +1287,12 @@ const ProjetDetails = () => {
                                             }
                                             openTaskModal(effectiveCurrentStage.id, effectiveCurrentStage.name);
                                         }}
-                                        className="modern-btn-primary"
+                                        style={{
+                                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                            border: 'none',
+                                            borderRadius: '8px',
+                                            fontWeight: 500
+                                        }}
                                     >
                                         Ajouter une tâche
                                     </Button>
@@ -1117,143 +1309,34 @@ const ProjetDetails = () => {
                             </div>
                         </TabPane>
 
-                        <TabPane tab={
-                            <Space>
-                                <FileTextOutlined />
-                                Documents
-                            </Space>
-                        } key="documents">
-                            <div className="tab-content">
-                                <div className="details-header">
-                                    <Title level={4}>Documents du projet</Title>
-                                    <Button
-                                        type="primary"
-                                        icon={<PlusOutlined />}
-                                        onClick={() => setDocumentsModalVisible(true)}
-                                        className="modern-btn-primary"
-                                    >
-                                        Ajouter un document
-                                    </Button>
-                                </div>
-                                <Empty description="Aucun document attaché" className="empty-state" />
-                            </div>
-                        </TabPane>
-
-                        {/* <TabPane tab={
-                            <Space>
-                                <DollarOutlined />
-                                Budget
-                            </Space>
-                        } key="budget">
-                            <div className="tab-content">
-                                <div className="details-header">
-                                    <Title level={4}>Suivi budgétaire</Title>
-                                    <Button
-                                        type="primary"
-                                        icon={<PlusOutlined />}
-                                        onClick={() => setBudgetModalVisible(true)}
-                                        className="modern-btn-primary"
-                                    >
-                                        Ajouter une ligne budgétaire
-                                    </Button>
-                                </div>
-
-                                <Row gutter={16} style={{ marginBottom: 24 }}>
-                                    <Col xs={24} sm={8}>
-                                        <Card size="small" className="info-card">
-                                            <Statistic
-                                                title="Budget total"
-                                                value={projet.investment_amount || projet.budget || 0}
-                                                precision={0}
-                                                valueStyle={{ color: '#3f8600' }}
-                                                prefix={<DollarOutlined />}
-                                                suffix={projet.devise || 'EUR'}
-                                            />
-                                        </Card>
-                                    </Col>
-                                    <Col xs={24} sm={8}>
-                                        <Card size="small" className="info-card">
-                                            <Statistic
-                                                title="Dépensé"
-                                                value={0}
-                                                precision={0}
-                                                valueStyle={{ color: '#cf1322' }}
-                                                prefix={<DollarOutlined />}
-                                                suffix={projet.devise || 'EUR'}
-                                            />
-                                        </Card>
-                                    </Col>
-                                    <Col xs={24} sm={8}>
-                                        <Card size="small" className="info-card">
-                                            <Statistic
-                                                title="Restant"
-                                                value={projet.investment_amount || projet.budget || 0}
-                                                precision={0}
-                                                valueStyle={{ color: '#1890ff' }}
-                                                prefix={<DollarOutlined />}
-                                                suffix={projet.devise || 'EUR'}
-                                            />
-                                        </Card>
-                                    </Col>
-                                </Row>
-
-                                <Empty description="Aucune ligne budgétaire" className="empty-state" />
-                            </div>
-                        </TabPane> */}
-{/* 
-                        <TabPane tab={
-                            <Space>
-                                <TeamOutlined />
-                                Équipe
-                            </Space>
-                        } key="team">
-                            <div className="tab-content">
-                                <div className="details-header">
-                                    <Title level={4}>Équipe projet</Title>
-                                    <Button 
-                                        type="primary" 
-                                        icon={<PlusOutlined />}
-                                        className="modern-btn-primary"
-                                    >
-                                        Ajouter un membre
-                                    </Button>
-                                </div>
-
-                                <List
-                                    itemLayout="horizontal"
-                                    dataSource={[
-                                        {
-                                            id: 1,
-                                            name: projet.responsable?.name || 'Non assigné',
-                                            role: 'Chef de projet',
-                                            avatar: <UserOutlined />
-                                        }
-                                    ]}
-                                    renderItem={item => (
-                                        <List.Item
-                                            actions={[
-                                                <Button type="text" icon={<EditOutlined />}>Modifier</Button>,
-                                                <Button type="text" danger icon={<DeleteOutlined />}>Supprimer</Button>
-                                            ]}
-                                        >
-                                            <List.Item.Meta
-                                                avatar={<Avatar icon={item.avatar} />}
-                                                title={item.name}
-                                                description={item.role}
-                                            />
-                                        </List.Item>
-                                    )}
-                                />
-                            </div>
-                        </TabPane> */}
+                       
                     </Tabs>
-                </Card>
+                </AnimatedContentCard>
             </motion.div>
 
             {/* Modaux */}
+            
+
+<Modal
+  open={addBlockageVisible}
+  onCancel={() => setAddBlockageVisible(false)}
+  footer={null}
+  destroyOnClose
+  title="Créer un blocage"
+  width={720}
+>
+  <BlockageForm
+    blockage={null}
+    onCancel={() => setAddBlockageVisible(false)}
+    entityType="projet"
+    entityId={id}
+    pipelineStageType="pipeline_stage"
+    pipelineStageId={effectiveCurrentStage?.id}
+  />
+</Modal>
             <Modal
-                title={`Passer à la phase ${nextStage?.order || ''} : ${nextStage?.name || ''}`}
-                visible={pipelineModalVisible}
+                title={`Passer à la phase: ${nextStage?.name || ''}`}
+                open={pipelineModalVisible}
                 onCancel={() => setPipelineModalVisible(false)}
                 width={600}
                 footer={[
@@ -1292,168 +1375,24 @@ const ProjetDetails = () => {
                     </Form.Item>
                 </Form>
             </Modal>
-
-            <Modal
-                title="Documents du projet"
-                visible={documentsModalVisible}
-                onCancel={() => setDocumentsModalVisible(false)}
-                width={800}
-                footer={[
-                    <Button key="cancel" onClick={() => setDocumentsModalVisible(false)}>
-                        Fermer
-                    </Button>,
-                    <Button key="upload" type="primary" icon={<UploadOutlined />}>
-                        Télécharger
-                    </Button>
-                ]}
-            >
-                <Upload.Dragger multiple listType="picture">
-                    <p className="ant-upload-drag-icon">
-                        <InboxOutlined />
-                    </p>
-                    <p className="ant-upload-text">Cliquez ou glissez-déposez des fichiers dans cette zone</p>
-                    <p className="ant-upload-hint">
-                        Tous les formats de documents sont acceptés. Taille maximale: 10MB.
-                    </p>
-                </Upload.Dragger>
-
-                <Divider />
-
-                <List
-                    header={<div>Documents attachés</div>}
-                    bordered
-                    dataSource={[]}
-                    renderItem={item => (
-                        <List.Item>
-                            <List.Item.Meta
-                                avatar={<FileOutlined />}
-                                title={item.name}
-                                description={item.description}
-                            />
-                        </List.Item>
-                    )}
-                    locale={{ emptyText: 'Aucun document attaché' }}
-                />
-            </Modal>
-
-            {/* <Modal
-                title="Gestion du budget"
-                visible={budgetModalVisible}
-                onCancel={() => setBudgetModalVisible(false)}
-                width={800}
-                footer={[
-                    <Button key="cancel" onClick={() => setBudgetModalVisible(false)}>
-                        Fermer
-                    </Button>,
-                    <Button key="save" type="primary">
-                        Enregistrer
-                    </Button>
-                ]}
-            >
-                <Form layout="vertical">
-                    <Row gutter={16}>
-                        <Col span={12}>
-                            <Form.Item
-                                name="line_title"
-                                label="Titre"
-                                rules={[{ required: true, message: 'Veuillez entrer un titre' }]}
-                            >
-                                <Input placeholder="Ex: Achat d'équipement" />
-                            </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                            <Form.Item
-                                name="amount"
-                                label="Montant"
-                                rules={[{ required: true, message: 'Veuillez entrer un montant' }]}
-                            >
-                                <InputNumber
-                                    style={{ width: '100%' }}
-                                    placeholder="Montant"
-                                    formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                    parser={value => value.replace(/\$\s?|(,*)/g, '')}
-                                    addonAfter={projet.devise || 'EUR'}
-                                />
-                            </Form.Item>
-                        </Col>
-                    </Row>
-
-                    <Form.Item
-                        name="description"
-                        label="Description"
-                    >
-                        <TextArea rows={3} placeholder="Description détaillée" />
-                    </Form.Item>
-
-                    <Row gutter={16}>
-                        <Col span={12}>
-                            <Form.Item
-                                name="category"
-                                label="Catégorie"
-                            >
-                                <Select placeholder="Sélectionner une catégorie">
-                                    <Option value="equipement">Équipement</Option>
-                                    <Option value="personnel">Personnel</Option>
-                                    <Option value="services">Services</Option>
-                                    <Option value="immobilier">Immobilier</Option>
-                                    <Option value="marketing">Marketing</Option>
-                                    <Option value="autre">Autre</Option>
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                            <Form.Item
-                                name="date"
-                                label="Date de dépense"
-                            >
-                                <DatePicker style={{ width: '100%' }} />
-                            </Form.Item>
-                        </Col>
-                    </Row>
-                </Form>
-
-                <Divider />
-
-                <Table
-                    columns={[
-                        { title: 'Titre', dataIndex: 'title', key: 'title' },
-                        { title: 'Montant', dataIndex: 'amount', key: 'amount' },
-                        { title: 'Catégorie', dataIndex: 'category', key: 'category' },
-                        { title: 'Date', dataIndex: 'date', key: 'date' },
-                        {
-                            title: 'Action',
-                            key: 'action',
-                            render: (_, record) => (
-                                <Space size="middle">
-                                    <Button icon={<EditOutlined />} size="small" type="text">Modifier</Button>
-                                    <Button icon={<DeleteOutlined />} size="small" type="text" danger>Supprimer</Button>
-                                </Space>
-                            ),
-                        },
-                    ]}
-                    dataSource={[]}
-                    locale={{ emptyText: 'Aucune ligne budgétaire' }}
-                />
-            </Modal> */}
-
-            <TaskCreateModal
-                visible={taskModalVisible}
-                onCancel={() => setTaskModalVisible(false)}
-                onSuccess={() => {
-                    setTaskModalVisible(false);
-                    setRefreshTrigger(prev => prev + 1);
-                    message.success('Tâche créée avec succès');
-                }}
-                entityType="projet"
-                entityId={id}
-                stageId={selectedStageForTask}
-                stageName={selectedStageName}
-                entityName={projet?.titre || projet?.nom}
-            />
+<TaskCreateModal
+  visible={taskModalVisible}
+  onCancel={() => setTaskModalVisible(false)}
+  onSuccess={() => {
+    setTaskModalVisible(false);
+    setRefreshTrigger(prev => prev + 1);
+    message.success('Tâche créée avec succès');
+  }}
+  entityType="projet"
+  entityId={id}
+  stageId={selectedStageForTask}
+  stageName={selectedStageName}
+  entityName={projet?.titre || projet?.nom}
+/>
 
             <Modal
                 title="Finaliser le projet"
-                visible={finalizeModalVisible}
+                open={finalizeModalVisible}
                 onCancel={() => setFinalizeModalVisible(false)}
                 width={600}
                 footer={[
@@ -1498,433 +1437,261 @@ const ProjetDetails = () => {
                 </div>
             </Modal>
 
-<style jsx>{`
-    .modern-container {
-        padding: 24px;
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        min-height: 100vh;
-    }
-
-    .modern-loading-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 60vh;
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    }
-
-    .loading-content {
-        text-align: center;
-        padding: 40px;
-        background: white;
-        border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-    }
-
-    .modern-header-card {
-        border-radius: 16px;
-        border: 1px solid #f0f0f0;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        margin-bottom: 24px;
-        overflow: hidden;
-    }
-
-    .header-content {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px;
-    }
-
-    .header-info {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-    }
-
-    .header-details {
-        flex: 1;
-    }
-
-    .header-actions {
-        display: flex;
-        align-items: center;
-    }
-
-    .modern-metrics-card {
-        border-radius: 16px;
-        border: 1px solid #f0f0f0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-        margin-bottom: 24px;
-    }
-
-    /* Styles pour les métriques - identiques aux autres composants */
-    .metric-item {
-        display: flex;
-        align-items: center;
-        padding: 20px;
-        background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
-        border-radius: 12px;
-        border: 1px solid #f0f0f0;
-        transition: all 0.3s ease;
-        height: 100%;
-    }
-
-    .metric-item:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-    }
-
-    .metric-icon {
-        margin-right: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
-        background: rgba(255, 255, 255, 0.8);
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-
-    .metric-content {
-        flex: 1;
-    }
-
-    .metric-label {
-        font-size: 14px;
-        color: #666;
-        font-weight: 500;
-        margin-bottom: 4px;
-        line-height: 1.2;
-    }
-
-    .metric-value {
-        font-size: 18px;
-        font-weight: 700;
-        line-height: 1.2;
-    }
-
-    .modern-pipeline-card {
-        border-radius: 16px;
-        border: 1px solid #f0f0f0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-        margin-bottom: 24px;
-    }
-
-    .modern-content-card {
-        border-radius: 16px;
-        border: 1px solid #f0f0f0;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        overflow: hidden;
-    }
-
-    .modern-tabs .ant-tabs-tab {
-        padding: 12px 24px;
-        font-weight: 500;
-    }
-
-    .modern-tabs .ant-tabs-tab-active {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white !important;
-        border-radius: 8px 8px 0 0;
-    }
-
-    .tab-content {
-        padding: 24px;
-    }
-
-    .details-header,
-    .tasks-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 24px;
-    }
-
-    .details-header h4,
-    .tasks-header h4 {
-        margin: 0;
-        color: #333;
-    }
-
-    .modern-descriptions {
-        border-radius: 8px;
-        overflow: hidden;
-    }
-
-    .modern-descriptions .ant-descriptions-item-label {
-        background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
-        font-weight: 600;
-    }
-
-    .info-card {
-        border-radius: 8px;
-        border: 1px solid #f0f0f0;
-        transition: all 0.3s ease;
-    }
-
-    .info-card:hover {
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        transform: translateY(-2px);
-    }
-
-    .stages-card {
-        border-radius: 12px;
-        border: 1px solid #f0f0f0;
-    }
-
-    .no-pipeline-alert {
-        border-radius: 8px;
-    }
-
-    .empty-state {
-        padding: 40px 0;
-    }
-
-    .modern-btn {
-        border-radius: 8px;
-        font-weight: 500;
-        transition: all 0.3s ease;
-    }
-
-    .modern-btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-
-    .modern-btn-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border: none;
-        border-radius: 8px;
-        font-weight: 500;
-        transition: all 0.3s ease;
-    }
-
-    .modern-btn-primary:hover {
-        background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-    }
-
-    .modern-error-card,
-    .modern-not-found-card {
-        border-radius: 16px;
-        border: 1px solid #f0f0f0;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        margin: 40px auto;
-        max-width: 500px;
-    }
-
-    .error-content,
-    .not-found-content {
-        text-align: center;
-        padding: 40px 20px;
-    }
-
-    .error-icon {
-        font-size: 48px;
-        color: #ff4d4f;
-        margin-bottom: 16px;
-    }
-
-    .not-found-icon {
-        font-size: 48px;
-        color: #1890ff;
-        margin-bottom: 16px;
-    }
-
-    /* Responsive Design */
-    @media (max-width: 768px) {
-        .modern-container {
-            padding: 16px;
-        }
-
-        .header-content {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 16px;
-        }
-
-        .header-actions {
-            width: 100%;
-            justify-content: space-between;
-        }
-
-        .tab-content {
-            padding: 16px;
-        }
-
-        .details-header,
-        .tasks-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 16px;
-        }
-
-        .metric-item {
-            padding: 16px;
-            text-align: center;
-            flex-direction: column;
-        }
-
-        .metric-icon {
-            margin-right: 0;
-            margin-bottom: 12px;
-        }
-
-        .metric-value {
-            font-size: 16px;
-        }
-    }
-
-    @media (max-width: 576px) {
-        .header-info {
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-        }
-
-        .modern-metrics-card .ant-col {
-            margin-bottom: 16px;
-        }
-
-        .metric-item {
-            padding: 12px;
-        }
-
-        .metric-icon {
-            width: 40px;
-            height: 40px;
-        }
-
-        .metric-icon svg {
-            font-size: 20px !important;
-        }
-
-        .metric-value {
-            font-size: 14px;
-        }
-
-        .metric-label {
-            font-size: 12px;
-        }
-    }
-
-    /* Améliorations visuelles */
-    .ant-card-head {
-        background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
-        border-bottom: 1px solid #e8e8e8;
-    }
-
-    .ant-card-head-title {
-        font-weight: 600;
-        color: #333;
-    }
-
-    .ant-statistic-title {
-        font-size: 14px;
-        font-weight: 500;
-        color: #666;
-    }
-
-    .ant-statistic-content {
-        font-size: 20px;
-        font-weight: 600;
-    }
-
-    .ant-progress-inner {
-        background-color: #f5f5f5;
-    }
-
-    .ant-progress-bg {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-
-    .ant-alert {
-        border-radius: 8px;
-    }
-
-    .ant-form-item-label > label {
-        font-weight: 500;
-        color: #333;
-    }
-
-    .ant-input,
-    .ant-select-selector,
-    .ant-picker {
-        border-radius: 6px;
-        border: 1px solid #d9d9d9;
-        transition: all 0.3s ease;
-    }
-
-    .ant-input:focus,
-    .ant-select-focused .ant-select-selector,
-    .ant-picker:focus {
-        border-color: #667eea;
-        box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
-    }
-
-    .ant-btn {
-        border-radius: 6px;
-        font-weight: 500;
-        transition: all 0.3s ease;
-    }
-
-    .ant-modal-header {
-        background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
-        border-bottom: 1px solid #e8e8e8;
-    }
-
-    .ant-modal-title {
-        font-weight: 600;
-        color: #333;
-    }
-
-    .ant-tag {
-        border-radius: 4px;
-        font-weight: 500;
-    }
-
-    .ant-breadcrumb {
-        font-weight: 500;
-    }
-
-    .ant-breadcrumb a {
-        color: #666;
-        transition: color 0.3s ease;
-    }
-
-    .ant-breadcrumb a:hover {
-        color: #667eea;
-    }
-
-    .ant-list-item {
-        padding: 16px;
-        border-radius: 8px;
-        margin-bottom: 8px;
-        background: #fafafa;
-        border: 1px solid #f0f0f0;
-        transition: all 0.3s ease;
-    }
-
-    .ant-list-item:hover {
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        transform: translateY(-1px);
-    }
-
-    /* Animations supplémentaires */
-    .ant-card {
-        transition: all 0.3s ease;
-    }
-
-    .ant-card:hover {
-        box-shadow: 0 6px 24px rgba(0,0,0,0.12);
-    }
-`}</style>
-</div>
-);
+            {/* CSS Styles identiques à InviteDetails */}
+            <style jsx>{`
+                .modern-container {
+                    padding: 24px;
+                    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+                    min-height: 100vh;
+                }
+
+                .modern-loading-container {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    min-height: 60vh;
+                    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+                    border-radius: 20px;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+                }
+
+                .loading-content {
+                    text-align: center;
+                    padding: 40px;
+                    background: white;
+                    border-radius: 16px;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+                }
+
+                .projet-header {
+                    position: relative;
+                }
+
+                .header-background {
+                    background-attachment: fixed;
+                }
+
+                .stat-card-modern {
+                    transition: all 0.3s ease;
+                    cursor: pointer;
+                }
+
+                .stat-card-modern:hover {
+                    transform: translateY(-4px);
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important;
+                }
+
+                .stat-card-content {
+                    display: flex;
+                    flex-direction: column;
+                    height: 100%;
+                }
+
+                .content-card-modern {
+                    transition: all 0.3s ease;
+                    margin-bottom: 24px;
+                }
+
+                .content-card-modern:hover {
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important;
+                }
+
+                .modern-tabs {
+                    margin-top: 0;
+                }
+
+                .modern-tabs .ant-tabs-tab {
+                    border-radius: 8px 8px 0 0;
+                    border: 1px solid #f0f0f0;
+                    background: #fafafa;
+                    margin-right: 4px;
+                    transition: all 0.3s ease;
+                    padding: 12px 16px;
+                }
+
+                .modern-tabs .ant-tabs-tab:hover {
+                    background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+                    border-color: #667eea;
+                    transform: translateY(-1px);
+                }
+
+                .modern-tabs .ant-tabs-tab-active {
+                    background: white;
+                    border-color: #667eea;
+                    border-bottom-color: white;
+                }
+
+                .modern-tabs .ant-tabs-content-holder {
+                    background: white;
+                    border: 1px solid #f0f0f0;
+                    border-radius: 0 8px 8px 8px;
+                    padding: 0;
+                }
+
+                .tab-content {
+                    padding: 24px;
+                    min-height: 400px;
+                }
+
+                .modern-descriptions {
+                    background: white;
+                    border-radius: 8px;
+                }
+
+                .modern-descriptions .ant-descriptions-item-label {
+                    font-weight: 600;
+                    color: #333;
+                    background: #fafafa;
+                }
+
+                .modern-descriptions .ant-descriptions-item-content {
+                    background: white;
+                }
+
+                .info-card {
+                    border-radius: 8px;
+                    border: 1px solid #f0f0f0;
+                    transition: all 0.3s ease;
+                }
+
+                .info-card:hover {
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                    transform: translateY(-1px);
+                }
+
+                .stages-card {
+                    border-radius: 8px;
+                    border: 1px solid #f0f0f0;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+                }
+
+                .stages-card .ant-card-head {
+                    background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+                    border-bottom: 2px solid #e8e8e8;
+                    border-radius: 8px 8px 0 0;
+                }
+
+                .stages-card .ant-card-head-title {
+                    font-weight: 600;
+                    color: #333;
+                }
+
+                .no-pipeline-alert {
+                    border-radius: 8px;
+                    border: 1px solid #1890ff;
+                }
+
+                .details-header,
+                .tasks-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 24px;
+                    padding-bottom: 16px;
+                    border-bottom: 1px solid #f0f0f0;
+                }
+
+                .details-header h4,
+                .tasks-header h4 {
+                    margin: 0;
+                    color: #333;
+                    font-weight: 600;
+                }
+
+                .empty-state {
+                    padding: 60px 20px;
+                }
+
+                .empty-state .ant-empty-description {
+                    color: #999;
+                    font-size: 14px;
+                }
+
+                .modern-error-card,
+                .modern-not-found-card {
+                    text-align: center;
+                    border-radius: 16px;
+                    border: 1px solid #f0f0f0;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+                }
+
+                .error-content,
+                .not-found-content {
+                    padding: 60px 40px;
+                }
+
+                .error-icon {
+                    font-size: 48px;
+                    color: #ff4d4f;
+                    margin-bottom: 24px;
+                }
+
+                .not-found-icon {
+                    font-size: 48px;
+                    color: #faad14;
+                    margin-bottom: 24px;
+                }
+
+                /* Effet de brillance */
+                .shine-effect {
+                    pointer-events: none;
+                }
+
+                /* Responsive */
+                @media (max-width: 768px) {
+                    .modern-container {
+                        padding: 16px;
+                    }
+
+                    .projet-header {
+                        padding: 24px !important;
+                        border-radius: 16px !important;
+                        text-align: center;
+                    }
+
+                    .stat-card-modern {
+                        margin-bottom: 16px;
+                    }
+
+                    .content-card-modern {
+                        margin-bottom: 16px;
+                    }
+
+                    .tab-content {
+                        padding: 16px;
+                        min-height: 300px;
+                    }
+
+                    .details-header,
+                    .tasks-header {
+                        flex-direction: column;
+                        gap: 12px;
+                        align-items: flex-start;
+                    }
+                }
+
+                @media (max-width: 576px) {
+                    .projet-header {
+                        padding: 20px !important;
+                        border-radius: 12px !important;
+                    }
+
+                    .loading-content {
+                        padding: 30px 20px;
+                    }
+
+                    .error-content,
+                    .not-found-content {
+                        padding: 40px 20px;
+                    }
+
+                    .tab-content {
+                        padding: 12px;
+                    }
+                }
+            `}</style>
+        </div>
+    );
 };
 
 export default ProjetDetails;

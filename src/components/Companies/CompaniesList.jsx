@@ -32,6 +32,8 @@ const { Option } = Select;
 const { Title, Paragraph, Text } = Typography;
 const { useBreakpoint } = Grid;
 
+
+
 // Composant de statistique animée (réutilisé du dashboard)
 const AnimatedStatCard = ({ icon, title, value, prefix, suffix, trend, color, loading, delay = 0 }) => {
   const [displayValue, setDisplayValue] = useState(0);
@@ -331,6 +333,29 @@ const CompaniesList = ({ onEdit }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const screens = useBreakpoint();
+
+  const { user: reduxUser } = useSelector(s => s.user);
+  const storedUser = React.useMemo(() => {
+    try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch { return null; }
+  }, []);
+  const currentUser = reduxUser || storedUser;
+
+  const isAdmin = React.useMemo(() => {
+    if (!currentUser) return false;
+    const flag = [true, 1, '1', 'true'].includes(currentUser.is_admin);
+    const roleStr = String(currentUser.role || '').toLowerCase();
+    const roles =
+      [
+        roleStr,
+        ...(Array.isArray(currentUser.roles_list) ? currentUser.roles_list : []),
+        ...(Array.isArray(currentUser.role_names) ? currentUser.role_names : []),
+        ...(Array.isArray(currentUser.roles) ? currentUser.roles.map(r => r?.name || r) : [])
+      ]
+        .filter(Boolean)
+        .map(r => String(r).toLowerCase());
+    return flag || roles.includes('admin');
+  }, [currentUser]);
+
   
   const { 
     companies, 
@@ -594,203 +619,125 @@ const CompaniesList = ({ onEdit }) => {
   }, [companies, searchText]);
 
   // Configuration des colonnes du tableau
-  const columns = [
+const baseColumns = React.useMemo(() => [
     {
-        title: 'Entreprise',
-        key: 'company',
-        width: 250,
-        render: (_, record) => (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <CompanyAvatar 
-              logo={record.logo}
-              name={record.nom}
-              size={40}
-            />
-            <div>
-              <Button 
-                type="link" 
-                style={{ 
-                  padding: 0, 
-                  height: 'auto', 
-                  fontWeight: 'bold',
-                  fontSize: '14px',
-                  textAlign: 'left'
-                }}
-                onClick={() => handleViewDetails(record)}
-              >
-                {record.nom}
-              </Button>
-              <div style={{ fontSize: '12px', color: '#8c8c8c' }}>
-                {record.email}
-              </div>
-            </div>
+      title: 'Entreprise',
+      key: 'company',
+      width: 250,
+      render: (_, record) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <CompanyAvatar logo={record.logo} name={record.nom} size={40} />
+          <div>
+            <Button
+              type="link"
+              style={{ padding: 0, height: 'auto', fontWeight: 'bold', fontSize: '14px', textAlign: 'left' }}
+              onClick={() => handleViewDetails(record)}
+            >
+              {record.nom}
+            </Button>
+            <div style={{ fontSize: '12px', color: '#8c8c8c' }}>{record.email}</div>
           </div>
-        ),
-      },
-      
+        </div>
+      )
+    },
     {
       title: 'Secteur',
       dataIndex: ['secteur', 'name'],
       key: 'secteur',
       width: 150,
-      render: (secteur) => (
-        <Tag color="blue" style={{ borderRadius: '6px' }}>
-          {secteur || 'Non défini'}
-        </Tag>
-      ),
+      render: s => <Tag color="blue" style={{ borderRadius: '6px' }}>{s || 'Non défini'}</Tag>
     },
     {
       title: 'Type',
       dataIndex: 'type',
       key: 'type',
       width: 120,
-      render: (type) => {
-        const colors = {
-          'PME': 'green',
-          'Grande entreprise': 'purple',
-          'Startup': 'orange',
-          'Autre': 'gray'
-        };
-        return (
-          <Tag color={colors[type]} style={{ borderRadius: '6px' }}>
-            {type || 'Non défini'}
-          </Tag>
-        );
-      },
+      render: t => {
+        const colors = { PME: 'green', 'Grande entreprise': 'purple', Startup: 'orange', Autre: 'gray' };
+        return <Tag color={colors[t]} style={{ borderRadius: '6px' }}>{t || 'Non défini'}</Tag>;
+      }
     },
     {
       title: 'Statut',
       dataIndex: 'statut',
       key: 'statut',
       width: 120,
-      render: (statut) => {
-        const colors = {
-          'actif': 'green',
-          'inactif': 'red',
-          'suspendu': 'orange',
-          'en_attente': 'blue'
-        };
-        const labels = {
-          'actif': 'Actif',
-          'inactif': 'Inactif',
-          'suspendu': 'Suspendu',
-          'en_attente': 'En attente'
-        };
-        return (
-          <Tag color={colors[statut]} style={{ borderRadius: '6px' }}>
-            {labels[statut] || statut}
-          </Tag>
-        );
-      },
+      render: st => {
+        const colors = { actif: 'green', inactif: 'red', suspendu: 'orange', en_attente: 'blue' };
+        const labels = { actif: 'Actif', inactif: 'Inactif', suspendu: 'Suspendu', en_attente: 'En attente' };
+        return <Tag color={colors[st]} style={{ borderRadius: '6px' }}>{labels[st] || st}</Tag>;
+      }
     },
     {
       title: 'Propriétaire',
       key: 'proprietaire',
       width: 150,
-      render: (_, record) => (
+      render: (_, record) =>
         record.proprietaire ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Avatar size="small" icon={<UserOutlined />} />
             <div>
-              <div style={{ fontSize: '12px', fontWeight: 500 }}>
-                {record.proprietaire.name}
-              </div>
-              <div style={{ fontSize: '11px', color: '#8c8c8c' }}>
-                {record.proprietaire.email}
-              </div>
+              <div style={{ fontSize: '12px', fontWeight: 500 }}>{record.proprietaire.name}</div>
+              <div style={{ fontSize: '11px', color: '#8c8c8c' }}>{record.proprietaire.email}</div>
             </div>
           </div>
         ) : (
           <Text type="secondary">Non assigné</Text>
         )
-      ),
     },
-    // {
-    //   title: 'Contacts',
-    //   key: 'contacts',
-    //   width: 100,
-    //   render: (_, record) => (
-    //     <div style={{ textAlign: 'center' }}>
-    //       <Badge 
-    //         count={record.contacts_count || 0} 
-    //         style={{ backgroundColor: '#52c41a' }}
-    //       />
-    //       <div style={{ fontSize: '11px', color: '#8c8c8c', marginTop: '2px' }}>
-    //         contacts
-    //       </div>
-    //     </div>
-    //   ),
-    // },
-    // {
-    //   title: 'Projets',
-    //   key: 'projets',
-    //   width: 100,
-    //   render: (_, record) => (
-    //     <div style={{ textAlign: 'center' }}>
-    //       <Badge 
-    //         count={record.projets_count || 0} 
-    //         style={{ backgroundColor: '#1890ff' }}
-    //       />
-    //       <div style={{ fontSize: '11px', color: '#8c8c8c', marginTop: '2px' }}>
-    //         projets
-    //       </div>
-    //     </div>
-    //   ),
-    // },
     {
       title: 'Créé le',
       dataIndex: 'created_at',
       key: 'created_at',
       width: 120,
-      render: (date) => new Date(date).toLocaleDateString('fr-FR'),
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      fixed: 'right',
-      width: 150,
-      render: (_, record) => (
-        <Space size="small">
-          <Tooltip title="Voir les détails">
-            <Button 
-              icon={<EyeOutlined />} 
-              type="default"
-              size="small"
-              style={{ 
-                borderRadius: '6px',
-                borderColor: '#1890ff',
-                color: '#1890ff'
-              }}
-              onClick={() => handleViewDetails(record)}
-            />
-          </Tooltip>
-          
-          <Tooltip title="Modifier">
-            <Button 
-              icon={<EditOutlined />} 
-              size="small"
-              style={{ 
-                borderRadius: '6px',
-                borderColor: '#faad14',
-                color: '#faad14'
-              }}
-              onClick={() => handleEdit(record)}
-            />
-          </Tooltip>
-          
-          <Tooltip title="Supprimer">
-            <Button 
-              icon={<DeleteOutlined />} 
-              danger
-              size="small"
-              style={{ borderRadius: '6px' }}
-              onClick={() => handleDelete(record.id)}
-            />
-          </Tooltip>
-        </Space>
-      ),
-    },
-  ];
+      render: d => new Date(d).toLocaleDateString('fr-FR')
+    }
+  ], [handleViewDetails]);
+
+
+const columns = React.useMemo(() => {
+    if (!isAdmin) return baseColumns;
+    return [
+      ...baseColumns,
+      {
+        title: 'Actions',
+        key: 'actions',
+        fixed: 'right',
+        width: 150,
+        render: (_, record) => (
+          <Space size="small">
+            <Tooltip title="Voir les détails">
+              <Button
+                icon={<EyeOutlined />}
+                type="default"
+                size="small"
+                style={{ borderRadius: '6px', borderColor: '#1890ff', color: '#1890ff' }}
+                onClick={() => handleViewDetails(record)}
+              />
+            </Tooltip>
+            <Tooltip title="Modifier">
+              <Button
+                icon={<EditOutlined />}
+                size="small"
+                style={{ borderRadius: '6px', borderColor: '#faad14', color: '#faad14' }}
+                onClick={() => handleEdit(record)}
+              />
+            </Tooltip>
+            <Tooltip title="Supprimer">
+              <Button
+                icon={<DeleteOutlined />}
+                danger
+                size="small"
+                style={{ borderRadius: '6px' }}
+                onClick={() => handleDelete(record.id)}
+              />
+            </Tooltip>
+          </Space>
+        )
+      }
+    ];
+  }, [isAdmin, baseColumns, handleViewDetails, handleEdit, handleDelete]);
+
 
   return (
     <motion.div
@@ -869,18 +816,20 @@ const CompaniesList = ({ onEdit }) => {
               transition={{ delay: 0.3 }}
             >
               <Space>
-                <Button 
-                  type="primary" 
-                  icon={<PlusOutlined />}
-                  onClick={() => navigate('/companies/create')}
-                  style={{
-                    backgroundColor: 'rgba(255,255,255,0.2)',
-                    border: '1px solid rgba(255,255,255,0.3)',
-                    borderRadius: '8px'
-                  }}
-                >
-                  Nouvelle Entreprise
-                </Button>
+              {isAdmin && (
+                  <Button 
+                    type="primary" 
+                    icon={<PlusOutlined />}
+                    onClick={() => navigate('/companies/create')}
+                    style={{
+                      backgroundColor: 'rgba(255,255,255,0.2)',
+                      border: '1px solid rgba(255,255,255,0.3)',
+                      borderRadius: '8px'
+                    }}
+                  >
+                    Nouvelle Entreprise
+                  </Button>
+                )}
                 
               
               </Space>
@@ -971,82 +920,7 @@ const CompaniesList = ({ onEdit }) => {
             />
           </Col>
           
-          <Col xs={12} sm={6} lg={3}>
-            <Select 
-              value={localFilters.statut}
-              style={{ width: '100%' }} 
-              onChange={(value) => setLocalFilters({...localFilters, statut: value})}
-              placeholder="Statut"
-            >
-              <Option value="all">Tous les statuts</Option>
-              <Option value="actif">Actif</Option>
-              <Option value="inactif">Inactif</Option>
-              <Option value="suspendu">Suspendu</Option>
-              <Option value="en_attente">En attente</Option>
-            </Select>
-          </Col>
           
-          <Col xs={12} sm={6} lg={3}>
-            <Select 
-              value={localFilters.type}
-              style={{ width: '100%' }} 
-              onChange={(value) => setLocalFilters({...localFilters, type: value})}
-              placeholder="Type"
-            >
-              <Option value="all">Tous les types</Option>
-              <Option value="PME">PME</Option>
-              <Option value="Grande entreprise">Grande entreprise</Option>
-              <Option value="Startup">Startup</Option>
-              <Option value="Autre">Autre</Option>
-            </Select>
-          </Col>
-          
-          <Col xs={12} sm={6} lg={3}>
-            <Select 
-              value={localFilters.secteur_id}
-              style={{ width: '100%' }} 
-              onChange={(value) => setLocalFilters({...localFilters, secteur_id: value})}
-              placeholder="Secteur"
-            >
-              <Option value="all">Tous les secteurs</Option>
-              {/* Les options seront chargées dynamiquement */}
-            </Select>
-          </Col>
-
-          <Col xs={12} sm={6} lg={3}>
-            <Select 
-              value={localFilters.proprietaire_id}
-              style={{ width: '100%' }} 
-              onChange={(value) => setLocalFilters({...localFilters, proprietaire_id: value})}
-              placeholder="Propriétaire"
-            >
-              <Option value="all">Tous</Option>
-              {/* Les options seront chargées dynamiquement */}
-            </Select>
-          </Col>
-          
-          <Col xs={24} sm={12} lg={6}>
-            <Space style={{ width: '100%' }}>
-              <Button 
-                type="primary" 
-                icon={<FilterOutlined />} 
-                onClick={applyFilters}
-                style={{ borderRadius: '8px' }}
-              >
-                Filtrer
-              </Button>
-              
-              <Button 
-                icon={<ClearOutlined />} 
-                onClick={handleClearFilters}
-                style={{ borderRadius: '8px' }}
-              >
-                Effacer
-              </Button>
-
-             
-            </Space>
-          </Col>
         </Row>
       </AnimatedCard>
       

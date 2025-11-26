@@ -181,7 +181,7 @@ const TasksList = () => {
 
   // Calcul des statistiques
   const getStats = () => {
-    const total = items.length;
+    const total = pagination?.total ?? items.length; // afficher le total global (API)
     const notStarted = items.filter(t => t.status === 'not_started').length;
     const inProgress = items.filter(t => t.status === 'in_progress').length;
     const completed = items.filter(t => t.status === 'completed').length;
@@ -230,44 +230,23 @@ const TasksList = () => {
     const apiFilters = { ...filtersToUse };
 
     // Gestion des onglets
-    if (isAdmin) {
-      if (activeTab === 'created_by_admin') {
-        apiFilters.user_id = currentUser.id;
-      } else if (activeTab === 'created_by_others') {
-        apiFilters.user_id = undefined;
-        apiFilters.assignee_id = undefined;
-        apiFilters.user_or_assignee_id = undefined;
-        apiFilters.exclude_user_id = currentUser.id;
-      }
-    } else {
-      if (activeTab === 'created') {
-        apiFilters.user_id = currentUser.id;
-      } else if (activeTab === 'assigned') {
-        apiFilters.assignee_id = currentUser.id;
-        apiFilters.exclude_user_id = currentUser.id;
-      }
+  if (apiFilters.date_range && Array.isArray(apiFilters.date_range) && apiFilters.date_range.length === 2) {
+    apiFilters.start_date = apiFilters.date_range[0].format('YYYY-MM-DD');
+    apiFilters.end_date = apiFilters.date_range[1].format('YYYY-MM-DD');
+    delete apiFilters.date_range;
+  }
+
+  // Supprimer les filtres vides
+  Object.keys(apiFilters).forEach(key => {
+    if (apiFilters[key] === undefined || apiFilters[key] === '' || apiFilters[key] === null) {
+      delete apiFilters[key];
     }
+  });
 
-    // Traitement des filtres de date
-    if (apiFilters.date_range && Array.isArray(apiFilters.date_range) && apiFilters.date_range.length === 2) {
-      apiFilters.start_date = apiFilters.date_range[0].format('YYYY-MM-DD');
-      apiFilters.end_date = apiFilters.date_range[1].format('YYYY-MM-DD');
-      delete apiFilters.date_range;
-    }
-
-    // Supprimer les filtres vides
-    Object.keys(apiFilters).forEach(key => {
-      if (apiFilters[key] === undefined || apiFilters[key] === '' || apiFilters[key] === null) {
-        delete apiFilters[key];
-      }
-    });
-
-    console.log('Filtres API envoyés:', apiFilters);
-
-    dispatch(fetchTasks(apiFilters)).unwrap().catch(() => {
-      message.error('Impossible de charger les tâches');
-    });
-  };
+  dispatch(fetchTasks(apiFilters)).unwrap().catch(() => {
+    message.error('Impossible de charger les tâches');
+  });
+};
 
   // Fonction loadTasks mise à jour
   const loadTasks = () => {
@@ -294,11 +273,12 @@ const TasksList = () => {
 
   // useEffect pour la pagination
   useEffect(() => {
-    if (currentUser && (filters.page !== 1 || filters.per_page !== 10)) {
-      loadTasksWithFilters();
+    if (currentUser && isAdmin && filters.per_page === 10) {
+      const newFilters = { ...filters, per_page: 50, page: 1 };
+      setFilters(newFilters);
+      loadTasksWithFilters(newFilters);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.page, filters.per_page]);
+  }, [currentUser, isAdmin]);
 
   // useEffect pour les opérations réussies
   useEffect(() => {
@@ -387,13 +367,11 @@ const TasksList = () => {
       pipeline_stage_id: undefined,
       sort_field: 'start',
       sort_direction: 'asc',
-      per_page: 10,
+      per_page: filters.per_page, // garder la taille de page courante
       page: 1,
       date_range: null
     };
-    
     setFilters(resetFilters);
-    
     setTimeout(() => {
       loadTasksWithFilters(resetFilters);
     }, 0);
@@ -706,12 +684,7 @@ const TasksList = () => {
 
   const actionMenu = (
     <Menu className="modern-dropdown-menu">
-      <Menu.Item key="export" icon={<DownloadOutlined />}>
-        Exporter les tâches
-      </Menu.Item>
-      <Menu.Item key="refresh" icon={<ReloadOutlined />} onClick={loadTasks}>
-        Rafraîchir la liste
-      </Menu.Item>
+     
       {selectedRowKeys.length > 0 && (
         <Menu.Item key="delete" icon={<DeleteOutlined />} danger onClick={handleBatchDelete}>
           Supprimer {selectedRowKeys.length} tâche(s)
@@ -857,22 +830,7 @@ const TasksList = () => {
                 </Button>
               </motion.div>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button 
-                  type="primary"
-                  size="large"
-                  icon={<PlusOutlined />}
-                  onClick={handleAddTask}
-                  style={{
-                    background: 'white',
-                    border: 'none',
-                    color: '#667eea',
-                    borderRadius: '12px',
-                    fontWeight: 600,
-                    boxShadow: '0 4px 16px rgba(255,255,255,0.3)'
-                  }}
-                >
-                  Nouvelle tâche
-                </Button>
+                
               </motion.div>
             </Space>
           </motion.div>
@@ -976,9 +934,7 @@ const TasksList = () => {
                     Filtres
                   </Button>
                   
-                  <Dropdown overlay={actionMenu} trigger={['click']}>
-                    <Button icon={<MoreOutlined />} size="large" className="modern-btn" />
-                  </Dropdown>
+                 
                 </Space>
               </div>
             </Col>
@@ -1002,56 +958,46 @@ const TasksList = () => {
           }}
           bodyStyle={{ padding: '0' }}
         >
-          <Tabs 
-            activeKey={activeTab} 
-            onChange={handleTabChange} 
-            className="modern-tabs"
-            size="large"
-          >
-            {isAdmin ? (
-              <>
-                <TabPane 
-                  tab={
-                    <span>
-                      <UserOutlined />
-                      Mes tâches créées
-                    </span>
-                  } 
-                  key="created_by_admin" 
-                />
-                <TabPane 
-                  tab={
-                    <span>
-                      <TeamOutlined />
-                      Tâches des autres
-                    </span>
-                  } 
-                  key="created_by_others" 
-                />
-              </>
-            ) : (
-              <>
-                <TabPane 
-                  tab={
-                    <span>
-                      <UserOutlined />
-                      Mes créations
-                    </span>
-                  } 
-                  key="created" 
-                />
-                <TabPane 
-                  tab={
-                    <span>
-                      <TeamOutlined />
-                      Assignées à moi
-                    </span>
-                  } 
-                  key="assigned" 
-                />
-              </>
-            )}
-          </Tabs>
+         <Tabs 
+  activeKey={activeTab} 
+  onChange={handleTabChange} 
+  className="modern-tabs"
+  size="large"
+>
+  {isAdmin ? (
+    // Admin: un seul onglet "Toutes les tâches"
+    <TabPane 
+      tab={
+        <span>
+          <ProjectOutlined />
+          Toutes les tâches
+        </span>
+      } 
+      key="all" 
+    />
+  ) : (
+    <>
+      <TabPane 
+        tab={
+          <span>
+            <UserOutlined />
+            Mes créations
+          </span>
+        } 
+        key="created" 
+      />
+      <TabPane 
+        tab={
+          <span>
+            <TeamOutlined />
+            Assignées à moi
+          </span>
+        } 
+        key="assigned" 
+      />
+    </>
+  )}
+</Tabs>
         </Card>
       </motion.div>
 
@@ -1218,11 +1164,13 @@ const TasksList = () => {
                     }
                     return className;
                   }}
-                  pagination={{
+                   pagination={{
                     current: pagination?.current_page || 1,
-                    pageSize: pagination?.per_page || 10,
+                    pageSize: pagination?.per_page || filters.per_page || 10,
                     total: pagination?.total || 0,
-                   
+                    showSizeChanger: true,                  // permettre de changer la taille
+                    pageSizeOptions: ['10','20','50','100'],// options usuelles
+                    showTotal: (total, range) => `${range[0]}-${range[1]} sur ${total} tâches`,
                     className: "modern-pagination"
                   }}
                   onChange={handleTableChange}

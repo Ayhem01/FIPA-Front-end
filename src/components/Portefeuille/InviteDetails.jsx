@@ -6,12 +6,12 @@ import {
   Card, Descriptions, Button, Space, Spin, Tag, Tabs, Typography, Modal,
   message, Divider, Row, Col, Breadcrumb, Statistic, Tooltip, Badge, Checkbox, List,
   Dropdown, Menu, Steps, Alert, Timeline, Form, DatePicker, Select, Input, Progress, InputNumber,
-  Avatar, Grid
+  Avatar, Grid, Empty
 } from 'antd';
 import {
   EditOutlined, DeleteOutlined, ArrowLeftOutlined, ExclamationCircleOutlined,
   MailOutlined, PhoneOutlined, UserOutlined, CalendarOutlined, FileTextOutlined,
-  BankOutlined, TeamOutlined, CheckCircleOutlined, CloseCircleOutlined, 
+  BankOutlined, TeamOutlined, CheckCircleOutlined, CloseCircleOutlined,
   QuestionCircleOutlined, DownOutlined, EllipsisOutlined, HistoryOutlined, LoadingOutlined, PlusOutlined,
   MessageOutlined, InfoCircleOutlined, SendOutlined, AuditOutlined, BellOutlined, GlobalOutlined, RightOutlined,
   SearchOutlined, SettingOutlined, ClockCircleOutlined, ArrowUpOutlined, WarningOutlined, LinkOutlined,
@@ -34,7 +34,6 @@ import {
 import { fetchPays, fetchSecteurs, fetchEntreprises } from '../../features/marketingSlice';
 import moment from 'moment';
 import '../../../src/assets/styles/action-form.css';
-import { Empty } from 'antd/lib';
 import PipelineTasks from '../Portefeuille/PipelineTasks';
 import {
   fetchPipelineStages,
@@ -48,6 +47,7 @@ import { createPipelineStageTask, getPipelineStageTasks } from '../../features/t
 import TaskCreateModal from '../Tasks/TaskCreateModal';
 import PipelineStageManager from '../Portefeuille/PipelineStageManager';
 import PipelineVisualizer from '../Portefeuille/PipelineVisualizer';
+import BlockageForm from '../Blockages/BlockageForm';
 
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
@@ -59,7 +59,7 @@ const { useBreakpoint } = Grid;
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
-// Composant de statistique animée similaire au dashboard
+// Composant de statistique animée
 const AnimatedStatCard = ({ icon, title, value, prefix, suffix, color, loading, delay = 0 }) => {
   const [displayValue, setDisplayValue] = useState(0);
 
@@ -69,7 +69,7 @@ const AnimatedStatCard = ({ icon, title, value, prefix, suffix, color, loading, 
       const steps = 30;
       const increment = value / steps;
       let current = 0;
-      
+
       const timer = setInterval(() => {
         current += increment;
         if (current >= value) {
@@ -87,13 +87,13 @@ const AnimatedStatCard = ({ icon, title, value, prefix, suffix, color, loading, 
   }, [value, loading]);
 
   const cardVariants = {
-    hidden: { 
-      opacity: 0, 
+    hidden: {
+      opacity: 0,
       y: 20,
       scale: 0.95
     },
-    visible: { 
-      opacity: 1, 
+    visible: {
+      opacity: 1,
       y: 0,
       scale: 1,
       transition: {
@@ -120,7 +120,7 @@ const AnimatedStatCard = ({ icon, title, value, prefix, suffix, color, loading, 
       whileHover="hover"
       style={{ height: '100%' }}
     >
-      <Card 
+      <Card
         className="stat-card-modern"
         style={{
           height: '100%',
@@ -133,7 +133,7 @@ const AnimatedStatCard = ({ icon, title, value, prefix, suffix, color, loading, 
         bodyStyle={{ padding: '20px' }}
       >
         <div className="stat-card-content">
-          <motion.div 
+          <motion.div
             className="stat-icon"
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
@@ -158,14 +158,14 @@ const AnimatedStatCard = ({ icon, title, value, prefix, suffix, color, loading, 
           <Text type="secondary" style={{ fontSize: '13px', fontWeight: 500 }}>
             {title}
           </Text>
-          
+
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: delay * 0.1 + 0.3 }}
           >
-            <Title level={3} style={{ 
-              margin: '4px 0 0 0', 
+            <Title level={3} style={{
+              margin: '4px 0 0 0',
               color: color,
               fontWeight: 700,
               fontSize: '22px'
@@ -184,7 +184,6 @@ const AnimatedStatCard = ({ icon, title, value, prefix, suffix, color, loading, 
           </motion.div>
         </div>
 
-        {/* Effet de brillance */}
         <motion.div
           className="shine-effect"
           style={{
@@ -210,12 +209,12 @@ const AnimatedStatCard = ({ icon, title, value, prefix, suffix, color, loading, 
   );
 };
 
-// Composant de carte animée similaire au dashboard
+// Composant de carte animée
 const AnimatedContentCard = ({ title, children, loading, extra, delay = 0 }) => {
   const cardVariants = {
     hidden: { opacity: 0, y: 30 },
-    visible: { 
-      opacity: 1, 
+    visible: {
+      opacity: 1,
       y: 0,
       transition: {
         duration: 0.6,
@@ -340,6 +339,68 @@ const InviteDetails = () => {
   const { pays, secteurs, entreprises } = useSelector(state => state.marketing);
   const currentUser = useSelector(state => state.user.user);
 
+  // Etape courante calculée et étape suivante (déclarées tôt)
+  const effectiveCurrentStage = currentStage ||
+    (pipelineStages && pipelineStages.length > 0 ? pipelineStages[0] : null);
+
+  const nextStage = pipelineStages.find(
+    stage => stage.order === ((effectiveCurrentStage?.order || 0) + 1)
+  );
+
+  // Helpers blocages
+  function isUnresolvedBlockage(b) {
+    if (!b) return false;
+    const rawStatus = String(b.status || b.statut || b.state || '').toLowerCase();
+    const resolvedByStatus =
+      rawStatus === 'resolved' ||
+      rawStatus === 'resolu' ||
+      rawStatus === 'résolu' ||
+      rawStatus === 'close' ||
+      rawStatus === 'closed';
+
+    const resolvedFlag =
+      b.resolved === true ||
+      b.is_resolved === true ||
+      b.isResolved === true ||
+      !!b.resolved_at ||
+      !!b.date_resolution;
+
+    return !(resolvedByStatus || resolvedFlag);
+  }
+
+  function matchesType(value, expected) {
+    const v = String(value || '').toLowerCase();
+    const e = String(expected || '').toLowerCase();
+    // Gère 'invite', 'App\\Models\\Invite', '/Invite', etc.
+    return v === e || v.endsWith(`\\${e}`) || v.endsWith(`/${e}`) || v.includes(e);
+  }
+
+  async function loadBlockages() {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${API_URL}/blockages`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+
+      const all = res.data?.data || res.data || [];
+      const stageId = effectiveCurrentStage?.id;
+
+      const stageBlockages = all.filter((b) =>
+        matchesType(b?.blockable_type, 'invite') &&
+        String(b?.blockable_id) === String(id) &&
+        matchesType(b?.pipeline_stageable_type, 'pipeline_stage') &&
+        String(b?.pipeline_stageable_id) === String(stageId)
+      );
+
+      setBlockages(stageBlockages);
+      return stageBlockages;
+    } catch (error) {
+      console.error('Erreur lors du chargement des blocages:', error);
+      return [];
+    }
+  }
+
+  // Chargement user
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -363,6 +424,7 @@ const InviteDetails = () => {
     }
   }, [invite]);
 
+  // Chargements init
   useEffect(() => {
     if (id) {
       dispatch(getInviteById(id));
@@ -376,6 +438,13 @@ const InviteDetails = () => {
       dispatch(resetOperation());
     };
   }, [dispatch, id, refreshTrigger]);
+
+  // Charger les blocages quand l'étape change
+  useEffect(() => {
+    if (effectiveCurrentStage?.id) {
+      loadBlockages();
+    }
+  }, [effectiveCurrentStage?.id]);
 
   useEffect(() => {
     if (operation.success) {
@@ -416,27 +485,13 @@ const InviteDetails = () => {
     }
   }, [operation, navigate, id, dispatch]);
 
-  const effectiveCurrentStage = currentStage ||
-    (pipelineStages && pipelineStages.length > 0 ? pipelineStages[0] : null);
-
   useEffect(() => {
     if (invite && effectiveCurrentStage) {
-      console.log('=== DEBUG BOUTON CONVERT ===');
-      console.log('invite.statut:', invite.statut);
-      console.log('invite.is_converted:', invite.is_converted);
-      console.log('effectiveCurrentStage:', effectiveCurrentStage);
-      console.log('effectiveCurrentStage.is_final:', effectiveCurrentStage.is_final);
-      console.log('Bouton désactivé à cause de:');
       if (invite.statut === 'converti') {
-        console.log('- Statut déjà converti');
+        // logique éventuelle si converti
       }
-      console.log('========================');
     }
   }, [invite, effectiveCurrentStage]);
-
-  const nextStage = pipelineStages.find(
-    stage => stage.order === ((effectiveCurrentStage?.order || 0) + 1)
-  );
 
   const loadPipelineTasks = useCallback(async () => {
     if (!id || !effectiveCurrentStage?.id) return;
@@ -475,6 +530,78 @@ const InviteDetails = () => {
       loadPipelineTasks();
     }
   }, [activeTab, effectiveCurrentStage, loadPipelineTasks, refreshTrigger]);
+
+  const handleOpenAdvanceModal = async () => {
+    const currentStageBlockages = await loadBlockages();
+    const unresolved = (currentStageBlockages || []).filter(isUnresolvedBlockage);
+
+    if (unresolved.length > 0) {
+      const names = unresolved.map(b => b.title || b.nom || b.name || `Blocage #${b.id}`);
+      Modal.warning({
+        title: "Blocages non résolus",
+        content: (
+          <div>
+            <p>Il y a des blocages qui doivent être résolus avant de passer à l’étape suivante :</p>
+            <ul style={{ paddingLeft: 20 }}>
+              {names.map((n, i) => <li key={i}>{n}</li>)}
+            </ul>
+          </div>
+        )
+      });
+      return;
+    }
+
+    setPipelineModalVisible(true);
+  };
+
+  const handleAdvancePipeline = async () => {
+    try {
+      const currentStageBlockages = await loadBlockages();
+      const unresolved = (currentStageBlockages || []).filter(isUnresolvedBlockage);
+
+      if (unresolved.length > 0) {
+        const names = unresolved.map(b => b.title || b.nom || b.name || `Blocage #${b.id}`);
+        Modal.warning({
+          title: "Blocages non résolus",
+          content: (
+            <div>
+              <p>Impossible d’avancer: les blocages suivants doivent être résolus :</p>
+              <ul style={{ paddingLeft: 20 }}>
+                {names.map((n, i) => <li key={i}>{n}</li>)}
+              </ul>
+            </div>
+          )
+        });
+        return;
+      }
+
+      const values = await pipelineForm.validateFields();
+      const stageId = nextStage?.id;
+
+      if (!stageId) {
+        message.error('Aucune étape suivante disponible');
+        return;
+      }
+
+      await dispatch(advancePipeline({
+        id,
+        stage_id: stageId,
+        notes: values.notes,
+        date: values.date?.format('YYYY-MM-DD HH:mm:ss')
+      })).unwrap();
+
+      message.success('Progression enregistrée avec succès');
+      setPipelineModalVisible(false);
+      pipelineForm.resetFields();
+
+      dispatch(getInviteById(id));
+      dispatch(getInvitePipeline(id));
+      setRefreshTrigger(prev => prev + 1);
+
+    } catch (error) {
+      console.error('Erreur lors de l\'avancement:', error);
+    }
+  };
 
   const showDeleteConfirm = () => {
     confirm({
@@ -552,36 +679,6 @@ const InviteDetails = () => {
     dispatch(sendInvitation(id));
   };
 
-  const handleAdvancePipeline = async () => {
-    try {
-      const values = await pipelineForm.validateFields();
-      const stageId = nextStage?.id;
-
-      if (!stageId) {
-        message.error('Aucune étape suivante disponible');
-        return;
-      }
-
-      await dispatch(advancePipeline({
-        id,
-        stage_id: stageId,
-        notes: values.notes,
-        date: values.date?.format('YYYY-MM-DD HH:mm:ss')
-      })).unwrap();
-
-      message.success('Progression enregistrée avec succès');
-      setPipelineModalVisible(false);
-      pipelineForm.resetFields();
-
-      dispatch(getInviteById(id));
-      dispatch(getInvitePipeline(id));
-      setRefreshTrigger(prev => prev + 1);
-
-    } catch (error) {
-      console.error('Erreur lors de l\'avancement:', error);
-    }
-  };
-
   const handleConversion = () => {
     conversionForm.validateFields().then(values => {
       const formatDateForBackend = (momentDate) => {
@@ -610,13 +707,9 @@ const InviteDetails = () => {
         converted_to_id: id
       };
 
-      console.log('Données de conversion formatées:', conversionData);
-
       dispatch(convertToProspect(conversionData))
         .unwrap()
         .then((prospect) => {
-          console.log('Prospect créé:', prospect);
-
           if (prospect?.id) {
             setConversionModalVisible(false);
             message.success('Conversion réussie! Redirection vers le prospect...');
@@ -628,30 +721,10 @@ const InviteDetails = () => {
           }
         })
         .catch((error) => {
-          console.error("Erreur lors de la conversion :", error);
           message.error(`Erreur lors de la conversion: ${error}`);
         });
     });
   };
-
-  const loadBlockages = useCallback(async () => {
-    try {
-      const response = await axios.get(`${API_URL}/blockages`);
-      const allBlockages = response.data.data || [];
-
-      const stageBlockages = allBlockages.filter(
-        blockage =>
-          blockage.blockable_type === 'invite' &&
-          blockage.blockable_id === parseInt(id) &&
-          blockage.pipeline_stageable_type === 'pipeline_stage' &&
-          blockage.pipeline_stageable_id === effectiveCurrentStage?.id
-      );
-
-      setBlockages(stageBlockages);
-    } catch (error) {
-      console.error('Erreur lors du chargement des blocages:', error);
-    }
-  }, [id, effectiveCurrentStage]);
 
   const statusMenu = (
     <Menu>
@@ -818,8 +891,8 @@ const InviteDetails = () => {
 
   const headerVariants = {
     hidden: { opacity: 0, y: -20 },
-    visible: { 
-      opacity: 1, 
+    visible: {
+      opacity: 1,
       y: 0,
       transition: { duration: 0.6, ease: "easeOut" }
     }
@@ -827,8 +900,8 @@ const InviteDetails = () => {
 
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { 
-      opacity: 1, 
+    visible: {
+      opacity: 1,
       y: 0,
       transition: { duration: 0.5, ease: "easeOut" }
     }
@@ -859,7 +932,7 @@ const InviteDetails = () => {
         </Breadcrumb>
       </motion.div>
 
-      {/* En-tête principal similaire au dashboard */}
+      {/* En-tête principal */}
       <motion.div
         variants={headerVariants}
         initial="hidden"
@@ -908,18 +981,18 @@ const InviteDetails = () => {
                 whileHover={{ scale: 1.1, rotate: 5 }}
                 transition={{ duration: 0.3 }}
               >
-                <Avatar 
-                  size={64} 
-                  icon={<UserOutlined />} 
-                  style={{ 
-                    backgroundColor: invite.potentiel === 'élevé' ? '#f5222d' : 
-                                    invite.potentiel === 'moyen' ? '#faad14' : '#1890ff',
+                <Avatar
+                  size={64}
+                  icon={<UserOutlined />}
+                  style={{
+                    backgroundColor: invite.potentiel === 'élevé' ? '#f5222d' :
+                      invite.potentiel === 'moyen' ? '#faad14' : '#1890ff',
                     fontSize: '28px',
                     boxShadow: '0 4px 16px rgba(0,0,0,0.2)'
-                  }} 
+                  }}
                 />
               </motion.div>
-              
+
               <div>
                 <Title level={1} style={{ color: 'white', margin: 0, fontWeight: 700 }}>
                   {invite.nom} {invite.prenom}
@@ -931,29 +1004,29 @@ const InviteDetails = () => {
                 </Title>
                 <Paragraph style={{ color: 'rgba(255,255,255,0.8)', fontSize: '16px', margin: '8px 0 0 0' }}>
                   <BankOutlined style={{ marginRight: 6 }} />
-                  {invite.entreprise?.nom || 'Entreprise non définie'} • 
+                  {invite.entreprise?.nom || 'Entreprise non définie'} •
                   <CalendarOutlined style={{ marginLeft: 8, marginRight: 6 }} />
                   {invite.action?.nom || 'Action non définie'}
                 </Paragraph>
               </div>
             </motion.div>
           </Col>
-          
+
           <Col xs={24} lg={8}>
             <motion.div
               initial={{ opacity: 0, x: 30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.4 }}
-              style={{ 
-                display: 'flex', 
-                gap: '12px', 
+              style={{
+                display: 'flex',
+                gap: '12px',
                 justifyContent: screens.lg ? 'flex-end' : 'flex-start',
                 flexWrap: 'wrap',
                 marginTop: screens.lg ? 0 : '16px'
               }}
             >
-              <Button 
-                icon={<EditOutlined />} 
+              <Button
+                icon={<EditOutlined />}
                 onClick={() => navigate(`/invites/${id}/edit`)}
                 size="large"
                 style={{
@@ -964,20 +1037,20 @@ const InviteDetails = () => {
                   backdropFilter: 'blur(10px)'
                 }}
               >
-                Modifier 
+                Modifier
               </Button>
               <Button
                 icon={<DeleteOutlined />}
                 type='danger'
-              onClick={showDeleteConfirm}
-              size='large'
-              style={{
-                background: 'rgba(255,255,255,0.2)',
-                border: '1px solid rgba(255,255,255,0.3)',
-                color: 'white',
-                borderRadius: '8px',
-                backdropFilter: 'blur(10px)'
-              }}
+                onClick={showDeleteConfirm}
+                size='large'
+                style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  color: 'white',
+                  borderRadius: '8px',
+                  backdropFilter: 'blur(10px)'
+                }}
               >Delete</Button>
               <Button
                 type="default"
@@ -996,7 +1069,7 @@ const InviteDetails = () => {
               </Button>
 
               <Dropdown overlay={statusMenu} placement="bottomRight">
-                <Button 
+                <Button
                   style={{
                     background: 'rgba(255,255,255,0.1)',
                     border: '1px solid rgba(255,255,255,0.2)',
@@ -1008,7 +1081,7 @@ const InviteDetails = () => {
                   Statut <DownOutlined />
                 </Button>
               </Dropdown>
- {invite.is_converted && invite.prospect ? (
+              {invite.is_converted && invite.prospect ? (
                 <Button
                   type="primary"
                   icon={<LinkOutlined />}
@@ -1035,19 +1108,19 @@ const InviteDetails = () => {
                   Déjà converti
                 </Button>
               ) : (
-              <Button 
-               type="primary"
-                onClick={() => setConversionModalVisible(true)}
-                style={{
-                  background: 'rgba(255,255,255,0.1)',
-                  border: '1px solid rgba(255,255,255,0.2)',
-                  color: 'white',
-                  borderRadius: '8px',
-                  backdropFilter: 'blur(10px)'
-                }}
-              >
-                Convertir en prospect
-              </Button>
+                <Button
+                  type="primary"
+                  onClick={() => setConversionModalVisible(true)}
+                  style={{
+                    background: 'rgba(255,255,255,0.1)',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    color: 'white',
+                    borderRadius: '8px',
+                    backdropFilter: 'blur(10px)'
+                  }}
+                >
+                  Convertir en prospect
+                </Button>
               )}
             </motion.div>
           </Col>
@@ -1056,33 +1129,33 @@ const InviteDetails = () => {
 
       {/* Métriques de pipeline */}
       <Row gutter={[24, 24]} style={{ marginBottom: '32px' }}>
-      <Col xs={12} sm={6}>
+        <Col xs={12} sm={6}>
           <AnimatedStatCard
             icon={
-              invite.statut === 'confirmee' || invite.statut === 'participation_confirmee' ? <CheckCircleOutlined /> : 
-              invite.statut === 'refusee' || invite.statut === 'absente' ? <CloseCircleOutlined /> :
-              invite.statut === 'envoyee' ? <SendOutlined /> :
-              <ClockCircleOutlined />
+              invite.statut === 'confirmee' || invite.statut === 'participation_confirmee' ? <CheckCircleOutlined /> :
+                invite.statut === 'refusee' || invite.statut === 'absente' ? <CloseCircleOutlined /> :
+                  invite.statut === 'envoyee' ? <SendOutlined /> :
+                    <ClockCircleOutlined />
             }
             title="Statut de l'invitation"
             value={
               invite.statut === 'en_attente' ? 'En attente' :
-              invite.statut === 'envoyee' ? 'Envoyée' :
-              invite.statut === 'confirmee' ? 'Confirmée' :
-              invite.statut === 'details_envoyes' ? 'Détails envoyés' :
-              invite.statut === 'refusee' ? 'Refusée' :
-              invite.statut === 'participation_confirmee' ? 'Participation confirmée' :
-              invite.statut === 'participation_sans_suivi' ? 'A participé' :
-              invite.statut === 'absente' ? 'Absent' :
-              invite.statut === 'aucune_reponse' ? 'Aucune réponse' :
-              'Inconnu'
+                invite.statut === 'envoyee' ? 'Envoyée' :
+                  invite.statut === 'confirmee' ? 'Confirmée' :
+                    invite.statut === 'details_envoyes' ? 'Détails envoyés' :
+                      invite.statut === 'refusee' ? 'Refusée' :
+                        invite.statut === 'participation_confirmee' ? 'Participation confirmée' :
+                          invite.statut === 'participation_sans_suivi' ? 'A participé' :
+                            invite.statut === 'absente' ? 'Absent' :
+                              invite.statut === 'aucune_reponse' ? 'Aucune réponse' :
+                                'Inconnu'
             }
             color={
               invite.statut === 'confirmee' || invite.statut === 'participation_confirmee' ? '#52c41a' :
-              invite.statut === 'refusee' || invite.statut === 'absente' ? '#ff4d4f' :
-              invite.statut === 'envoyee' || invite.statut === 'details_envoyes' ? '#1890ff' :
-              invite.statut === 'participation_sans_suivi' ? '#722ed1' :
-              '#faad14'
+                invite.statut === 'refusee' || invite.statut === 'absente' ? '#ff4d4f' :
+                  invite.statut === 'envoyee' || invite.statut === 'details_envoyes' ? '#1890ff' :
+                    invite.statut === 'participation_sans_suivi' ? '#722ed1' :
+                      '#faad14'
             }
             delay={0}
           />
@@ -1135,8 +1208,11 @@ const InviteDetails = () => {
                 <Button
                   type="primary"
                   icon={<RightOutlined />}
-                  onClick={() => setPipelineModalVisible(true)}
-                  disabled={!nextStage}
+                  onClick={handleOpenAdvanceModal}
+                  disabled={
+                    !nextStage ||
+                    (blockages && blockages.some(isUnresolvedBlockage))
+                  }
                   style={{
                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                     border: 'none',
@@ -1173,7 +1249,6 @@ const InviteDetails = () => {
         animate="visible"
         transition={{ delay: 0.4 }}
       >
-        
       </motion.div>
 
       {/* Contenu principal avec onglets */}
@@ -1187,9 +1262,9 @@ const InviteDetails = () => {
           title="Informations détaillées"
           delay={1}
         >
-          <Tabs 
-            activeKey={activeTab} 
-            onChange={setActiveTab} 
+          <Tabs
+            activeKey={activeTab}
+            onChange={setActiveTab}
             type="card"
             className="modern-tabs"
           >
@@ -1230,7 +1305,7 @@ const InviteDetails = () => {
                   <Descriptions.Item label="Potentiel">
                     <Tag color={
                       invite.potentiel === 'élevé' ? 'red' :
-                      invite.potentiel === 'moyen' ? 'orange' : 'blue'
+                        invite.potentiel === 'moyen' ? 'orange' : 'blue'
                     }>
                       {invite.potentiel ? invite.potentiel.charAt(0).toUpperCase() + invite.potentiel.slice(1) : 'Non évalué'}
                     </Tag>
@@ -1304,7 +1379,7 @@ const InviteDetails = () => {
             <TabPane tab={
               <Space>
                 <WarningOutlined />
-                Blocages 
+                Blocages
               </Space>
             } key="blockages">
               <div className="tab-content">
@@ -1380,9 +1455,9 @@ const InviteDetails = () => {
               <div className="tab-content">
                 <div className="notes-header">
                   <Title level={4}>Notes</Title>
-                  <Button 
-                    type="primary" 
-                    icon={<PlusOutlined />} 
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
                     style={{
                       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                       border: 'none',
@@ -1403,7 +1478,7 @@ const InviteDetails = () => {
       {/* Modaux */}
       <Modal
         title="Convertir en prospect"
-        visible={conversionModalVisible}
+        open={conversionModalVisible}
         onCancel={() => setConversionModalVisible(false)}
         footer={[
           <Button key="cancel" onClick={() => setConversionModalVisible(false)}>
@@ -1575,8 +1650,26 @@ const InviteDetails = () => {
       </Modal>
 
       <Modal
+        open={addBlockageVisible}
+        onCancel={() => setAddBlockageVisible(false)}
+        footer={null}
+        destroyOnClose
+        title="Créer un blocage"
+        width={720}
+      >
+        <BlockageForm
+          blockage={null}
+          onCancel={() => setAddBlockageVisible(false)}
+          entityType="invite"
+          entityId={id}
+          pipelineStageType="pipeline_stage"
+          pipelineStageId={effectiveCurrentStage?.id}
+        />
+      </Modal>
+
+      <Modal
         title={`Passer à l'étape ${nextStage?.order || ''} : ${nextStage?.name || ''}`}
-        visible={pipelineModalVisible}
+        open={pipelineModalVisible}
         onCancel={() => setPipelineModalVisible(false)}
         width={600}
         footer={[
@@ -1631,7 +1724,7 @@ const InviteDetails = () => {
         entityName={invite?.nom}
       />
 
-<style jsx>{`
+      <style jsx>{`
   .modern-container {
     padding: 24px;
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
@@ -1859,7 +1952,6 @@ const InviteDetails = () => {
     margin-bottom: 24px;
   }
 
-  /* Responsive Design */
   @media (max-width: 768px) {
     .modern-container {
       padding: 16px;
@@ -1920,7 +2012,6 @@ const InviteDetails = () => {
     }
   }
 
-  /* Animations */
   @keyframes shimmer {
     0% { background-position: -468px 0; }
     100% { background-position: 468px 0; }
@@ -1932,7 +2023,6 @@ const InviteDetails = () => {
     background-size: 400% 100%;
   }
 
-  /* Amélioration des modaux */
   .ant-modal {
     border-radius: 12px;
     overflow: hidden;
@@ -1960,7 +2050,6 @@ const InviteDetails = () => {
     background: #fafafa;
   }
 
-  /* Amélioration des formulaires */
   .ant-form-item-label > label {
     font-weight: 500;
     color: #333;
@@ -1982,7 +2071,6 @@ const InviteDetails = () => {
     box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
   }
 
-  /* Amélioration des boutons */
   .ant-btn {
     border-radius: 6px;
     font-weight: 500;
@@ -2003,7 +2091,6 @@ const InviteDetails = () => {
     background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
   }
 
-  /* Amélioration des tags et badges */
   .ant-tag {
     border-radius: 4px;
     font-weight: 500;
@@ -2022,17 +2109,15 @@ const InviteDetails = () => {
     transform: scale(1.05);
   }
 
-  /* Amélioration des descriptions */
   .ant-descriptions-bordered .ant-descriptions-item-label {
     background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
     font-weight: 600;
   }
 
   .ant-descriptions-bordered .ant-descriptions-item-content {
-    background: white;
+    background: white.
   }
 
-  /* Amélioration du breadcrumb */
   .ant-breadcrumb {
     font-weight: 500;
   }
@@ -2046,7 +2131,6 @@ const InviteDetails = () => {
     color: #667eea;
   }
 
-  /* Amélioration des alertes */
   .ant-alert {
     border-radius: 8px;
     border: 1px solid;
@@ -2073,7 +2157,6 @@ const InviteDetails = () => {
     border-color: #b7eb8f;
   }
 
-  /* Amélioration des dropdowns */
   .ant-dropdown-menu {
     border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.15);
@@ -2089,12 +2172,10 @@ const InviteDetails = () => {
     background: linear-gradient(135deg, #f0f2ff 0%, #e6f7ff 100%);
   }
 
-  /* Effet de brillance pour les cartes */
   .shine-effect {
     pointer-events: none;
   }
 
-  /* Amélioration des statistiques */
   .ant-statistic {
     text-align: center;
   }
@@ -2110,7 +2191,6 @@ const InviteDetails = () => {
     font-size: 20px;
   }
 
-  /* Amélioration des steps */
   .ant-steps-item-icon {
     transition: all 0.3s ease;
   }
@@ -2129,7 +2209,6 @@ const InviteDetails = () => {
     border-color: #52c41a;
   }
 
-  /* Scrollbar personnalisée */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -2149,7 +2228,7 @@ const InviteDetails = () => {
     background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
   }
 `}</style>
-</div>
-);
+    </div>
+  );
 };
 export default InviteDetails;

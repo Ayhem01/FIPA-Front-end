@@ -702,26 +702,7 @@ const ActionDetail = () => {
   return (
     <div className="action-details-container">
       {/* Breadcrumb */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        style={{ marginBottom: '24px' }}
-      >
-        <Breadcrumb>
-          <Breadcrumb.Item>
-            <Link to="/dashboard" style={{ color: '#666', fontWeight: 500 }}>
-              <HomeOutlined /> Dashboard
-            </Link>
-          </Breadcrumb.Item>
-          <Breadcrumb.Item>
-            <Link to="/actions" style={{ color: '#666', fontWeight: 500 }}>
-              <FileTextOutlined /> Actions
-            </Link>
-          </Breadcrumb.Item>
-          <Breadcrumb.Item style={{ fontWeight: 600 }}>{action.nom}</Breadcrumb.Item>
-        </Breadcrumb>
-      </motion.div>
+      
       
       {/* En-tête principal similaire au dashboard */}
       <motion.div

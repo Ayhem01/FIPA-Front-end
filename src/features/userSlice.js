@@ -1,6 +1,8 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { redirect } from 'react-router-dom';
+const API_BASE_URL = 'http://127.0.0.1:8000/api';
+
 
 // 👉 Définition de l'asyncThunk pour la connexion
 export const login = createAsyncThunk("user/login", async (data, { rejectWithValue }) => {
@@ -80,16 +82,39 @@ export const logout = createAsyncThunk("user/logout", async (_, { rejectWithValu
     return rejectWithValue({ message: "Une erreur s'est produite lors de la déconnexion" });
   }
 });
-export const register = createAsyncThunk("user/register", async (data, { rejectWithValue }) => {
-  try {
-    const response = await axios.post("http://127.0.0.1:8000/api/auth/register", data);
-    console.log('Réponse reçue:', response.data);
-    return response.data;
-  } catch (error) {
-    console.error("Erreur Axios:", error);
-    return rejectWithValue(error.response?.data || "Une erreur s'est produite");
+export const register = createAsyncThunk(
+  "user/register",
+  async (data, { rejectWithValue }) => {
+    try {
+      const raw =
+        localStorage.getItem("token") ||
+        JSON.parse(localStorage.getItem("user") || "{}")?.token ||
+        "";
+      const token = String(raw).replace(/^Bearer\s+/i, "");
+
+      if (!token) {
+        return rejectWithValue({ message: "Token d'authentification non disponible" });
+      }
+
+      const response = await axios.post(
+        `${API_BASE_URL}/auth/register`,
+        data,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          withCredentials: false, // n'envoie pas les cookies
+        }
+      );
+
+      return response.data?.data || response.data?.user || response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: error.message || "Une erreur s'est produite" });
+    }
   }
-});
+);
 export const forgotPassword = createAsyncThunk(
   "user/forgotPassword",
   async (email, { rejectWithValue }) => {
@@ -247,6 +272,305 @@ export const fetchAllUsers = createAsyncThunk(
     }
   }
 );
+export const fetchMe = createAsyncThunk(
+  'user/fetchMe',
+  async (_, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return rejectWithValue('Token d\'authentification non disponible');
+
+      const { data } = await axios.get(`${API_BASE_URL}/users/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      // Persister dans localStorage
+      localStorage.setItem('user', JSON.stringify(data));
+      return data;
+    } catch (error) {
+      if (error.response?.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+      return rejectWithValue(error.response?.data || 'Erreur lors de la récupération du profil');
+    }
+  }
+);
+
+// Mettre à jour le profil (infos personnelles + photo) /users/me/profile
+// 👉 CORRECTION: Améliorer updateMyProfile pour suivre la logique des companies
+export const updateMyProfile = createAsyncThunk(
+  'user/updateMyProfile',
+  async (payload, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return rejectWithValue('Token d\'authentification non disponible');
+
+      console.log('Token utilisé:', token);
+      console.log('Payload envoyé:', payload);
+
+      // 👉 CORRECTION: Vérifier si c'est un FormData (photo) ou des données normales
+      const isFormData = payload instanceof FormData;
+      
+      // 👉 CORRECTION: Configuration headers comme dans companiesSlice
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+        // Ne pas définir Content-Type pour FormData, laisser axios le faire automatiquement
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' })
+      };
+
+      // 👉 CORRECTION: Utiliser POST avec _method si FormData (comme updateCompany)
+      let response;
+      if (isFormData) {
+        // Pour les uploads de fichiers, utiliser POST avec _method (comme companies)
+        response = await axios.post(
+          `${API_BASE_URL}/users/me/profile`,
+          payload,
+          { headers }
+        );
+      } else {
+        // Pour les données normales, utiliser PUT
+        response = await axios.put(
+          `${API_BASE_URL}/users/me/profile`,
+          payload,
+          { headers }
+        );
+      }
+
+      console.log('Réponse du serveur:', response.data);
+
+      // 👉 CORRECTION: Traitement de la réponse (même logique que companies)
+      let userData;
+      if (response.data?.success && response.data?.user) {
+        userData = response.data.user;
+      } else if (response.data?.data) {
+        userData = response.data.data;
+      } else if (response.data?.user) {
+        userData = response.data.user;
+      } else {
+        userData = response.data;
+      }
+
+      // 👉 CORRECTION: Mettre à jour le localStorage avec les nouvelles données
+      if (userData) {
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const updatedUser = { ...currentUser, ...userData };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        return updatedUser;
+      }
+
+      return userData || response.data;
+    } catch (error) {
+      console.error('Erreur updateMyProfile:', error);
+      console.error('Réponse d\'erreur:', error.response?.data);
+      
+      return rejectWithValue(
+        error.response?.data || 'Erreur lors de la mise à jour du profil'
+      );
+    }
+  }
+);
+
+
+// ---------------------------
+// APIs Admin utilisateurs (/api/users/*)
+// ---------------------------
+
+// Liste paginée + recherche
+export const fetchUsers = createAsyncThunk(
+  'user/fetchUsers',
+  async ({ q = '', page = 1, per_page = 15 } = {}, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return rejectWithValue('Token d\'authentification non disponible');
+
+      const { data } = await axios.get(`${API_BASE_URL}/users/all`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { q, page, per_page }
+      });
+
+      return data; // Paginator Laravel
+    } catch (error) {
+      return rejectWithValue(error.response?.data || 'Erreur lors du chargement des utilisateurs');
+    }
+  }
+);
+
+// Détail utilisateur
+export const fetchUserById = createAsyncThunk(
+  'user/fetchUserById',
+  async (id, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return rejectWithValue('Token d\'authentification non disponible');
+
+      // Note: routes fournies => prefix 'users' + 'users/{id}'
+      const { data } = await axios.get(`${API_BASE_URL}/users/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || 'Erreur lors du chargement de l’utilisateur');
+    }
+  }
+);
+
+// Création utilisateur
+export const createUser = createAsyncThunk(
+  'user/createUser',
+  async (payload, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return rejectWithValue('Token d\'authentification non disponible');
+
+      const { data } = await axios.post(`${API_BASE_URL}/users`, payload, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      return data.user || data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || 'Erreur lors de la création de l’utilisateur');
+    }
+  }
+);
+
+// Mise à jour utilisateur
+export const updateUserById = createAsyncThunk(
+  'user/updateUserById',
+  async ({ id, payload }, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return rejectWithValue('Token d\'authentification non disponible');
+
+      const { data } = await axios.put(`${API_BASE_URL}/users/${id}`, payload, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      return data.user || data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || 'Erreur lors de la mise à jour de l’utilisateur');
+    }
+  }
+);
+
+// Suppression utilisateur
+export const deleteUserById = createAsyncThunk(
+  'user/deleteUserById',
+  async (id, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return rejectWithValue('Token d\'authentification non disponible');
+
+      const { data } = await axios.delete(`${API_BASE_URL}/users/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      return { id, message: data?.message || 'Utilisateur supprimé' };
+    } catch (error) {
+      return rejectWithValue(error.response?.data || 'Erreur lors de la suppression de l’utilisateur');
+    }
+  }
+);
+
+// Assigner des rôles
+export const assignRoles = createAsyncThunk(
+  'user/assignRoles',
+  async ({ id, roles }, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return rejectWithValue('Token d\'authentification non disponible');
+
+      const { data } = await axios.post(`${API_BASE_URL}/users/${id}/roles`, { roles }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      return { id, roles: data.roles };
+    } catch (error) {
+      return rejectWithValue(error.response?.data || 'Erreur lors de l’assignation des rôles');
+    }
+  }
+);
+
+// Assigner des permissions
+export const assignPermissions = createAsyncThunk(
+  'user/assignPermissions',
+  async ({ id, permissions }, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return rejectWithValue('Token d\'authentification non disponible');
+
+      const { data } = await axios.post(`${API_BASE_URL}/users/${id}/permissions`, { permissions }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      return { id, permissions: data.permissions };
+    } catch (error) {
+      return rejectWithValue(error.response?.data || 'Erreur lors de l’assignation des permissions');
+    }
+  }
+);
+export const fetchMyActions = createAsyncThunk(
+  'user/fetchMyActions',
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return rejectWithValue('Token d\'authentification non disponible');
+
+      const queryParams = new URLSearchParams();
+      
+      // Paramètres de filtrage
+      if (params.statut) queryParams.append('statut', params.statut);
+      if (params.type) queryParams.append('type', params.type);
+      if (params.periode) queryParams.append('periode', params.periode);
+      
+      // Paramètres de tri
+      if (params.sort_by) queryParams.append('sort_by', params.sort_by);
+      if (params.sort_direction) queryParams.append('sort_direction', params.sort_direction);
+      
+      // Pagination
+      if (params.page) queryParams.append('page', params.page);
+      if (params.per_page) queryParams.append('per_page', params.per_page);
+
+      const { data } = await axios.get(
+        `${API_BASE_URL}/users/me/actions?${queryParams.toString()}`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      return data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data || 'Erreur lors du chargement de mes actions'
+      );
+    }
+  }
+);
+
+// Récupérer les statistiques des actions de l'utilisateur connecté
+export const fetchMyActionsStats = createAsyncThunk(
+  'user/fetchMyActionsStats',
+  async (_, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return rejectWithValue('Token d\'authentification non disponible');
+
+      const { data } = await axios.get(
+        `${API_BASE_URL}/users/me/actions/stats`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      return data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data || 'Erreur lors du chargement des statistiques'
+      );
+    }
+  }
+);
 
 const userSlice = createSlice({
   name: 'user',
@@ -266,12 +590,30 @@ const userSlice = createSlice({
       password: "",
       password_confirmation: "",
     },
+     profileUpdating: false,
+    usersPage: null,          
+    selectedUser: null, 
+    myActions: {
+      items: [],
+      pagination: null,
+      loading: false,
+      error: null
+    },
+    myActionsStats: {
+      data: null,
+      loading: false,
+      error: null
+    },
   },
+  
   reducers: {
-    logout: (state) => {
-      state.user = null;
-      state.isAuthenticated = false;
-      state.error = null;
+        logoutSync: (state) => {
+        state.user = null;
+        state.isAuthenticated = false;
+        state.token = null;
+        state.error = null;
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
     },
     login: (state, action) => {
       state.user = action.payload.user; // Stocker les données utilisateur
@@ -398,18 +740,172 @@ const userSlice = createSlice({
         state.user = action.payload;
         state.isAuthenticated = true;
       })
-      .addCase(getCurrentUser.rejected, (state, action) => {
+     .addCase(getCurrentUser.rejected, (state, action) => {
+    state.loading = false;
+
+    // Token invalide → déconnexion totale
+    state.isAuthenticated = false;
+    state.user = null;
+    state.token = null;
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    state.error = action.payload || "Unauthenticated";
+})
+      .addCase(fetchMe.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchMe.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload;
+        state.isAuthenticated = true;
+      })
+      .addCase(fetchMe.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
-        // En cas d'erreur 401, déconnecter l'utilisateur
-        if (action.payload && (
-          action.payload.message === 'Unauthenticated.' ||
-          action.payload.status === 401
-        )) {
-          state.isAuthenticated = false;
-          state.user = null;
+        state.isAuthenticated = false;
+        state.user = null;
+      })
+
+      // Update profil
+      .addCase(updateMyProfile.pending, (state) => {
+  state.profileUpdating = true;
+})
+.addCase(updateMyProfile.fulfilled, (state, action) => {
+  state.profileUpdating = false;
+  state.user = { ...state.user, ...action.payload };
+})
+.addCase(updateMyProfile.rejected, (state, action) => {
+  state.profileUpdating = false;
+  state.error = action.payload;
+})
+
+      // Admin: liste paginée
+      .addCase(fetchUsers.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchUsers.fulfilled, (state, action) => {
+        state.loading = false;
+        state.usersPage = action.payload; // { data: [...], current_page, total, ... }
+        state.users = action.payload?.data || [];
+      })
+      .addCase(fetchUsers.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      // Admin: détail
+      .addCase(fetchUserById.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+        state.selectedUser = null;
+      })
+      .addCase(fetchUserById.fulfilled, (state, action) => {
+        state.loading = false;
+        state.selectedUser = action.payload;
+      })
+      .addCase(fetchUserById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      // Admin: création
+      .addCase(createUser.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(createUser.fulfilled, (state, action) => {
+        state.loading = false;
+        // insérer en tête si la liste actuelle existe
+        if (state.users) state.users.unshift(action.payload);
+      })
+      .addCase(createUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      // Admin: mise à jour
+      .addCase(updateUserById.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateUserById.fulfilled, (state, action) => {
+        state.loading = false;
+        state.selectedUser = action.payload;
+        state.users = state.users.map(u => u.id === action.payload.id ? action.payload : u);
+      })
+      .addCase(updateUserById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      // Admin: suppression
+      .addCase(deleteUserById.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteUserById.fulfilled, (state, action) => {
+        state.loading = false;
+        state.users = state.users.filter(u => u.id !== action.payload.id);
+        if (state.selectedUser?.id === action.payload.id) state.selectedUser = null;
+      })
+      .addCase(deleteUserById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      // Admin: assign rôles
+      .addCase(assignRoles.fulfilled, (state, action) => {
+        const { id, roles } = action.payload;
+        if (state.selectedUser?.id === id) {
+          state.selectedUser.roles_list = roles;
         }
+        state.users = state.users.map(u => u.id === id ? { ...u, roles_list: roles } : u);
+      })
+      // Admin: assign permissions
+      .addCase(assignPermissions.fulfilled, (state, action) => {
+        const { id, permissions } = action.payload;
+        if (state.selectedUser?.id === id) {
+          state.selectedUser.permissions_list = permissions;
+        }
+        state.users = state.users.map(u => u.id === id ? { ...u, permissions_list: permissions } : u);
+      })
+      .addCase(fetchMyActions.pending, (state) => {
+        state.myActions.loading = true;
+        state.myActions.error = null;
+      })
+      .addCase(fetchMyActions.fulfilled, (state, action) => {
+        state.myActions.loading = false;
+        state.myActions.items = action.payload.data?.data || [];
+        state.myActions.pagination = {
+          current_page: action.payload.data?.current_page,
+          last_page: action.payload.data?.last_page,
+          per_page: action.payload.data?.per_page,
+          total: action.payload.data?.total
+        };
+      })
+      .addCase(fetchMyActions.rejected, (state, action) => {
+        state.myActions.loading = false;
+        state.myActions.error = action.payload;
+      })
+
+      // 👉 NOUVEAU: Statistiques de mes actions
+      .addCase(fetchMyActionsStats.pending, (state) => {
+        state.myActionsStats.loading = true;
+        state.myActionsStats.error = null;
+      })
+      .addCase(fetchMyActionsStats.fulfilled, (state, action) => {
+        state.myActionsStats.loading = false;
+        state.myActionsStats.data = action.payload.data;
+      })
+      .addCase(fetchMyActionsStats.rejected, (state, action) => {
+        state.myActionsStats.loading = false;
+        state.myActionsStats.error = action.payload;
       });
+  
   },
 });
 export default userSlice.reducer;

@@ -152,6 +152,23 @@ const CompaniesDetails = () => {
   const [notesDrawerOpen, setNotesDrawerOpen] = useState(false);
   const [editNotesForm] = Form.useForm();
 
+    const { user: reduxUser } = useSelector(state => state.user);
+  const storedUser = React.useMemo(() => {
+    try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch { return null; }
+  }, []);
+  const currentUser = reduxUser || storedUser;
+  const isAdmin = React.useMemo(() => {
+    const u = currentUser;
+    if (!u) return false;
+    const flag = [true, 1, '1', 'true'].includes(u?.is_admin);
+    const roleStr = String(u?.role || '').toLowerCase();
+    const list1 = Array.isArray(u?.roles_list) ? u.roles_list : [];
+    const list2 = Array.isArray(u?.role_names) ? u.role_names : [];
+    const list3 = Array.isArray(u?.roles) ? u.roles.map(r => r?.name || r) : [];
+    const all = [roleStr, ...list1, ...list2, ...list3].map(x => String(x).toLowerCase());
+    return flag || all.includes('admin');
+  }, [currentUser]);
+
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -317,31 +334,35 @@ const CompaniesDetails = () => {
               Retour
             </Button>
             
-            <Button 
-              icon={<EditOutlined />}
-              onClick={handleEdit}
-              style={{
-                backgroundColor: 'rgba(255,255,255,0.2)',
-                border: '1px solid rgba(255,255,255,0.3)',
-                color: 'white'
-              }}
-            >
-              Modifier
-            </Button>
-            
-            <Button 
-              icon={<DeleteOutlined />}
-              onClick={handleDelete}
-              loading={operation.loading && operation.type === 'delete'}
-              danger
-              style={{
-                backgroundColor: 'rgba(255,82,82,0.2)',
-                border: '1px solid rgba(255,82,82,0.3)',
-                color: 'white'
-              }}
-            >
-              Supprimer
-            </Button>
+            {isAdmin && (
+              <>
+                <Button 
+                  icon={<EditOutlined />}
+                  onClick={handleEdit}
+                  style={{
+                    backgroundColor: 'rgba(255,255,255,0.2)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    color: 'white'
+                  }}
+                >
+                  Modifier
+                </Button>
+                
+                <Button 
+                  icon={<DeleteOutlined />}
+                  onClick={handleDelete}
+                  loading={operation.loading && operation.type === 'delete'}
+                  danger
+                  style={{
+                    backgroundColor: 'rgba(255,82,82,0.2)',
+                    border: '1px solid rgba(255,82,82,0.3)',
+                    color: 'white'
+                  }}
+                >
+                  Supprimer
+                </Button>
+              </>
+            )}
           </Space>
         </Col>
       </Row>
@@ -473,18 +494,20 @@ const CompaniesDetails = () => {
           title="Notes internes" 
           icon={<FileTextOutlined style={{ color: '#722ed1' }} />}
           extra={
-            <Button 
-              type="link" 
-              icon={<EditOutlined />}
-              onClick={() => {
-                editNotesForm.setFieldsValue({ notes: selectedCompany?.notes });
-                setNotesDrawerOpen(true);
-              }}
-            >
-              Modifier
-            </Button>
-          }
-        >
+    isAdmin && ( // n'afficher que pour admin
+      <Button 
+        type="link" 
+        icon={<EditOutlined />}
+        onClick={() => {
+          editNotesForm.setFieldsValue({ notes: selectedCompany?.notes });
+          setNotesDrawerOpen(true);
+        }}
+      >
+        Modifier
+      </Button>
+    )
+  }
+>
           {selectedCompany?.notes ? (
             <Paragraph style={{ whiteSpace: 'pre-wrap' }}>
               {selectedCompany.notes}

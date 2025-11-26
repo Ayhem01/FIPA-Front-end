@@ -36,6 +36,8 @@ import InvestisseursList from "./components/Portefeuille/InvestisseursList";
 import InvestisseurForm from "./components/Portefeuille/InvestisseurForm";
 import ProjetForm from "./components/Portefeuille/ProjetForm";
 import ProjetsList from "./components/Portefeuille/ProjetsList";
+import RequireAdmin from "./RequireAdmin";
+import Forbidden from "./Forbidden";
 
 
 // import ProjectList from "./components/PipelineProject/ProjectList";
@@ -70,6 +72,8 @@ import CompaniesList from "./components/Companies/CompaniesList";
 import CompaniesForm from "./components/Companies/CompaniesForm";
 import CompaniesDetails from "./components/Companies/CompaniesDetails";
 import DashboardInvite from "./components/chart/DashboardInvite";
+import DashboardProspect from "./components/chart/DashboardProspect";
+import DashboardInvestisseur from "./components/chart/DashboardInvestisseur"
 
 
 
@@ -108,11 +112,11 @@ function App() {
               <Route path="/tasks/create" element={<TaskCreateModal />} />
               <Route path="/tasks/edit/:id" element={<TaskCreateModal />} />
               <Route path="/tasks/:id" element={<TaskDetails />} />
-              <Route path="/tasks/my-tasks" element={<MyTasks />} />
+              <Route path="/tasks/my-tasks" element={<RequireAdmin><MyTasks /></RequireAdmin>} />
               <Route path="/tasks/dashboard" element={<TasksDashboard />} />
               <Route path="/tasks/calendar" element={<TaskCalendar />} />
-              <Route path="/actions/create" element={<ActionForm />} />
-              <Route path="/actions/edit/:id" element={<ActionForm />} />
+              <Route path="/actions/create" element={<RequireAdmin><ActionForm /></RequireAdmin>} />
+              <Route path="/actions/edit/:id" element={<RequireAdmin><ActionForm /></RequireAdmin>} />
               <Route path="/actions" element={<ActionList />} />
               <Route path="/actions/:id" element={<ActionDetail />} />
               <Route path="/prospects/:id" element={<ProspectDetails />} />
@@ -126,14 +130,15 @@ function App() {
               <Route path="/projets" element={<ProjetsList />} />
 
 
+
               {/* <Route path="/blocages" element={<BlockagesPage />} /> */}
               <Route path="/blockages" element={<BlockageList />} />
               <Route path="/blocageCard" element={<BlockageCard />} />
               <Route path="/blockage/:id" element={<BlockageDetails />} />
-              <Route path="/companies" element={<CompaniesList />}/>
-              <Route path="/companies/create" element={<CompaniesForm />} />
-              <Route path="/companies/:id" element={<CompaniesDetails />} />  
-              <Route path="/companies/edit/:id" element={<CompaniesForm />} />
+              <Route path="/companies" element={<CompaniesList />} />
+              <Route path="/companies/create" element={<RequireAdmin><CompaniesForm /></RequireAdmin>} />
+              <Route path="/companies/:id" element={<CompaniesDetails />} />
+              <Route path="/companies/edit/:id" element={<RequireAdmin><CompaniesForm /></RequireAdmin>} />
 
 
               <Route path="/projets/:id" element={<ProjetDetails />} />
@@ -141,10 +146,11 @@ function App() {
               <Route path="/prospects/create" element={<ProspectForm />} />
               <Route path="/prospects/:id" element={<ProspectDetails />} />
               <Route path="/prospects/:id/edit" element={<ProspectForm />} />
-              
+              <Route path="/dashboard/prospects" element={<DashboardProspect />} />
 
 
-              
+
+
 
 
 
@@ -154,11 +160,13 @@ function App() {
               <Route path="/invites/:id" element={<InviteDetails />} />
               <Route path="/invites/:id/edit" element={<InviteForm />} />
               <Route path="/dashboard/invites" element={<DashboardInvite />} />
+              <Route path="/dashboard/investisseurs" element={<DashboardInvestisseur />} />
 
 
 
               <Route path="/dashboard/projets" element={<DashboardProjet />} />
 
+              <Route path="/403" element={<Forbidden />} />
 
 
 

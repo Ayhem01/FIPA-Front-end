@@ -389,7 +389,7 @@ const TasksDashboard = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <Button
+              {/* <Button
                 type="primary"
                 size="large"
                 icon={<PlusOutlined />}
@@ -403,7 +403,7 @@ const TasksDashboard = () => {
                 }}
               >
                 Ajouter une tâche
-              </Button>
+              </Button> */}
             </motion.div>
           </motion.div>
         </div>

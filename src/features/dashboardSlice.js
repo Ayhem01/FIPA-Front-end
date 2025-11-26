@@ -298,7 +298,7 @@ export const fetchInvitesByCountry = createAsyncThunk(
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
-        return response.data;
+        return response.data.data;
       } catch (error) {
         return rejectWithValue(error.response?.data?.message || "Failed to fetch invite stats");
       }
@@ -329,7 +329,7 @@ export const fetchInvitesByCountry = createAsyncThunk(
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
-        return response.data;
+        return response.data.data;
       } catch (error) {
         return rejectWithValue(error.response?.data?.message || "Failed to fetch invites by status");
       }
@@ -345,7 +345,7 @@ export const fetchInvitesByCountry = createAsyncThunk(
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
-        return response.data;
+        return response.data.data;
       } catch (error) {
         return rejectWithValue(error.response?.data?.message || "Failed to fetch invites by potentiel");
       }
@@ -361,7 +361,7 @@ export const fetchInvitesByCountry = createAsyncThunk(
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
-        return response.data;
+        return response.data.data;
       } catch (error) {
         return rejectWithValue(error.response?.data?.message || "Failed to fetch invites evolution");
       }
@@ -425,7 +425,7 @@ export const fetchInvitesByCountry = createAsyncThunk(
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
-        return response.data;
+        return response.data.data;
       } catch (error) {
         return rejectWithValue(error.response?.data?.message || "Failed to fetch invites conversion rate");
       }
@@ -441,7 +441,7 @@ export const fetchInvitesByCountry = createAsyncThunk(
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
-        return response.data;
+        return response.data.data;
       } catch (error) {
         return rejectWithValue(error.response?.data?.message || "Failed to fetch invites by type");
       }
@@ -479,7 +479,147 @@ export const fetchInvitesByCountry = createAsyncThunk(
       }
     }
   );
-  
+  export const fetchProspectsByStatus = createAsyncThunk(
+  "dashboard/fetchProspectsByStatus",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/prospects/status`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      console.log("Prospects by status response:", response.data);
+      return response.data.data;
+    } catch (error) {
+      console.error("Error fetching prospects by status:", error);
+      return rejectWithValue(error.response?.data?.message || "Failed to fetch prospects by status");
+    }
+  }
+);
+
+export const fetchProspectsEvolutionMensuelle = createAsyncThunk(
+  "dashboard/fetchProspectsEvolutionMensuelle",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/prospects/evolution`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      console.log("Prospects evolution response:", response.data);
+      return response.data.data;
+    } catch (error) {
+      console.error("Error fetching prospects evolution:", error);
+      return rejectWithValue(error.response?.data?.message || "Failed to fetch prospects evolution");
+    }
+  }
+);
+
+export const fetchProspectsPipelineProgression = createAsyncThunk(
+  "dashboard/fetchProspectsPipelineProgression",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/prospects/pipeline`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      console.log("Prospects pipeline response:", response.data);
+      return response.data.data;
+    } catch (error) {
+      console.error("Error fetching prospects pipeline:", error);
+      return rejectWithValue(error.response?.data?.message || "Failed to fetch prospects pipeline progression");
+    }
+  }
+);
+
+export const fetchProspectsConversionRate = createAsyncThunk(
+  "dashboard/fetchProspectsConversionRate",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/prospects/conversion`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      console.log("Prospects conversion response:", response.data);
+      return response.data.data;
+    } catch (error) {
+      console.error("Error fetching prospects conversion:", error);
+      return rejectWithValue(error.response?.data?.message || "Failed to fetch prospects conversion rate");
+    }
+  }
+);
+
+export const fetchProspectsByResponsable = createAsyncThunk(
+  "dashboard/fetchProspectsByResponsable",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/prospects/responsable`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      console.log("Prospects by responsable response:", response.data);
+      return response.data.data;
+    } catch (error) {
+      console.error("Error fetching prospects by responsable:", error);
+      return rejectWithValue(error.response?.data?.message || "Failed to fetch prospects by responsable");
+    }
+  }
+);
+
+export const fetchProspectsValueAnalysis = createAsyncThunk(
+  "dashboard/fetchProspectsValueAnalysis",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/prospects/value-analysis`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      console.log("Prospects value analysis response:", response.data);
+      return response.data.data;
+    } catch (error) {
+      console.error("Error fetching prospects value analysis:", error);
+      return rejectWithValue(error.response?.data?.message || "Failed to fetch prospects value analysis");
+    }
+  }
+);
+export const fetchProspectsConversionTimeAnalysis = createAsyncThunk(
+  "dashboard/fetchProspectsConversionTimeAnalysis",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/prospects/conversion-time`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      console.log("Prospects conversion time analysis response:", response.data);
+      return response.data.data;
+    } catch (error) {
+      console.error("Error fetching prospects conversion time analysis:", error);
+      return rejectWithValue(error.response?.data?.message || "Failed to fetch prospects conversion time analysis");
+    }
+  }
+);
+export const fetchInvestorDashboard = createAsyncThunk(
+  "dashboard/fetchInvestorDashboard",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/investisseurs/dashboard/complete`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      console.log("Investor Dashboard response:", response.data);
+      return response.data.data;
+    } catch (error) {
+      console.error("Error fetching investor dashboard:", error);
+      return rejectWithValue(error.response?.data?.message || "Failed to fetch investor dashboard");
+    }
+  }
+);
   
 
 // Slice
@@ -518,6 +658,17 @@ const dashboardSlice = createSlice({
     invitesByType: { data: [], loading: false, error: null },
     topEntreprises: { data: [], loading: false, error: null },
     invitesHeatmap: { data: [], loading: false, error: null },
+
+  prospectsByStatus: { data: [], loading: false, error: null },
+  prospectsEvolutionMensuelle: { data: [], loading: false, error: null },
+  prospectsPipelineProgression: { data: [], loading: false, error: null },
+  prospectsConversionRate: { data: null, loading: false, error: null },
+  prospectsByResponsable: { data: [], loading: false, error: null },
+  prospectsValueAnalysis: { data: null, loading: false, error: null },
+  prospectsConversionTimeAnalysis: { data: [], loading: false, error: null },
+
+   investorDashboard: { data: [], loading: false, error: null },
+
  
 
   },
@@ -922,6 +1073,112 @@ const dashboardSlice = createSlice({
       .addCase(fetchInvitesHeatmap.rejected, (state, action) => {
         state.invitesHeatmap.loading = false;
         state.invitesHeatmap.error = action.payload;
+      })
+      .addCase(fetchProspectsByStatus.pending, (state) => {
+        state.prospectsByStatus.loading = true;
+        state.prospectsByStatus.error = null;
+      })
+      .addCase(fetchProspectsByStatus.fulfilled, (state, action) => {
+        state.prospectsByStatus.loading = false;
+        state.prospectsByStatus.data = action.payload;
+      })
+      .addCase(fetchProspectsByStatus.rejected, (state, action) => {
+        state.prospectsByStatus.loading = false;
+        state.prospectsByStatus.error = action.payload;
+      })
+
+      // Prospects Evolution Mensuelle
+      .addCase(fetchProspectsEvolutionMensuelle.pending, (state) => {
+        state.prospectsEvolutionMensuelle.loading = true;
+        state.prospectsEvolutionMensuelle.error = null;
+      })
+      .addCase(fetchProspectsEvolutionMensuelle.fulfilled, (state, action) => {
+        state.prospectsEvolutionMensuelle.loading = false;
+        state.prospectsEvolutionMensuelle.data = action.payload;
+      })
+      .addCase(fetchProspectsEvolutionMensuelle.rejected, (state, action) => {
+        state.prospectsEvolutionMensuelle.loading = false;
+        state.prospectsEvolutionMensuelle.error = action.payload;
+      })
+
+      // Prospects Pipeline Progression
+      .addCase(fetchProspectsPipelineProgression.pending, (state) => {
+        state.prospectsPipelineProgression.loading = true;
+        state.prospectsPipelineProgression.error = null;
+      })
+      .addCase(fetchProspectsPipelineProgression.fulfilled, (state, action) => {
+        state.prospectsPipelineProgression.loading = false;
+        state.prospectsPipelineProgression.data = action.payload;
+      })
+      .addCase(fetchProspectsPipelineProgression.rejected, (state, action) => {
+        state.prospectsPipelineProgression.loading = false;
+        state.prospectsPipelineProgression.error = action.payload;
+      })
+
+      // Prospects Conversion Rate
+      .addCase(fetchProspectsConversionRate.pending, (state) => {
+        state.prospectsConversionRate.loading = true;
+        state.prospectsConversionRate.error = null;
+      })
+      .addCase(fetchProspectsConversionRate.fulfilled, (state, action) => {
+        state.prospectsConversionRate.loading = false;
+        state.prospectsConversionRate.data = action.payload;
+      })
+      .addCase(fetchProspectsConversionRate.rejected, (state, action) => {
+        state.prospectsConversionRate.loading = false;
+        state.prospectsConversionRate.error = action.payload;
+      })
+
+      // Prospects by Responsable
+      .addCase(fetchProspectsByResponsable.pending, (state) => {
+        state.prospectsByResponsable.loading = true;
+        state.prospectsByResponsable.error = null;
+      })
+      .addCase(fetchProspectsByResponsable.fulfilled, (state, action) => {
+        state.prospectsByResponsable.loading = false;
+        state.prospectsByResponsable.data = action.payload;
+      })
+      .addCase(fetchProspectsByResponsable.rejected, (state, action) => {
+        state.prospectsByResponsable.loading = false;
+        state.prospectsByResponsable.error = action.payload;
+      })
+
+      // Prospects Value Analysis
+      .addCase(fetchProspectsValueAnalysis.pending, (state) => {
+        state.prospectsValueAnalysis.loading = true;
+        state.prospectsValueAnalysis.error = null;
+      })
+      .addCase(fetchProspectsValueAnalysis.fulfilled, (state, action) => {
+        state.prospectsValueAnalysis.loading = false;
+        state.prospectsValueAnalysis.data = action.payload;
+      })
+      .addCase(fetchProspectsValueAnalysis.rejected, (state, action) => {
+        state.prospectsValueAnalysis.loading = false;
+        state.prospectsValueAnalysis.error = action.payload;
+      })
+       .addCase(fetchProspectsConversionTimeAnalysis.pending, (state) => {
+        state.prospectsConversionTimeAnalysis.loading = true;
+        state.prospectsConversionTimeAnalysis.error = null;
+      })
+      .addCase(fetchProspectsConversionTimeAnalysis.fulfilled, (state, action) => {
+        state.prospectsConversionTimeAnalysis.loading = false;
+        state.prospectsConversionTimeAnalysis.data = action.payload;
+      })
+      .addCase(fetchProspectsConversionTimeAnalysis.rejected, (state, action) => {
+        state.prospectsConversionTimeAnalysis.loading = false;
+        state.prospectsConversionTimeAnalysis.error = action.payload;
+      })
+      .addCase(fetchInvestorDashboard.pending, (state) => {
+        state.investorDashboard.loading = true;
+        state.investorDashboard.error = null;
+      })
+      .addCase(fetchInvestorDashboard.fulfilled, (state, action) => {
+        state.investorDashboard.loading = false;
+        state.investorDashboard.data = action.payload;
+      })
+      .addCase(fetchInvestorDashboard.rejected, (state, action) => {
+        state.investorDashboard.loading = false;
+        state.investorDashboard.error = action.payload;
       });
 
   },

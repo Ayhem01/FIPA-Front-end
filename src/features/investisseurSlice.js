@@ -174,17 +174,41 @@ export const getPipelineStatus = createAsyncThunk(
             console.log('Fetching pipeline for investisseur:', id);
             const response = await api.get(`/investisseurs/${id}/pipeline`);
             console.log('Pipeline response:', response.data);
-            return response.data.data;
+
+            const data = response.data?.data || {};
+            // Normalisation: extraire partout où ça peut être
+            const stages = data.stages || data.all_stages || [];
+            const currentStage = data.current_stage || data.currentStage || null;
+            const progression =
+                data.progressions ||
+                data.pipeline_progressions ||
+                data.investisseur?.pipeline_progressions ||
+                [];
+
+            // Pourcentage fallback si backend ne le donne pas
+            const completedCount = Array.isArray(progression)
+                ? progression.filter(p => p?.completed === true || p?.completed === 1).length
+                : 0;
+            const progressionPercentage = data.progression_percentage ??
+                (stages.length > 0 ? Math.round((completedCount / stages.length) * 100) : 0);
+
+            return {
+                stages,
+                currentStage,
+                progression,
+                progressionPercentage,
+                investisseur: data.investisseur || null,
+                canConvertToProject: data.can_convert_to_project ?? false,
+                raw: data // debug
+            };
         } catch (error) {
             console.error('Error fetching pipeline:', error);
-            // Si le pipeline n'existe pas, retourner null au lieu d'une erreur
-            if (error.response?.status === 404) {
-                return null;
-            }
+            if (error.response?.status === 404) return null;
             return rejectWithValue(formatErrorMessage(error));
         }
     }
 );
+
 
 export const convertToProject = createAsyncThunk(
     'investisseurs/convertToProject',
@@ -209,6 +233,7 @@ const initialState = {
         data: null,
         stages: [],
         currentStage: null,
+        progression: [],
         loading: false,
         error: null
     },
@@ -477,33 +502,35 @@ const investisseurSlice = createSlice({
                 state.pipeline.loading = true;
                 state.pipeline.error = null;
             })
-            .addCase(getPipelineStatus.fulfilled, (state, action) => {
-                state.pipeline.loading = false;
-                console.log('Pipeline action payload received:', action.payload);
+.addCase(getPipelineStatus.fulfilled, (state, action) => {
+    state.pipeline.loading = false;
+    console.log('✅ Pipeline action payload received (normalized):', action.payload);
 
-                if (action.payload) {
-                    // Votre API retourne directement les données dans action.payload
-                    // Structure: { investisseur: {...}, pipeline_type: {...}, current_stage: {...}, stages: [...], ... }
-                    state.pipeline.data = action.payload; // Stocker toute la réponse
-                    state.pipeline.stages = action.payload.stages || [];
-                    state.pipeline.currentStage = action.payload.current_stage || null;
+    if (action.payload) {
+        // payload normalisé
+        state.pipeline.data = action.payload;
+        state.pipeline.stages = action.payload.stages || [];
+        state.pipeline.currentStage = action.payload.currentStage || null;
+        state.pipeline.progression = Array.isArray(action.payload.progression)
+            ? action.payload.progression
+            : [];
 
-                    // Mettre à jour aussi l'investisseur si présent
-                    if (action.payload.investisseur) {
-                        state.selectedInvestisseur.data = action.payload.investisseur;
-                    }
+        if (action.payload.investisseur) {
+            state.selectedInvestisseur.data = action.payload.investisseur;
+        }
 
-                    console.log('Pipeline state updated:', {
-                        hasData: !!state.pipeline.data,
-                        stagesCount: state.pipeline.stages.length,
-                        currentStage: state.pipeline.currentStage
-                    });
-                } else {
-                    state.pipeline.data = null;
-                    state.pipeline.stages = [];
-                    state.pipeline.currentStage = null;
-                }
-            })
+        console.log('✅ Pipeline state updated:', {
+            stagesCount: state.pipeline.stages.length,
+            currentStage: state.pipeline.currentStage?.name,
+            progressionCount: state.pipeline.progression.length
+        });
+    } else {
+        state.pipeline.data = null;
+        state.pipeline.stages = [];
+        state.pipeline.currentStage = null;
+        state.pipeline.progression = [];
+    }
+})
             .addCase(getPipelineStatus.rejected, (state, action) => {
                 state.pipeline.loading = false;
                 state.pipeline.error = action.payload;

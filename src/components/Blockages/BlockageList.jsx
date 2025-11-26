@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom'; // Ajouté pour la navigation
+import { useNavigate } from 'react-router-dom'; 
 import { 
   Table, Tag, Button, Space, Typography, Row, Col, Select, Input, 
   Tooltip, message, Modal, Badge, Alert
@@ -9,7 +9,7 @@ import {
   AlertOutlined, SearchOutlined, FilterOutlined, ClearOutlined,
   EditOutlined, DeleteOutlined, CheckCircleOutlined, 
   ExclamationCircleOutlined, ThunderboltOutlined, WarningOutlined,
-  UserOutlined, EyeOutlined // Ajouté pour l'icône "voir"
+  UserOutlined, EyeOutlined 
 } from '@ant-design/icons';
 import { motion } from 'framer-motion';
 import { 
@@ -98,6 +98,7 @@ const BlockageList = ({ onEdit }) => {
       dispatch(resetOperation());
     }
   }, [operation, dispatch]);
+  
 
   const handleViewDetails = (record) => {
     console.log('Navigation vers les détails du blocage:', record.id);
@@ -459,7 +460,7 @@ const BlockageList = ({ onEdit }) => {
                   backgroundColor: '#52c41a',
                   borderColor: '#52c41a'
                 }}
-                onClick={() => handleResolve(record.id)}
+                onClick={() => handleResolve(record)}
               />
             </Tooltip>
           )}

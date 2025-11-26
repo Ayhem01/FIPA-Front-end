@@ -301,6 +301,20 @@ const ActionList = () => {
   const screens = useBreakpoint();
   const { items: actionsData, loading } = useSelector((state) => state.marketing.actions || { items: [] });
 
+    const currentUser = useSelector(state => state.user.user);
+  const isAdmin = React.useMemo(() => {
+    if (!currentUser) return false;
+    const flag = [true, 1, '1', 'true'].includes(currentUser.is_admin);
+    const roleStr = String(currentUser.role || '').toLowerCase();
+    const roles = [
+      roleStr,
+      ...(Array.isArray(currentUser.roles_list) ? currentUser.roles_list : []),
+      ...(Array.isArray(currentUser.role_names) ? currentUser.role_names : []),
+      ...(Array.isArray(currentUser.roles) ? currentUser.roles.map(r => r?.name || r) : [])
+    ].filter(Boolean).map(x => String(x).toLowerCase());
+    return flag || roles.includes('admin');
+  }, [currentUser]);
+
   // États pour la recherche, les filtres et la pagination
   const [searchText, setSearchText] = useState('');
   const [filters, setFilters] = useState({
@@ -520,7 +534,7 @@ const ActionList = () => {
   };
 
   // Définition des colonnes du tableau
-  const columns = [
+  const baseColumns = [
     {
       title: 'Action',
       dataIndex: 'nom',
@@ -633,52 +647,59 @@ const ActionList = () => {
           <Text type="secondary">-</Text>
         );
       },
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      width: 120,
-      render: (_, record) => (
-        <Space size="small" className="action-buttons">
-          <Tooltip title="Voir les détails">
-            <Link to={`/actions/${record.id}`}>
-              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                <Button
-                  type="text"
-                  icon={<EyeOutlined />}
-                  className="modern-action-btn view-btn"
-                  size="small"
-                />
-              </motion.div>
-            </Link>
-          </Tooltip>
-          <Tooltip title="Modifier">
-            <Link to={`/actions/edit/${record.id}`}>
-              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                <Button
-                  type="text"
-                  icon={<EditOutlined />}
-                  className="modern-action-btn edit-btn"
-                  size="small"
-                />
-              </motion.div>
-            </Link>
-          </Tooltip>
-          <Tooltip title="Supprimer">
-            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-              <Button
-                type="text"
-                icon={<DeleteOutlined />}
-                onClick={() => handleDeleteAction(record.id)}
-                className="modern-action-btn delete-btn"
-                size="small"
-              />
-            </motion.div>
-          </Tooltip>
-        </Space>
-      ),
-    },
+    }
   ];
+  const columns = React.useMemo(() => {
+    if (!isAdmin) return baseColumns;
+    return [
+      ...baseColumns,
+      {
+        title: 'Actions',
+        key: 'actions',
+        width: 120,
+        render: (_, record) => (
+          <Space size="small" className="action-buttons">
+            <Tooltip title="Voir les détails">
+              <Link to={`/actions/${record.id}`}>
+                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                  <Button
+                    type="text"
+                    icon={<EyeOutlined />}
+                    className="modern-action-btn view-btn"
+                    size="small"
+                  />
+                </motion.div>
+              </Link>
+            </Tooltip>
+            <Tooltip title="Modifier">
+              <Link to={`/actions/edit/${record.id}`}>
+                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                  <Button
+                    type="text"
+                    icon={<EditOutlined />}
+                    className="modern-action-btn edit-btn"
+                    size="small"
+                  />
+                </motion.div>
+              </Link>
+            </Tooltip>
+            <Tooltip title="Supprimer">
+              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  type="text"
+                  icon={<DeleteOutlined />}
+                  onClick={() => handleDeleteAction(record.id)}
+                  className="modern-action-btn delete-btn"
+                  size="small"
+                />
+              </motion.div>
+            </Tooltip>
+          </Space>
+        ),
+      }
+    ];
+  }, [isAdmin, baseColumns]);
+
 
   const rowSelection = {
     selectedRowKeys,
@@ -705,26 +726,8 @@ const ActionList = () => {
   };
 
   return (
-    <div className="actions-container-modern">
-      {/* Breadcrumb */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <Breadcrumb style={{ marginBottom: 24 }}>
-          <Breadcrumb.Item>
-            <Link to="/dashboard">
-              <HomeOutlined /> Dashboard
-            </Link>
-          </Breadcrumb.Item>
-          <Breadcrumb.Item>
-            <FileTextOutlined /> Actions Marketing
-          </Breadcrumb.Item>
-        </Breadcrumb>
-      </motion.div>
-
-      {/* En-tête principal similaire au dashboard */}
+ <div className="actions-container-modern">
+      {/* En-tête principal */}
       <motion.div
         variants={headerVariants}
         initial="hidden"
@@ -761,7 +764,7 @@ const ActionList = () => {
           }}
         />
 
-        <Row justify="space-between" align="middle" style={{ position: 'relative', zIndex: 1 }}>
+       <Row justify="space-between" align="middle" style={{ position: 'relative', zIndex: 1 }}>
           <Col xs={24} lg={16}>
             <motion.div
               initial={{ opacity: 0, x: -30 }}
@@ -784,7 +787,7 @@ const ActionList = () => {
                 />
               </motion.div>
               
-              <div>
+               <div>
                 <Title level={1} style={{ color: 'white', margin: 0, fontWeight: 700 }}>
                   Actions Marketing
                 </Title>
@@ -808,23 +811,24 @@ const ActionList = () => {
                 marginTop: screens.lg ? 0 : '16px'
               }}
             >
-              <Link to="/actions/create">
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  size="large"
-                  style={{
-                    background: 'rgba(255,255,255,0.2)',
-                    border: '1px solid rgba(255,255,255,0.3)',
-                    borderRadius: '8px',
-                    backdropFilter: 'blur(10px)',
-                    fontWeight: 500
-                  }}
-                >
-                  Nouvelle action
-                </Button>
-              </Link>
-           
+              {isAdmin && (
+                <Link to="/actions/create">
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    size="large"
+                    style={{
+                      background: 'rgba(255,255,255,0.2)',
+                      border: '1px solid rgba(255,255,255,0.3)',
+                      borderRadius: '8px',
+                      backdropFilter: 'blur(10px)',
+                      fontWeight: 500
+                    }}
+                  >
+                    Nouvelle action
+                  </Button>
+                </Link>
+              )}
             </motion.div>
           </Col>
         </Row>
@@ -1094,9 +1098,9 @@ const ActionList = () => {
                   total={pagination.total}
                   pageSizeOptions={['10', '20', '50', '100']}
                   onChange={(page, pageSize) => setPagination({ current: page, pageSize, total: pagination.total })}
-                  showSizeChanger
-                  showQuickJumper
-                  showTotal={(total, range) => `${range[0]}-${range[1]} de ${total} actions`}
+                  // showSizeChanger
+                  // showQuickJumper
+                  // // showTotal={(total, range) => `${range[0]}-${range[1]} de ${total} actions`}
                   className="modern-pagination"
                 />
               </div>

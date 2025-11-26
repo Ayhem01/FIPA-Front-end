@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { fetchAllUsers } from '../../features/userSlice';
 import { useDispatch, useSelector } from 'react-redux';
+import { Navigate } from 'react-router-dom';
+import { getCurrentUser } from '../../features/userSlice';
+
 import moment from 'moment';
 import {
   Form,
@@ -196,6 +199,7 @@ const ActionForm = () => {
   const [users, setUsers] = useState([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [stepsData, setStepsData] = useState({});
+  const { user: currentUser, loading: userLoading } = useSelector((s) => s.user);
 
   // Charger les détails de l'action en cas de mode édition
   useEffect(() => {
@@ -215,6 +219,29 @@ const ActionForm = () => {
       loadActionDetails();
     }
   }, [dispatch, id, isEditMode]);
+
+
+    useEffect(() => {
+    if (!currentUser?.id) dispatch(getCurrentUser());
+  }, [dispatch, currentUser?.id]);
+
+  const isAdmin =
+    currentUser?.is_admin === true ||
+    currentUser?.role === 'admin' ||
+    (Array.isArray(currentUser?.roles_list) && currentUser.roles_list.includes('admin')) ||
+    (Array.isArray(currentUser?.roles) && currentUser.roles.some(r => (r?.name || r) === 'admin'));
+
+  if (userLoading && !currentUser) {
+    return (
+      <div style={{ minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Spin />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/403" replace />;
+  }
 
   // Charger les utilisateurs pour le champ responsable
   useEffect(() => {
@@ -865,28 +892,7 @@ const ActionForm = () => {
 
   return (
     <div className="form-container-modern">
-      {/* Breadcrumb */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <Breadcrumb style={{ marginBottom: 24 }}>
-          <Breadcrumb.Item>
-            <Link to="/dashboard">
-              <HomeOutlined /> Dashboard
-            </Link>
-          </Breadcrumb.Item>
-          <Breadcrumb.Item>
-            <Link to="/actions">
-              <FileTextOutlined /> Actions
-            </Link>
-          </Breadcrumb.Item>
-          <Breadcrumb.Item>
-            {isEditMode ? 'Modifier une action' : 'Nouvelle action'}
-          </Breadcrumb.Item>
-        </Breadcrumb>
-      </motion.div>
+     
 
       {/* En-tête principal similaire au dashboard */}
       <motion.div

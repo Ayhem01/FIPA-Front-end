@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Tabs, Spin, Alert, Row, Col, Badge, Empty, Typography } from 'antd';
 import { motion } from 'framer-motion';
@@ -31,12 +31,40 @@ const itemVariants = {
 };
 
 
-const PipelineBlockages = ({ entityType, entityId, pipelineStages = [], title = "Blocages par étape" }) => {
+const PipelineBlockages = ({ entityType, entityId, pipelineStages = [], title = "Blocages par étape", onChange }) => {
   const dispatch = useDispatch();
   const { entityBlockages, loading, error, operation } = useSelector(state => state.blockages);
   const [groupedBlockages, setGroupedBlockages] = useState({});
   const [activeTabKey, setActiveTabKey] = useState('all');
-  
+  const lastOpRef = useRef(null);
+  useEffect(() => {
+    const key = JSON.stringify({
+      type: operation?.type,
+      success: operation?.success,
+      id: operation?.id,
+      at: operation?.at || operation?.timestamp
+    });
+
+    if (operation?.success && key !== lastOpRef.current) {
+      lastOpRef.current = key;
+      // Notifier le parent
+      if (typeof onChange === 'function') {
+        onChange(operation);
+      }
+      // Notifier globalement (si d’autres composants/onglets doivent réagir)
+      try {
+        window.dispatchEvent(new CustomEvent('blockage:changed', {
+          detail: { entityType, entityId, operation }
+        }));
+        if ('BroadcastChannel' in window) {
+          const bc = new BroadcastChannel('pipeline-blockages');
+          bc.postMessage({ entityType, entityId, operation, at: Date.now() });
+          bc.close();
+        }
+      } catch (_) {}
+    }
+  }, [operation, onChange, entityType, entityId]);
+
   // Charger les blocages au chargement ou quand entityType/entityId change
   useEffect(() => {
     if (entityType && entityId) {

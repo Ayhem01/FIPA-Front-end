@@ -404,7 +404,7 @@ const SignIn = () => {
                                             </Form.Item>
                                         </motion.div>
 
-                                        <motion.div
+                                        {/* <motion.div
                                             initial={{ opacity: 0 }}
                                             animate={{ opacity: 1 }}
                                             transition={{ delay: 0.9 }}
@@ -423,7 +423,7 @@ const SignIn = () => {
                                                     Créer un compte
                                                 </Link>
                                             </Text>
-                                        </motion.div>
+                                        </motion.div> */}
                                     </Form>
                                 </Card>
                             </motion.div>

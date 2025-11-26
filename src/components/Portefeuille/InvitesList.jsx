@@ -961,6 +961,18 @@ const InvitesList = () => {
                 >
                   Nouvel Invité
                 </Button>
+                <Button 
+                  type="primary" 
+                  icon={<DashboardOutlined />}
+                  onClick={() => navigate('/dashboard/invites')}
+                  style={{
+                    background: 'rgba(255,255,255,0.2)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    backdropFilter: 'blur(10px)'
+                  }}
+                >
+                  Dashboard Invité
+                </Button>
               </Space>
             </motion.div>
           </Col>

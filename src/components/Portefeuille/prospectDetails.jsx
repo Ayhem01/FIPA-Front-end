@@ -15,7 +15,7 @@ import {
   QuestionCircleOutlined, DownOutlined, EllipsisOutlined, HistoryOutlined, LoadingOutlined, PlusOutlined,
   MessageOutlined, InfoCircleOutlined, SendOutlined, AuditOutlined, BellOutlined, GlobalOutlined, RightOutlined,
   SearchOutlined, SettingOutlined, ClockCircleOutlined, ArrowUpOutlined, WarningOutlined, LinkOutlined,
-  HomeOutlined
+  HomeOutlined, SyncOutlined, FireOutlined, ThunderboltOutlined, ReloadOutlined
 } from '@ant-design/icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -43,6 +43,8 @@ import { createPipelineStageTask, getPipelineStageTasks } from '../../features/t
 import TaskCreateModal from '../Tasks/TaskCreateModal';
 import PipelineStageManager from '../Portefeuille/PipelineStageManager';
 import PipelineVisualizer from '../Portefeuille/PipelineVisualizer';
+import BlockageForm from '../Blockages/BlockageForm'; // <- AJOUT
+
 
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
@@ -53,6 +55,252 @@ const { TextArea } = Input;
 const { useBreakpoint } = Grid;
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+
+// Composant de statistique animée (identique à InviteDetails)
+const AnimatedStatCard = ({ icon, title, value, prefix, suffix, color, loading, delay = 0 }) => {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    if (!loading && typeof value === 'number' && value > 0) {
+      const duration = 1500;
+      const steps = 30;
+      const increment = value / steps;
+      let current = 0;
+      
+      const timer = setInterval(() => {
+        current += increment;
+        if (current >= value) {
+          setDisplayValue(value);
+          clearInterval(timer);
+        } else {
+          setDisplayValue(Math.floor(current));
+        }
+      }, duration / steps);
+
+      return () => clearInterval(timer);
+    } else if (!loading) {
+      setDisplayValue(value);
+    }
+  }, [value, loading]);
+
+  const cardVariants = {
+    hidden: { 
+      opacity: 0, 
+      y: 20,
+      scale: 0.95
+    },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      scale: 1,
+      transition: {
+        duration: 0.5,
+        delay: delay * 0.1,
+        ease: "easeOut"
+      }
+    },
+    hover: {
+      y: -3,
+      scale: 1.02,
+      transition: {
+        duration: 0.2,
+        ease: "easeInOut"
+      }
+    }
+  };
+
+  return (
+    <motion.div
+      variants={cardVariants}
+      initial="hidden"
+      animate="visible"
+      whileHover="hover"
+      style={{ height: '100%' }}
+    >
+      <Card 
+        className="stat-card-modern"
+        style={{
+          height: '100%',
+          background: `linear-gradient(135deg, ${color}15 0%, ${color}25 100%)`,
+          border: `1px solid ${color}30`,
+          borderRadius: '16px',
+          overflow: 'hidden',
+          position: 'relative'
+        }}
+        bodyStyle={{ padding: '20px' }}
+      >
+        <div className="stat-card-content">
+          <motion.div 
+            className="stat-icon"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: delay * 0.1 + 0.2 }}
+            style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '10px',
+              background: `linear-gradient(135deg, ${color} 0%, ${color}80 100%)`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontSize: '20px',
+              boxShadow: `0 4px 12px ${color}40`,
+              marginBottom: '12px'
+            }}
+          >
+            {loading ? <SyncOutlined spin /> : icon}
+          </motion.div>
+
+          <Text type="secondary" style={{ fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+            {title}
+          </Text>
+          
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: delay * 0.1 + 0.3 }}
+          >
+            <Title level={3} style={{ 
+              margin: '4px 0 0 0', 
+              color: color,
+              fontWeight: 700,
+              fontSize: '22px'
+            }}>
+              {prefix}
+              <motion.span
+                key={displayValue}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                {typeof displayValue === 'number' ? displayValue.toLocaleString() : displayValue}
+              </motion.span>
+              {suffix}
+            </Title>
+          </motion.div>
+        </div>
+
+        {/* Effet de brillance */}
+        <motion.div
+          className="shine-effect"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: '-100%',
+            width: '100%',
+            height: '100%',
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+            transform: 'skewX(-25deg)',
+            pointerEvents: 'none'
+          }}
+          animate={{
+            left: ['100%', '200%']
+          }}
+          transition={{
+            duration: 2,
+            delay: delay * 0.1 + 1,
+            ease: "easeInOut"
+          }}
+        />
+      </Card>
+    </motion.div>
+  );
+};
+
+// Composant de carte animée (identique à InviteDetails)
+const AnimatedContentCard = ({ title, children, loading, extra, delay = 0 }) => {
+  const cardVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: {
+        duration: 0.6,
+        delay: delay * 0.1,
+        ease: "easeOut"
+      }
+    }
+  };
+
+  return (
+    <motion.div
+      variants={cardVariants}
+      initial="hidden"
+      animate="visible"
+      style={{ height: '100%' }}
+    >
+      <Card
+        className="content-card-modern"
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: delay * 0.1 + 0.2 }}
+            >
+              <div style={{
+                width: '8px',
+                height: '24px',
+                borderRadius: '4px',
+                background: 'linear-gradient(135deg, #667eea, #764ba2)'
+              }} />
+            </motion.div>
+            <Title level={4} style={{ margin: 0, fontWeight: 600 }}>
+              {title}
+            </Title>
+          </div>
+        }
+        extra={extra}
+        style={{
+          height: '100%',
+          borderRadius: '16px',
+          border: '1px solid #f0f0f0',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+          overflow: 'hidden'
+        }}
+        bodyStyle={{ padding: '24px' }}
+      >
+        <AnimatePresence mode="wait">
+          {loading ? (
+            <motion.div
+              key="loading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '200px'
+              }}
+            >
+              <div style={{ textAlign: 'center' }}>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  style={{ marginBottom: '16px' }}
+                >
+                  <SyncOutlined style={{ fontSize: '32px', color: '#667eea' }} />
+                </motion.div>
+                <Text type="secondary">Chargement des données...</Text>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="content"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4 }}
+            >
+              {children}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Card>
+    </motion.div>
+  );
+};
 
 const ProspectDetails = () => {
   const [taskForm] = Form.useForm();
@@ -450,8 +698,14 @@ const ProspectDetails = () => {
           animate={{ opacity: 1, scale: 1 }}
           className="loading-content"
         >
-          <Spin size="large" />
-          <Title level={4} style={{ marginTop: 16, color: '#666' }}>
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            style={{ marginBottom: '16px' }}
+          >
+            <SyncOutlined style={{ fontSize: '48px', color: '#667eea' }} />
+          </motion.div>
+          <Title level={4} style={{ color: '#666' }}>
             Chargement des détails du prospect...
           </Title>
         </motion.div>
@@ -544,18 +798,54 @@ const ProspectDetails = () => {
         </Breadcrumb>
       </motion.div>
 
-      {/* En-tête principal */}
+      {/* En-tête principal avec gradient identique à InviteDetails */}
       <motion.div
         variants={headerVariants}
         initial="hidden"
         animate="visible"
+        className="prospect-header"
+        style={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderRadius: '20px',
+          padding: '32px',
+          marginBottom: '32px',
+          color: 'white',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
       >
-        <Card className="modern-header-card">
-          <div className="header-content">
-            <div className="header-info">
+        <motion.div
+          className="header-background"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            opacity: 0.1,
+            backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.1\'%3E%3Ccircle cx=\'30\' cy=\'30\' r=\'4\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")'
+          }}
+          animate={{
+            backgroundPosition: ['0px 0px', '60px 60px']
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "linear"
+          }}
+        />
+
+        <Row justify="space-between" align="middle" style={{ position: 'relative', zIndex: 1 }}>
+          <Col xs={24} lg={16}>
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              style={{ display: 'flex', alignItems: 'center', gap: '20px' }}
+            >
               <motion.div
-                whileHover={{ scale: 1.05 }}
-                transition={{ duration: 0.2 }}
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                transition={{ duration: 0.3 }}
               >
                 <Avatar 
                   size={64} 
@@ -563,12 +853,14 @@ const ProspectDetails = () => {
                   style={{ 
                     backgroundColor: prospect.potentiel === 'élevé' ? '#f5222d' : 
                                     prospect.potentiel === 'moyen' ? '#faad14' : '#1890ff',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                    fontSize: '28px',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.2)'
                   }} 
                 />
               </motion.div>
-              <div className="header-details">
-                <Title level={2} style={{ margin: 0, color: '#1890ff' }}>
+              
+              <div>
+                <Title level={1} style={{ color: 'white', margin: 0, fontWeight: 700 }}>
                   {prospect.nom}
                   {prospect.is_converted && (
                     <Tag color="success" style={{ marginLeft: 12 }}>
@@ -576,196 +868,247 @@ const ProspectDetails = () => {
                     </Tag>
                   )}
                 </Title>
-                <Space size="large" style={{ marginTop: 8 }}>
-                  <Text type="secondary">
-                    <BankOutlined style={{ marginRight: 6 }} />
-                    {prospect.entreprise?.nom || 'Entreprise non définie'}
-                  </Text>
-                  <Text type="secondary">
-                    <CalendarOutlined style={{ marginRight: 6 }} />
-                    Créé le {moment(prospect.created_at).format('DD/MM/YYYY')}
-                  </Text>
-                  <div>{renderStatus(prospect.statut)}</div>
-                </Space>
+                <Paragraph style={{ color: 'rgba(255,255,255,0.8)', fontSize: '16px', margin: '8px 0 0 0' }}>
+                  <BankOutlined style={{ marginRight: 6 }} />
+                  {prospect.entreprise?.nom || 'Entreprise non définie'} • 
+                  <CalendarOutlined style={{ marginLeft: 8, marginRight: 6 }} />
+                  Créé le {moment(prospect.created_at).format('DD/MM/YYYY')}
+                </Paragraph>
               </div>
-            </div>
+            </motion.div>
+          </Col>
+          
+          <Col xs={24} lg={8}>
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 }}
+              style={{ 
+                display: 'flex', 
+                gap: '12px', 
+                justifyContent: screens.lg ? 'flex-end' : 'flex-start',
+                flexWrap: 'wrap',
+                marginTop: screens.lg ? 0 : '16px'
+              }}
+            >
+              
 
-            <div className="header-actions">
-              <Space size="middle">
-                {nextStage && !prospect.is_converted && (
-                  <Button
-                    type="default"
-                    icon={<RightOutlined />}
-                    onClick={() => setPipelineModalVisible(true)}
-                    className="modern-btn"
-                  >
-                    {screens.xs ? 'Avancer' : `Avancer vers: ${nextStage.name}`}
-                  </Button>
-                )}
-
-                <Dropdown overlay={statusMenu} placement="bottomRight">
-                  <Button className="modern-btn">
-                    Statut <DownOutlined />
-                  </Button>
-                </Dropdown>
-
-                {prospect.is_converted && prospect.investisseur ? (
-                  <Button
-                    type="primary"
-                    icon={<LinkOutlined />}
-                    onClick={() => navigate(`/investisseurs/${prospect.investisseur.id}`)}
-                    className="modern-btn-primary"
-                  >
-                    {screens.xs ? 'Voir' : 'Voir l\'investisseur'}
-                  </Button>
-                ) : prospect.is_converted ? (
-                  <Button
-                    disabled
-                    icon={<CheckOutlined />}
-                    className="modern-btn-disabled"
-                  >
-                    {screens.xs ? 'Converti' : 'Déjà converti'}
-                  </Button>
-                ) : (
-                  <Button
-                    type="primary"
-                    onClick={() => {
-                      if (prospect.statut === 'converti' || prospect.converted_at) {
-                        message.info('Ce prospect est déjà converti en investisseur');
-                        return;
-                      }
-
-                      if (!currentStage) {
-                        message.warning('Aucune étape de pipeline définie pour ce prospect');
-                        return;
-                      }
-
-                      if (!currentStage.is_final) {
-                        message.warning({
-                          content: (
-                            <div>
-                              <p>Le prospect doit être dans l'étape finale du pipeline pour être converti.</p>
-                              <p><strong>Étape actuelle :</strong> {currentStage.name}</p>
-                              <p><strong>Type d'étape :</strong> {currentStage.is_final ? 'Finale' : 'Intermédiaire'}</p>
-                              <p>Faites progresser le prospect jusqu'à l'étape finale ou marquez l'étape actuelle comme finale.</p>
-                            </div>
-                          ),
-                          duration: 6
-                        });
-                        return;
-                      }
-
-                      setConversionModalVisible(true);
-                    }}
-                    disabled={prospect.statut === 'converti' || prospect.converted_at}
-                    className="modern-btn-primary"
-                  >
-                    {screens.xs ? 'Convertir' : 'Convertir en investisseur'}
-                  </Button>
-                )}
-
-                <Dropdown
-                  overlay={
-                    <Menu>
-                      <Menu.Item key="edit" icon={<EditOutlined />} onClick={() => navigate(`/prospects/${id}/edit`)}>
-                        Modifier
-                      </Menu.Item>
-                      <Menu.Divider />
-                      <Menu.Item key="delete" danger icon={<DeleteOutlined />} onClick={showDeleteConfirm}>
-                        Supprimer
-                      </Menu.Item>
-                    </Menu>
-                  }
+              <Dropdown overlay={statusMenu} placement="bottomRight">
+                <Button 
+                  size="large"
+                  style={{
+                    background: 'rgba(255,255,255,0.1)',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    color: 'white',
+                    borderRadius: '8px',
+                    backdropFilter: 'blur(10px)'
+                  }}
                 >
-                  <Button icon={<EllipsisOutlined />} className="modern-btn" />
-                </Dropdown>
-              </Space>
-            </div>
-          </div>
-        </Card>
+                  Statut <DownOutlined />
+                </Button>
+              </Dropdown>
+              <Button 
+                  size="large"
+                  onClick={() => navigate(`/prospects/${id}/edit`)}
+                  style={{
+                    background: 'rgba(255,255,255,0.1)',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    color: 'white',
+                    borderRadius: '8px',
+                    backdropFilter: 'blur(10px)'
+                  }}
+                >
+                  Modifier <EditOutlined />
+                </Button>
+                <Button 
+                  size="large"
+                  onClick={showDeleteConfirm}
+                  style={{
+                    background: 'rgba(255,255,255,0.1)',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    color: 'white',
+                    borderRadius: '8px',
+                    backdropFilter: 'blur(10px)'
+                  }}
+                >
+                  Supprimer <DeleteOutlined />
+                </Button>
+
+              {prospect.is_converted && prospect.investisseur ? (
+                <Button
+                  type="primary"
+                  icon={<LinkOutlined />}
+                  onClick={() => navigate(`/investisseurs/${prospect.investisseur.id}`)}
+                  size="large"
+                  style={{
+                    background: 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 500
+                  }}
+                >
+                  {screens.xs ? 'Voir' : 'Voir l\'investisseur'}
+                </Button>
+              ) : prospect.is_converted ? (
+                <Button
+                  disabled
+                  icon={<CheckOutlined />}
+                  size="large"
+                  style={{ borderRadius: '8px' }}
+                >
+                  {screens.xs ? 'Converti' : 'Déjà converti'}
+                </Button>
+              ) : (
+                <Button
+                  type="primary"
+                  onClick={() => {
+                    if (prospect.statut === 'converti' || prospect.converted_at) {
+                      message.info('Ce prospect est déjà converti en investisseur');
+                      return;
+                    }
+                    if (!currentStage) {
+                      message.warning('Aucune étape de pipeline définie pour ce prospect');
+                      return;
+                    }
+                    if (!currentStage.is_final) {
+                      message.warning({
+                        content: (
+                          <div>
+                            <p>Le prospect doit être dans l'étape finale du pipeline pour être converti.</p>
+                            <p><strong>Étape actuelle :</strong> {currentStage.name}</p>
+                            <p><strong>Type d'étape :</strong> {currentStage.is_final ? 'Finale' : 'Intermédiaire'}</p>
+                            <p>Faites progresser le prospect jusqu'à l'étape finale ou marquez l'étape actuelle comme finale.</p>
+                          </div>
+                        ),
+                        duration: 6
+                      });
+                      return;
+                    }
+                    setConversionModalVisible(true);
+                  }}
+                  disabled={prospect.statut === 'converti' || prospect.converted_at}
+                  size="large"
+                  style={{
+                    background: 'rgba(255,255,255,0.1)',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    color: 'white',
+                    borderRadius: '8px',
+                    backdropFilter: 'blur(10px)'
+                  }}
+                >
+                  {screens.xs ? 'Convertir' : 'Convertir en investisseur'}
+                </Button>
+              )}
+
+
+
+
+
+            </motion.div>
+          </Col>
+        </Row>
       </motion.div>
 
-      {/* Métriques de pipeline */}
-      <motion.div
-        variants={cardVariants}
-        initial="hidden"
-        animate="visible"
-        transition={{ delay: 0.2 }}
-      >
-        <Card className="modern-metrics-card">
-          <Row gutter={[24, 24]}>
-            <Col xs={24} sm={8} md={6}>
-              <Statistic
-                title="Statut de conversion"
-                value={prospect.is_converted ? "Converti" : "En cours"}
-                prefix={prospect.is_converted ? <CheckCircleOutlined style={{ color: '#52c41a' }} /> : <ClockCircleOutlined style={{ color: '#faad14' }} />}
-                valueStyle={{ color: prospect.is_converted ? '#52c41a' : '#faad14' }}
-              />
-            </Col>
-            <Col xs={24} sm={8} md={6}>
-              <Statistic
-                title="Étape actuelle"
-                value={effectiveCurrentStage?.name || 'Aucune'}
-                prefix={<AuditOutlined style={{ color: '#1890ff' }} />}
-                valueStyle={{ color: '#1890ff' }}
-              />
-            </Col>
-            <Col xs={24} sm={8} md={6}>
-              <Statistic
-                title="Temps dans l'étape"
-                value={progression && progression.length > 0
-                  ? moment().diff(moment(progression[0].created_at), 'days')
-                  : 0}
-                suffix="jours"
-                prefix={<CalendarOutlined style={{ color: '#722ed1' }} />}
-                valueStyle={{ color: '#722ed1' }}
-              />
-            </Col>
-            <Col xs={24} sm={8} md={6}>
-              <Statistic
-                title="Valeur potentielle"
-                value={prospect.valeur_potentielle ? new Intl.NumberFormat('fr-FR', {
-                  style: 'currency',
-                  currency: prospect.devise || 'EUR'
-                }).format(prospect.valeur_potentielle) : 'Non définie'}
-                prefix={<GlobalOutlined style={{ color: '#13c2c2' }} />}
-                valueStyle={{ color: '#13c2c2' }}
-              />
-            </Col>
-          </Row>
-        </Card>
-      </motion.div>
+      {/* Métriques de pipeline avec AnimatedStatCard */}
+      <Row gutter={[24, 24]} style={{ marginBottom: '32px' }}>
+        <Col xs={12} sm={6}>
+          <AnimatedStatCard
+            icon={prospect.is_converted ? <CheckCircleOutlined /> : <ClockCircleOutlined />}
+            title="Statut de conversion"
+            value={prospect.is_converted ? "Converti" : "En cours"}
+            color={prospect.is_converted ? '#52c41a' : '#faad14'}
+            delay={0}
+          />
+        </Col>
+        <Col xs={12} sm={6}>
+          <AnimatedStatCard
+            icon={<AuditOutlined />}
+            title="Étape actuelle"
+            value={effectiveCurrentStage?.name || 'Aucune'}
+            color="#667eea"
+            delay={1}
+          />
+        </Col>
+        <Col xs={12} sm={6}>
+          <AnimatedStatCard
+            icon={<CalendarOutlined />}
+            title="Temps dans l'étape"
+            value={progression && progression.length > 0
+              ? moment().diff(moment(progression[0].created_at), 'days')
+              : 0}
+            suffix=" jours"
+            color="#764ba2"
+            delay={2}
+          />
+        </Col>
+        <Col xs={12} sm={6}>
+          <AnimatedStatCard
+            icon={<GlobalOutlined />}
+            title="Valeur potentielle"
+            value={prospect.valeur_potentielle ? new Intl.NumberFormat('fr-FR', {
+              style: 'currency',
+              currency: prospect.devise || 'EUR'
+            }).format(prospect.valeur_potentielle) : 'Non définie'}
+            color="#13c2c2"
+            delay={3}
+          />
+        </Col>
+      </Row>
 
-      {/* Visualisation du pipeline */}
+      {/* Visualisation du pipeline avec AnimatedContentCard */}
       {pipelineStages.length > 0 && (
-        <motion.div
-          variants={cardVariants}
-          initial="hidden"
-          animate="visible"
-          transition={{ delay: 0.3 }}
-        >
-          <Card className="modern-pipeline-card" title={
-            <Space>
-              <AuditOutlined />
-              Pipeline de suivi
-            </Space>
-          }>
-            <PipelineStageManager
-              entityType="prospect"
-              entityId={id}
-              stages={pipelineStages}
-              currentStage={currentStage}
-              progression={progression || []}
-              pipelineCompletedAt={prospect?.is_converted ? prospect?.converted_at || new Date().toISOString() : null}
-              onStagesChange={() => dispatch(getProspectPipeline(id))}
-              showAddButton={true}
-              buttonText="Ajouter une étape"
-              buttonClassName="modern-btn"
-              showVisualizer={true}
-            />
-          </Card>
-        </motion.div>
-      )}
+  <motion.div
+    variants={cardVariants}
+    initial="hidden"
+    animate="visible"
+    transition={{ delay: 0.3 }}
+    style={{ marginBottom: '24px' }}
+  >
+    <AnimatedContentCard
+      title="Pipeline de suivi"
+      delay={0}
+      extra={
+        <Space>
+          {nextStage && !prospect?.is_converted && (
+            <Button
+              type="primary"
+              icon={<RightOutlined />}
+              onClick={() => setPipelineModalVisible(true)}
+              disabled={!nextStage}
+              style={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: 500
+              }}
+            >
+              Avancer
+            </Button>
+          )}
+        </Space>
+      }
+    >
+      <PipelineStageManager
+        entityType="prospect"
+        entityId={id}
+        stages={pipelineStages}
+        currentStage={currentStage}
+        progression={progression || []}
+        pipelineCompletedAt={
+          prospect?.is_converted
+            ? prospect?.converted_at || new Date().toISOString()
+            : null
+        }
+        onStagesChange={() => dispatch(getProspectPipeline(id))}
+        showAddButton={true}
+        buttonText="Ajouter une étape"
+        buttonClassName="modern-btn"
+        showVisualizer={true}
+      />
+    </AnimatedContentCard>
+  </motion.div>
+)}
+
 
       {/* Contenu principal avec onglets */}
       <motion.div
@@ -774,7 +1117,10 @@ const ProspectDetails = () => {
         animate="visible"
         transition={{ delay: 0.4 }}
       >
-        <Card className="modern-content-card">
+        <AnimatedContentCard
+          title="Informations détaillées"
+          delay={1}
+        >
           <Tabs 
             activeKey={activeTab} 
             onChange={setActiveTab} 
@@ -942,20 +1288,32 @@ const ProspectDetails = () => {
             </TabPane>
 
             <TabPane tab={
-              <Space>
-                <WarningOutlined />
-                Blocages 
-              </Space>
-            } key="blockages">
-              <div className="tab-content">
-                <PipelineBlockages
-                  entityType="prospect"
-                  entityId={id}
-                  pipelineStages={pipelineStages || []}
-                  title="Blocages par étape du pipeline"
-                />
-              </div>
-            </TabPane>
+  <Space>
+    <WarningOutlined />
+    Blocages 
+  </Space>
+} key="blockages">
+  <div className="tab-content">
+    <Button
+      type="primary"
+      icon={<PlusOutlined />}
+      onClick={() => setAddBlockageVisible(true)}
+      style={{
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        border: 'none',
+        marginBottom: 16
+      }}
+    >
+      Add Blockage
+    </Button>
+    <PipelineBlockages
+      entityType="prospect"
+      entityId={id}
+      pipelineStages={pipelineStages || []}
+      title="Blocages par étape du pipeline"
+    />
+  </div>
+</TabPane>
 
             <TabPane tab={
               <Space>
@@ -1011,7 +1369,7 @@ const ProspectDetails = () => {
               </div>
             </TabPane>
           </Tabs>
-        </Card>
+        </AnimatedContentCard>
       </motion.div>
 
       {/* Modaux */}
@@ -1190,6 +1548,23 @@ const ProspectDetails = () => {
           />
         </Form>
       </Modal>
+      <Modal
+  open={addBlockageVisible}
+  onCancel={() => setAddBlockageVisible(false)}
+  footer={null}
+  destroyOnClose
+  title="Créer un blocage"
+  width={720}
+>
+  <BlockageForm
+    blockage={null}
+    onCancel={() => setAddBlockageVisible(false)}
+    entityType="prospect"
+    entityId={id}
+    pipelineStageType="pipeline_stage"
+    pipelineStageId={effectiveCurrentStage?.id}
+  />
+</Modal>
 
       <Modal
         title={`Passer à l'étape: ${nextStage?.name || ''}`}
@@ -1232,22 +1607,22 @@ const ProspectDetails = () => {
         </Form>
       </Modal>
 
-      <TaskCreateModal
-        visible={taskModalVisible}
-        onCancel={() => setTaskModalVisible(false)}
-        onSuccess={() => {
-          setTaskModalVisible(false);
-          setRefreshTrigger(prev => prev + 1);
-          message.success('Tâche créée avec succès');
-        }}
-        entityType="prospect"
-        entityId={id}
-        stageId={selectedStageForTask}
-        stageName={selectedStageName}
-        entityName={prospect?.nom}
-      />
+   <TaskCreateModal
+  visible={taskModalVisible}
+  onCancel={() => setTaskModalVisible(false)}
+  onSuccess={() => {
+    setTaskModalVisible(false);
+    setRefreshTrigger(prev => prev + 1);
+    message.success('Tâche créée avec succès');
+  }}
+  entityType="prospect"
+  entityId={id}
+  stageId={selectedStageForTask}
+  stageName={selectedStageName}
+  entityName={prospect?.nom}
+/>
 
-      {/* CSS Styles */}
+      {/* CSS Styles identiques à InviteDetails */}
       <style jsx>{`
         .modern-container {
           padding: 24px;
@@ -1261,6 +1636,8 @@ const ProspectDetails = () => {
           align-items: center;
           min-height: 60vh;
           background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+          border-radius: 20px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.12);
         }
 
         .loading-content {
@@ -1271,218 +1648,61 @@ const ProspectDetails = () => {
           box-shadow: 0 4px 20px rgba(0,0,0,0.08);
         }
 
-        .modern-header-card {
-          border-radius: 16px;
-          border: 1px solid #f0f0f0;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-          margin-bottom: 24px;
-          overflow: hidden;
+        .prospect-header {
+          position: relative;
         }
 
-        .header-content {
+        .header-background {
+          background-attachment: fixed;
+        }
+
+        .stat-card-modern {
+          transition: all 0.3s ease;
+          cursor: pointer;
+        }
+
+        .stat-card-modern:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important;
+        }
+
+        .stat-card-content {
           display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 8px;
+          flex-direction: column;
+          height: 100%;
         }
 
-        .header-info {
-          display: flex;
-          align-items: center;
-          gap: 16px;
+        .content-card-modern {
+          transition: all 0.3s ease;
         }
 
-        .header-details {
-          flex: 1;
+        .content-card-modern:hover {
+          box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important;
         }
 
-        .header-actions {
-          display: flex;
-          align-items: center;
-        }
-
-        .modern-metrics-card {
-          border-radius: 16px;
-          border: 1px solid #f0f0f0;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-          margin-bottom: 24px;
-        }
-
-        .modern-pipeline-card {
-          border-radius: 16px;
-          border: 1px solid #f0f0f0;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-          margin-bottom: 24px;
-        }
-
-        .modern-content-card {
-          border-radius: 16px;
-          border: 1px solid #f0f0f0;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-          overflow: hidden;
+        .modern-tabs {
+          margin-top: 0;
         }
 
         .modern-tabs .ant-tabs-tab {
-          padding: 12px 24px;
-          font-weight: 500;
-        }
-
-        .modern-tabs .ant-tabs-tab-active {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white !important;
           border-radius: 8px 8px 0 0;
-        }
-
-        .tab-content {
-          padding: 24px;
-        }
-
-        .details-header,
-        .tasks-header,
-        .notes-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 24px;
-        }
-
-        .details-header h4,
-        .tasks-header h4,
-        .notes-header h4 {
-          margin: 0;
-          color: #333;
-        }
-
-        .modern-descriptions {
-          border-radius: 8px;
-          overflow: hidden;
-        }
-
-        .modern-descriptions .ant-descriptions-item-label {
-          background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
-          font-weight: 600;
-        }
-
-        .info-card {
-          border-radius: 8px;
           border: 1px solid #f0f0f0;
+          background: #fafafa;
+          margin-right: 4px;
           transition: all 0.3s ease;
+          padding: 12px 16px;
         }
 
-        .info-card:hover {
-          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-          transform: translateY(-2px);
-        }
-
-        .stages-card {
-          border-radius: 12px;
-          border: 1px solid #f0f0f0;
-        }
-
-        .no-pipeline-alert {
-          border-radius: 8px;
-        }
-
-        .empty-state {
-          padding: 40px 0;
-        }
-
-        .modern-btn {
-          border-radius: 8px;
-          font-weight: 500;
-          transition: all 0.3s ease;
-        }
-
-        .modern-btn:hover {
+        .modern-tabs .ant-tabs-tab:hover {
+          background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+          border-color: #667eea;
           transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
 
-        .modern-btn-primary {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          border: none;
-          border-radius: 8px;
-          font-weight: 500;
-          transition: all 0.3s ease;
-        }
-
-        .modern-btn-primary:hover {
-          background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-
-        .modern-btn-disabled {
-          border-radius: 8px;
-          opacity: 0.6;
-        }
-
-        .modern-error-card,
-        .modern-not-found-card {
-          border-radius: 16px;
-          border: 1px solid #f0f0f0;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-          margin: 40px auto;
-          max-width: 500px;
-        }
-
-        .error-content,
-        .not-found-content {
-          text-align: center;
-          padding: 40px 20px;
-        }
-
-        .error-icon {
-          font-size: 48px;
-          color: '#ff4d4f';
-          margin-bottom: 16px;
-        }
-
-        .not-found-icon {
-          font-size: 48px;
-          color: '#1890ff';
-          margin-bottom: 16px;
-        }
-
-        @media (max-width: 768px) {
-          .modern-container {
-            padding: 16px;
-          }
-
-          .header-content {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 16px;
-          }
-
-          .header-actions {
-            width: 100%;
-            justify-content: space-between;
-          }
-
-          .tab-content {
-            padding: 16px;
-          }
-
-          .details-header,
-          .tasks-header,
-          .notes-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 16px;
-          }
-        }
-
-        @media (max-width: 576px) {
-          .header-info {
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-          }
-        }
+        .modern-tabs .ant-tabs-tab-active
       `}</style>
     </div>
   );
-};
+}
 
 export default ProspectDetails;

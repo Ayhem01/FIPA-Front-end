@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useSelector } from "react-redux";
 import {
   Layout,
   Menu,
@@ -61,6 +62,8 @@ function Header() {
   const [searchVisible, setSearchVisible] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [notifications] = useState(3);
+  const { user: reduxUser } = useSelector((s) => s.user);
+
 
   // Effet de scroll pour le header
   useEffect(() => {
@@ -81,6 +84,32 @@ function Header() {
       console.error("Erreur lors de la déconnexion:", error);
     }
   };
+  const storedUser = (() => {
+    try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; }
+  })();
+    const currentUser = reduxUser || storedUser;
+
+  const isAdmin = (() => {
+    const u = currentUser;
+    if (!u) return false;
+    const flag =
+      u.is_admin === true ||
+      u.is_admin === 1 ||
+      u.is_admin === "1" ||
+      u.is_admin === "true";
+    const roleStr = String(u.role || "").toLowerCase();
+    const list1 = Array.isArray(u.roles_list) ? u.roles_list.map(r => String(r?.name || r).toLowerCase()) : [];
+    const list2 = Array.isArray(u.role_names) ? u.role_names.map(r => String(r).toLowerCase()) : [];
+    const list3 = Array.isArray(u.roles) ? u.roles.map(r => String(r?.name || r).toLowerCase()) : [];
+    return flag || [roleStr, ...list1, ...list2, ...list3].includes("admin");
+  })();
+
+  const displayName = currentUser?.name || "Utilisateur";
+  const displayRole = isAdmin
+    ? "Admin"
+    : (currentUser?.role ||
+       currentUser?.role_names?.[0] ||
+       "Utilisateur");
 
   const userMenuItems = [
     {
@@ -345,9 +374,11 @@ function Header() {
                   title="Actions"
                   popupClassName="modern-submenu"
                 >
+                 {isAdmin && (
                   <Menu.Item key="/actions/create" icon={<PlusOutlined />}>
                     <Link to="/actions/create">Créer une action</Link>
                   </Menu.Item>
+                )}
                   <Menu.Item key="/actions" icon={<UnorderedListOutlined />}>
                     <Link to="/actions">Liste des actions</Link>
                   </Menu.Item>
@@ -368,9 +399,12 @@ function Header() {
                   <Menu.Item key="/tasks/calendar" icon={<CalendarOutlined />}>
                     <Link to="/tasks/calendar">Calendrier</Link>
                   </Menu.Item>
-                  <Menu.Item key="/tasks/my-tasks" icon={<UserOutlined />}>
+                  {isAdmin && (
+                    <Menu.Item key="/tasks/my-tasks" icon={<UserOutlined />}>
                     <Link to="/tasks/my-tasks">Mes tâches</Link>
                   </Menu.Item>
+                  )}
+                  
                 </SubMenu>
                 
                 <SubMenu 
@@ -389,18 +423,19 @@ function Header() {
                   title="Entreprises"
                   popupClassName="modern-submenu"
                 >
-                <Menu.Item key="/campanies/create" icon={<PlusOutlined />}>
-                    <Link to="/campanies/create">Créer une entreprise</Link>
+               {isAdmin && (
+                  <Menu.Item key="/companies/create" icon={<PlusOutlined />}>
+                    <Link to="/companies/create">Créer une entreprise</Link>
                   </Menu.Item>
-                  <Menu.Item key="/campanies" icon={<UnorderedListOutlined />}>
-                    <Link to="/campanies" style={{ color: 'inherit' }}>Liste des entreprises</Link>
+                )}
+                  <Menu.Item key="/companies" icon={<UnorderedListOutlined />}>
+                    <Link to="/companies" style={{ color: 'inherit' }}>Liste des entreprises</Link>
                   </Menu.Item>  
                 </SubMenu>
                
               </Menu>
             </nav>
 
-            {/* Contrôles à droite */}
             <div className="header-controls" style={{ 
               display: 'flex', 
               alignItems: 'center', 
@@ -408,102 +443,9 @@ function Header() {
               minWidth: '220px',
               justifyContent: 'flex-end'
             }}>
-              {/* Recherche */}
-              <AnimatePresence>
-                {searchVisible ? (
-                  <motion.div
-                    initial={{ width: 0, opacity: 0 }}
-                    animate={{ width: 200, opacity: 1 }}
-                    exit={{ width: 0, opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    style={{ overflow: 'hidden' }}
-                  >
-                    <Search
-                      placeholder="Rechercher..."
-                      onBlur={() => setSearchVisible(false)}
-                      autoFocus
-                      size="small"
-                      style={{ 
-                        borderRadius: '20px',
-                        background: 'rgba(255,255,255,0.2)',
-                        backdropFilter: 'blur(10px)'
-                      }}
-                    />
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <Tooltip title="Rechercher" placement="bottom">
-                      <Button 
-                        type="text" 
-                        icon={<SearchOutlined />}
-                        onClick={() => setSearchVisible(true)}
-                        style={{
-                          color: 'white',
-                          background: 'rgba(255,255,255,0.1)',
-                          border: 'none',
-                          borderRadius: '8px',
-                          width: '36px',
-                          height: '36px'
-                        }}
-                      />
-                    </Tooltip>
-                  </motion.div>
-                )}
-              </AnimatePresence>
               
-              {/* Notifications */}
-              <motion.div
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Dropdown 
-                  dropdownRender={() => <NotificationDropdown />}
-                  trigger={["click"]} 
-                  placement="bottomRight"
-                >
-                  <Badge count={notifications} size="small">
-                    <Tooltip title="Notifications" placement="bottom">
-                      <Button 
-                        type="text" 
-                        icon={<BellOutlined />}
-                        style={{
-                          color: 'white',
-                          background: 'rgba(255,255,255,0.1)',
-                          border: 'none',
-                          borderRadius: '8px',
-                          width: '36px',
-                          height: '36px'
-                        }}
-                      />
-                    </Tooltip>
-                  </Badge>
-                </Dropdown>
-              </motion.div>
               
-              {/* Paramètres */}
-              <motion.div
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Tooltip title="Paramètres" placement="bottom">
-                  <Button 
-                    type="text" 
-                    icon={<SettingOutlined />}
-                    onClick={() => navigate('/settings')}
-                    style={{
-                      color: 'white',
-                      background: 'rgba(255,255,255,0.1)',
-                      border: 'none',
-                      borderRadius: '8px',
-                      width: '36px',
-                      height: '36px'
-                    }}
-                  />
-                </Tooltip>
-              </motion.div>
+             
               
               {/* Profil utilisateur */}
               <motion.div
@@ -541,7 +483,7 @@ function Header() {
                       alignItems: 'flex-start',
                       flex: 1 
                     }}>
-                      <Text 
+                    <Text 
                         strong 
                         style={{ 
                           color: 'white',
@@ -549,7 +491,7 @@ function Header() {
                           lineHeight: 1.2
                         }}
                       >
-                        {JSON.parse(localStorage.getItem('user') || '{}')?.name || 'Admin'}
+                        {displayName}
                       </Text>
                       <Text 
                         style={{ 
@@ -558,7 +500,7 @@ function Header() {
                           lineHeight: 1
                         }}
                       >
-                        Admin
+                        {displayRole}
                       </Text>
                     </div>
                     <DownOutlined style={{ 

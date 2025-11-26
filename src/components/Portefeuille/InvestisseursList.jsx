@@ -1019,7 +1019,20 @@ const InvestisseursList = () => {
               transition={{ delay: 0.4 }}
             >
               <Space size="large">
+               <Button 
+                                type="primary" 
+                                icon={<DashboardOutlined />}
+                                style={{
+                                  background: 'rgba(255,255,255,0.2)',
+                                  border: '1px solid rgba(255,255,255,0.3)',
+                                  backdropFilter: 'blur(10px)'
+                                }}
+                              >
+                                <Link to="/dashboard/investisseurs" style={{ color: 'white' }}>
+                                Dashboard de investisseurs
               
+                                </Link>
+                              </Button>
               </Space>
             </motion.div>
           </Col>

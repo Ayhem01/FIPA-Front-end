@@ -55,6 +55,19 @@ const PipelineStageManager = ({
 }) => {
     const dispatch = useDispatch();
     const screens = useBreakpoint();
+    const currentUser = useSelector(state => state.user.user);
+    const isAdmin = React.useMemo(() => {
+        if (!currentUser) return false;
+        const flag = [true, 1, '1', 'true'].includes(currentUser.is_admin);
+        const roleStr = String(currentUser.role || '').toLowerCase();
+        const roles = [
+            roleStr,
+            ...(Array.isArray(currentUser.roles_list) ? currentUser.roles_list : []),
+            ...(Array.isArray(currentUser.role_names) ? currentUser.role_names : []),
+            ...(Array.isArray(currentUser.roles) ? currentUser.roles.map(r => r?.name || r) : [])
+        ].filter(Boolean).map(x => String(x).toLowerCase());
+        return flag || roles.includes('admin');
+    }, [currentUser]);
 
     // Sélecteurs Redux pour les détails d'étape
     const stageDetailsFromStore = useSelector(state => state.pipelineStages?.stageDetails || null);
@@ -69,7 +82,7 @@ const PipelineStageManager = ({
     const [stageDetails, setStageDetails] = useState(null);
     const [loading, setLoading] = useState(false);
 
-    // État pour stocker les tâches et blocages
+    // État pour stocker les tâches et blocages (dans le drawer)
     const [stageTasks, setStageTasks] = useState([]);
     const [stageBlockages, setStageBlockages] = useState([]);
     const [loadingTasks, setLoadingTasks] = useState(false);
@@ -84,18 +97,61 @@ const PipelineStageManager = ({
     const effectiveCurrentStage = currentStage ||
         (stages && stages.length > 0 ? stages[0] : null);
 
+    // Blocages de l'étape courante (pour bloquer l'avancement)
+    const [currentStageBlockages, setCurrentStageBlockages] = useState([]);
+    const [loadingCurrentBlockages, setLoadingCurrentBlockages] = useState(false);
+
+    // Helper: blocage non résolu
+    const isUnresolvedBlockage = (b) => {
+        if (!b) return false;
+        const rawStatus = String(b.status || b.statut || b.state || '').toLowerCase();
+        const resolvedByStatus =
+            rawStatus === 'resolved' ||
+            rawStatus === 'resolu' ||
+            rawStatus === 'résolu' ||
+            rawStatus === 'close' ||
+            rawStatus === 'closed';
+        const resolvedFlag =
+            b.resolved === true ||
+            b.is_resolved === true ||
+            b.isResolved === true ||
+            !!b.resolved_at ||
+            !!b.date_resolution;
+        return !(resolvedByStatus || resolvedFlag);
+    };
+
+    const loadCurrentStageBlockages = useCallback(async () => {
+        try {
+            if (!effectiveCurrentStage?.id) {
+                setCurrentStageBlockages([]);
+                return [];
+            }
+            setLoadingCurrentBlockages(true);
+            const result = await dispatch(fetchBlockagesForStage({
+                entityType,
+                entityId,
+                stageId: effectiveCurrentStage.id
+            })).unwrap();
+            const list = Array.isArray(result) ? result : (result?.data || []);
+            setCurrentStageBlockages(list);
+            return list;
+        } catch (error) {
+            setCurrentStageBlockages([]);
+            return [];
+        } finally {
+            setLoadingCurrentBlockages(false);
+        }
+    }, [dispatch, entityType, entityId, effectiveCurrentStage?.id]);
+
     useEffect(() => {
         if (stageDetailsFromStore && selectedStage) {
-            console.log('Mise à jour des détails depuis le store:', stageDetailsFromStore);
             setStageDetails(stageDetailsFromStore);
 
             if (stageDetailsFromStore.tasks && Array.isArray(stageDetailsFromStore.tasks)) {
-                console.log('Tâches trouvées dans le store:', stageDetailsFromStore.tasks);
                 setStageTasks(stageDetailsFromStore.tasks);
             }
 
             if (stageDetailsFromStore.blockages && Array.isArray(stageDetailsFromStore.blockages)) {
-                console.log('Blocages trouvés dans le store:', stageDetailsFromStore.blockages);
                 setStageBlockages(stageDetailsFromStore.blockages);
             }
         }
@@ -112,6 +168,11 @@ const PipelineStageManager = ({
             setNextStage(null);
         }
     }, [stages, effectiveCurrentStage]);
+
+    // Charger blocages de l'étape courante quand elle change
+    useEffect(() => {
+        loadCurrentStageBlockages();
+    }, [loadCurrentStageBlockages]);
 
     // Ouvrir le modal pour ajouter une nouvelle étape
     const handleAddStage = () => {
@@ -156,7 +217,6 @@ const PipelineStageManager = ({
                             if (onStagesChange) onStagesChange();
                         })
                         .catch(err => {
-                            console.error("Erreur lors de la mise à jour de l'étape:", err);
                             message.error(`Erreur lors de la mise à jour de l'étape: ${err}`);
                         });
 
@@ -173,7 +233,6 @@ const PipelineStageManager = ({
                             if (onStagesChange) onStagesChange();
                         })
                         .catch(err => {
-                            console.error("Erreur lors de l'ajout de l'étape:", err);
                             message.error(`Erreur lors de l'ajout de l'étape: ${err}`);
                         });
                 }
@@ -223,8 +282,26 @@ const PipelineStageManager = ({
             });
     };
 
-    // Avancer dans le pipeline
-    const handleAdvancePipeline = () => {
+    // Avancer dans le pipeline (avec blocage si blocages actifs)
+    const handleAdvancePipeline = async () => {
+        const list = await loadCurrentStageBlockages();
+        const unresolved = (list || []).filter(isUnresolvedBlockage);
+        if (unresolved.length > 0) {
+            const names = unresolved.map(b => b.name || b.title || `Blocage #${b.id}`);
+            Modal.warning({
+                title: "Blocages non résolus",
+                content: (
+                    <div>
+                        <p>Impossible d’avancer: les blocages suivants doivent être résolus :</p>
+                        <ul style={{ paddingLeft: 20 }}>
+                            {names.map((n, i) => <li key={i}>{n}</li>)}
+                        </ul>
+                    </div>
+                )
+            });
+            return;
+        }
+
         advanceForm.validateFields()
             .then(values => {
                 const apiUrl = `${API_URL}/${entityType}s/${entityId}/pipeline/advance`;
@@ -244,34 +321,67 @@ const PipelineStageManager = ({
                             setAdvanceModalVisible(false);
                             advanceForm.resetFields();
                             if (onStagesChange) onStagesChange();
+                            loadCurrentStageBlockages();
                         } else {
                             message.error(response.data.message || 'Erreur lors de l\'avancement');
                         }
                     })
                     .catch(error => {
-                        console.error('Erreur lors de l\'avancement:', error);
                         message.error(`Erreur lors de l'avancement: ${error.response?.data?.message || error.message}`);
                     });
             });
     };
 
-    // Ouvrir le modal d'avancement
-    const handleOpenAdvanceModal = () => {
+    // Ouvrir le modal d'avancement (bloqué si blocages actifs)
+    const handleOpenAdvanceModal = async () => {
         if (!nextStage) {
             message.info("Vous êtes déjà à la dernière étape du pipeline");
+            return;
+        }
+        const list = await loadCurrentStageBlockages();
+        const unresolved = (list || []).filter(isUnresolvedBlockage);
+        if (unresolved.length > 0) {
+            const names = unresolved.map(b => b.name || b.title || `Blocage #${b.id}`);
+            Modal.warning({
+                title: "Blocages non résolus",
+                content: (
+                    <div>
+                        <p>Vous devez résoudre ces blocages avant de passer à l’étape suivante :</p>
+                        <ul style={{ paddingLeft: 20 }}>
+                            {names.map((n, i) => <li key={i}>{n}</li>)}
+                        </ul>
+                    </div>
+                )
+            });
             return;
         }
         advanceForm.resetFields();
         setAdvanceModalVisible(true);
     };
 
-    // Avancer directement à une étape spécifique
-    const handleAdvanceToStage = (stage) => {
+    // Avancer directement à une étape spécifique (bloqué si blocages actifs)
+    const handleAdvanceToStage = async (stage) => {
         if (stage.order <= (effectiveCurrentStage?.order || 0)) {
             handleViewStageDetails(stage);
             return;
         }
-
+        const list = await loadCurrentStageBlockages();
+        const unresolved = (list || []).filter(isUnresolvedBlockage);
+        if (unresolved.length > 0) {
+            const names = unresolved.map(b => b.name || b.title || `Blocage #${b.id}`);
+            Modal.warning({
+                title: "Blocages non résolus",
+                content: (
+                    <div>
+                        <p>Vous devez résoudre ces blocages avant d’avancer :</p>
+                        <ul style={{ paddingLeft: 20 }}>
+                            {names.map((n, i) => <li key={i}>{n}</li>)}
+                        </ul>
+                    </div>
+                )
+            });
+            return;
+        }
         setNextStage(stage);
         advanceForm.resetFields();
         setAdvanceModalVisible(true);
@@ -284,37 +394,30 @@ const PipelineStageManager = ({
 
         const loadBasicDetails = async () => {
             try {
-                console.log('Chargement des détails de base pour l\'étape:', stage.id);
                 await loadStageTasks(stage.id);
                 await loadStageBlockages(stage.id);
             } catch (error) {
-                console.error('Erreur lors du chargement des détails de base:', error);
             } finally {
                 setLoading(false);
             }
         };
 
         if (stage.id === effectiveCurrentStage?.id) {
-            console.log('Chargement des détails complets pour l\'étape courante:', stage.id);
             dispatch(getStageDetails({
                 entityType,
                 entityId,
                 stageId: stage.id
             }))
                 .unwrap()
-                .then(response => {
-                    console.log('Détails de l\'étape récupérés avec succès:', response);
-                })
-                .catch(error => {
-                    console.error('Erreur lors du chargement des détails:', error);
-                    message.error(`Erreur: ${error}`);
+                .then(() => {})
+                .catch(() => {
+                    message.error(`Erreur: impossible de charger les détails`);
                     loadBasicDetails();
                 })
                 .finally(() => {
                     setLoading(false);
                 });
         } else {
-            console.log('Chargement des détails de base pour l\'étape non courante:', stage.id);
             loadBasicDetails();
         }
     };
@@ -322,14 +425,10 @@ const PipelineStageManager = ({
     const loadStageTasks = async (stageId) => {
         setLoadingTasks(true);
         try {
-            console.log(`Chargement des tâches pour l'étape ${stageId}`);
-
             const response = await axios.get(
                 `${API_URL}/pipeline-tasks/${entityType}/${entityId}/${stageId}`,
                 getAuthHeader()
             );
-
-            console.log("Tâches récupérées:", response.data);
 
             let tasksData = [];
             if (response.data.success) {
@@ -337,11 +436,8 @@ const PipelineStageManager = ({
             } else if (response.data.status === 'success') {
                 tasksData = response.data.data || [];
             }
-
-            console.log("Tâches formatées:", tasksData);
             setStageTasks(tasksData);
         } catch (error) {
-            console.error("Erreur lors du chargement des tâches:", error);
             setStageTasks([]);
         } finally {
             setLoadingTasks(false);
@@ -352,13 +448,10 @@ const PipelineStageManager = ({
         setLoadingBlockages(true);
         try {
             if (stageDetailsFromStore && stageDetailsFromStore.blockages && stageDetailsFromStore.blockages.length > 0) {
-                console.log('Utilisation des blocages du store:', stageDetailsFromStore.blockages);
                 setStageBlockages(stageDetailsFromStore.blockages);
                 setLoadingBlockages(false);
                 return;
             }
-
-            console.log(`Chargement des blocages pour l'étape ${stageId} de ${entityType} #${entityId}`);
 
             const result = await dispatch(fetchBlockagesForStage({
                 entityType: entityType,
@@ -366,10 +459,9 @@ const PipelineStageManager = ({
                 stageId: stageId
             })).unwrap();
 
-            console.log('Blocages récupérés:', result);
-            setStageBlockages(result);
+            const list = Array.isArray(result) ? result : (result?.data || []);
+            setStageBlockages(list);
         } catch (error) {
-            console.error('Erreur lors du chargement des blocages:', error);
             setStageBlockages([]);
         } finally {
             setLoadingBlockages(false);
@@ -438,6 +530,12 @@ const PipelineStageManager = ({
             progressPercent = Math.min(Math.max(progressPercent, 0), 100);
         }
 
+        // Blocages actifs sur l'étape courante
+        const hasUnresolved = (currentStageBlockages || []).some(isUnresolvedBlockage);
+        const unresolvedNames = (currentStageBlockages || [])
+            .filter(isUnresolvedBlockage)
+            .map(b => b.name || b.title || `Blocage #${b.id}`);
+
         return (
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -457,36 +555,57 @@ const PipelineStageManager = ({
                             </Text>
                         )}
                     </div>
-                    <Space size="middle">
-                        <Button
-                            icon={<OrderedListOutlined />}
-                            onClick={() => setStageListVisible(true)}
-                            className="modern-btn"
-                        >
-                            {screens.xs ? '' : 'Liste des étapes'}
-                        </Button>
-                        {!isPipelineCompleted && nextStage && (
+                    {isAdmin && (
+                        <Space size="middle" wrap>
                             <Button
-                                type="primary"
-                                icon={<RightOutlined />}
-                                onClick={handleOpenAdvanceModal}
-                                className="modern-btn-primary"
+                                icon={<OrderedListOutlined />}
+                                onClick={() => setStageListVisible(true)}
+                                className="modern-btn"
                             >
-                                {screens.xs ? 'Avancer' : 'Étape suivante'}
+                                {screens.xs ? '' : 'Liste des étapes'}
                             </Button>
-                        )}
-                        {!isPipelineCompleted && showAddButton && (
-                            <Button
-                                type={buttonType}
-                                icon={<PlusOutlined />}
-                                onClick={handleAddStage}
-                                className={`modern-btn ${buttonClassName}`}
-                            >
-                                {screens.xs ? '' : buttonText}
-                            </Button>
-                        )}
-                    </Space>
+                            {!isPipelineCompleted && nextStage && (
+                                <Button
+                                    type="primary"
+                                    icon={<RightOutlined />}
+                                    onClick={handleOpenAdvanceModal}
+                                    className="modern-btn-primary"
+                                    disabled={hasUnresolved}
+                                    title={hasUnresolved ? 'Des blocages actifs empêchent l’avancement' : undefined}
+                                >
+                                    {screens.xs ? 'Avancer' : 'Étape suivante'}
+                                </Button>
+                            )}
+                            {!isPipelineCompleted && showAddButton && (
+                                <Button
+                                    type={buttonType}
+                                    icon={<PlusOutlined />}
+                                    onClick={handleAddStage}
+                                    className={`modern-btn ${buttonClassName}`}
+                                >
+                                    {screens.xs ? '' : buttonText}
+                                </Button>
+                            )}
+                        </Space>
+                    )}
                 </div>
+
+                {hasUnresolved && (
+                    <Alert
+                        style={{ marginBottom: 16 }}
+                        type="warning"
+                        showIcon
+                        message="Blocages actifs sur l'étape courante"
+                        description={
+                            <div>
+                                <div>Veuillez résoudre ces blocages avant d’avancer :</div>
+                                <ul style={{ paddingLeft: 20, marginTop: 8 }}>
+                                    {unresolvedNames.map((n, i) => <li key={i}>{n}</li>)}
+                                </ul>
+                            </div>
+                        }
+                    />
+                )}
 
                 <motion.div
                     initial={{ width: 0 }}
@@ -590,6 +709,8 @@ const PipelineStageManager = ({
                                                 handleOpenAdvanceModal();
                                             }}
                                             className="advance-btn-small"
+                                            disabled={hasUnresolved}
+                                            title={hasUnresolved ? 'Des blocages actifs empêchent l’avancement' : undefined}
                                         >
                                             Avancer
                                         </Button>
@@ -674,6 +795,8 @@ const PipelineStageManager = ({
                                     type="primary"
                                     onClick={handleOpenAdvanceModal}
                                     className="modern-btn-primary"
+                                    disabled={hasUnresolved}
+                                    title={hasUnresolved ? 'Des blocages actifs empêchent l’avancement' : undefined}
                                 >
                                     Avancer
                                 </Button>
